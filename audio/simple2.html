@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Simple use an audio context</title>
+</head>
+<body>
+<h2>Simple use of an audio context to play a single file</h2>
+</body>
+</html>
+
+<script type="text/javascript">
+function main() {
+	let audioContext = new window.AudioContext()
+	if (!audioContext) { return }
+	let fileUrl = "/media/bit1.wav"
+	let request = new XMLHttpRequest()
+
+	request.open('GET', fileUrl, true)
+	request.responseType = 'arraybuffer'
+	request.onload = onRequestLoaded(audioContext, request)
+	request.send()
+}
+
+function onRequestLoaded(audioContext, request) {
+	return () => {
+		if(!audioContext) { return }
+		if(!request) { return }
+		console.log(request)
+		audioContext.decodeAudioData(request.response, onDecodedAudioBuffer(audioContext), onDecodedAudioBufferError)
+		console.log("Request loaded")		
+	}	
+}
+
+function onDecodedAudioBuffer(audioContext){
+	return (buffer) => {
+		if(!audioContext) { return }
+		if(!buffer){ return }
+
+		let source = audioContext.createBufferSource()
+		source.buffer = buffer
+		source.connect(audioContext.destination)
+		source.start(0)
+
+	}
+}
+
+function onDecodedAudioBufferError() {
+	console.log("Error decoding audio buffer")
+}
+
+main();
+
+</script>
