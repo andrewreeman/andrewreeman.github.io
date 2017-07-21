@@ -36,11 +36,13 @@ function onDecodedAudioBuffer(audioContext){
 		if(!audioContext) { return }
 		if(!buffer){ return }
 
-		let source = audioContext.createBufferSource()
-		source.buffer = buffer
-		source.connect(audioContext.destination)
-		source.start(0)
 
+		for (var i = 0; i < 5; ++i) {
+			let source = audioContext.createBufferSource()
+			source.buffer = buffer
+			source.connect(audioContext.destination)
+			source.start(audioContext.currentTime + i)
+		}	
 	}
 }
 
