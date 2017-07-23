@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Buffer loader example</title>
+</head>
+<body>
+<h2>This example uses the BufferLoader object</h2>
+</body>
+</html>
+
+<script src="/js/BufferLoader.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+main()	
+
+function main() {
+	let audioContext = new window.AudioContext()
+	if (!audioContext) { return }
+
+	let soundUrls = [
+		{id: "bit1", url:"/media/bit1.wav"},
+		{id: "bit2", url:"/media/bit2.wav"},
+		{id: "bit3", url: "/media/bit3.wav"}
+	]
+
+	let loader = new BufferLoader(audioContext, soundUrls, finishedLoading)
+
+	loader.load()
+}
+
+function finishedLoading(audioContext, bufferList) {
+	console.log(bufferList)
+	for (var i = 0; i < bufferList.length; i++) {
+		let source = audioContext.createBufferSource()
+		
+		console.log("Playing " + bufferList[i].id)
+		source.buffer = bufferList[i].buffer 		
+		source.connect( audioContext.destination )
+		source.start( audioContext.currentTime + i )
+	}	
+}
+</script>
