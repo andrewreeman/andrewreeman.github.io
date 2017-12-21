@@ -23,16 +23,19 @@ layout: selin
 
 <div class="jumbotron selin-green">
 	<h2>Christmas Treasure hunt</h2>
-	<p>Type in the code you are given and read the clue to find the next present and code!</p>
+	<p>Enter the code you are given and read the clue to find the next present and code!</p>
 </div>
 
 <div class="container">	
 	<h3 id="puzzle-title">Title</h3>
 
 	<div class="input-group" id="puzzle-content">      
-	      <input type="text" class="form-control" name="puzzle-input" id="puzzle-input" placeholder="Type in the code you find..." />
+	      <!-- <input type="text" class="form-control" name="puzzle-input" id="puzzle-input" placeholder="Type in the code you find..." />	       -->
+	      <input type="number" class="form-control puzzle-number-input" name="puzzle-input-1" id="puzzle-input-1" min="0" max="9" value="0" />
+	      <input type="number" class="form-control puzzle-number-input" name="puzzle-input-2" id="puzzle-input-2" min="0" max="9" value="0" />
+	      <input type="number" class="form-control puzzle-number-input" name="puzzle-input-3" id="puzzle-input-3" min="0" max="9" value="0" />
 	      <span class="input-group-btn">        
-	        <button class="btn btn-secondary selin-green" type="button" id="puzzle-submit" >Submit!</button>
+	        <button class="btn btn-secondary selin-green" type="button" id="puzzle-submit" >Submit!</button>	        
 	      </span>
 	</div>
 </div>

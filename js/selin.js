@@ -11,7 +11,7 @@ const successModalMessage = {
 }
 
 const states = [
-	{title: "Type in the code you are given...", code: 450, modal: standardModalMessage},
+	{title: "Enter the the code you are given...", code: 450, modal: standardModalMessage},
 	{title: "Polka cube", code: 647, modal: standardModalMessage},
 	{title: "Watch TV and put your feet up", code: 259, modal: standardModalMessage},
 	{title: "Hammer time", code: 471, modal: standardModalMessage},	
@@ -88,8 +88,7 @@ function render(state) {
 	const title = document.getElementById("puzzle-title")	
 	title.innerHTML = state.title
 
-	const input = document.getElementById("puzzle-input")
-	input.value = ""
+	renderInputs()	
 	
 	const button = document.getElementById("puzzle-submit")	
 	console.log(state)
@@ -98,16 +97,17 @@ function render(state) {
 	}
 
 	state.onClick = () => {
-		const userValue = input.value
-		
-		const userNumber = parseInt(userValue) 
+		const userNumber = getUserInput()
+		console.log(userNumber)
+			
+		// const userNumber = parseInt(userValue) 
 
-		if(!userNumber) {
-			input.value = ""
-			return
-		}
+		// if(!userNumber) {
+		// 	input.value = ""
+		// 	return
+		// }
 
-		checkResult(userNumber, state)			
+		// checkResult(userNumber, state)			
 	}
 	
 	button.addEventListener("click", state.onClick)
@@ -117,12 +117,32 @@ function render(state) {
 	}
 }
 
+function renderInputs() {
+	$(".puzzle-number-input").val("0")	
+}
+
+function getUserInput() {
+	const input1Value = document.getElementById("puzzle-input-1").value
+	const input2Value = document.getElementById("puzzle-input-2").value
+	const input3Value = document.getElementById("puzzle-input-3").value
+
+	const string = `${input1Value}${input2Value}${input3Value}`
+
+	return parseInt(string)	
+}
+
 $(document).ready(() => {	
 	const currentState = nextState(null)
 
 	const modalDismissButton = document.getElementById("modal-dialog-ok")
 	modalDismissButton.addEventListener("click", () => {
 		$('#modal-dialog').modal('hide')
+	})
+
+	$(".puzzle-number-input").keyup((evnt) => {
+		 const currentValue = evnt.target.value		 
+		 const newValue = currentValue[currentValue.length-1]
+		 evnt.target.value = newValue		
 	})
 
 	render(currentState)	

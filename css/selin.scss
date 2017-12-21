@@ -16,4 +16,25 @@ $selin_green: #5b924c;
 	background-color: $selin-green;
 }
 
+/* hide spinner on numbers */
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+@mixin puzzle-input {
+	width: 5vw;
+	height: 10vw;		
+}
+
+#puzzle-input-1 {
+	@include puzzle-input	
+}
+
+#puzzle-input-2 {
+	@include puzzle-input	
+}
+
+#puzzle-input-3 {
+	@include puzzle-input	
+}
 
