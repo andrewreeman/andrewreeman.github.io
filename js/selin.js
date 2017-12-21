@@ -26,6 +26,20 @@ for(let i =0; i < states.length; i++) {
 	states[i].index = i
 }
 
+$(document).ready(() => {	
+	const currentState = nextState(null)
+
+	const modalDismissButton = document.getElementById("modal-dialog-ok")
+	modalDismissButton.addEventListener("click", () => {
+		$('#modal-dialog').modal('hide')
+	})
+
+	initInputs()	
+	render(currentState)	
+})
+
+
+// Functions
 function getStateWithCode(code) {
 	return states.find((state) => {return state.code === code } )
 }
@@ -60,7 +74,7 @@ function checkResult(result, state) {
 		else {
 			window.location = "/selinwin"
 		}		
-		return
+		return 
 	}
 		
 
@@ -81,6 +95,9 @@ function checkResult(result, state) {
 	const modalDescription = document.getElementById("modal-description")
 	modalDescription.innerHTML = state.modal.description
 
+	const okbutton = document.getElementById("modal-dialog-ok")
+	okbutton.focus()
+
 	$('#modal-dialog').modal('show')	
 }
 
@@ -97,17 +114,13 @@ function render(state) {
 	}
 
 	state.onClick = () => {
-		const userNumber = getUserInput()
-		console.log(userNumber)
-			
-		// const userNumber = parseInt(userValue) 
+		const userNumber = getUserInput()						
 
-		// if(!userNumber) {
-		// 	input.value = ""
-		// 	return
-		// }
+		if(!userNumber) {			
+			return
+		}
 
-		// checkResult(userNumber, state)			
+		checkResult(userNumber, state)			
 	}
 	
 	button.addEventListener("click", state.onClick)
@@ -118,7 +131,12 @@ function render(state) {
 }
 
 function renderInputs() {
-	$(".puzzle-number-input").val("0")	
+	resetInputs()
+}
+
+function resetInputs() {
+	$(".puzzle-number-input").val("0")		
+	document.getElementById("puzzle-input-1").focus()
 }
 
 function getUserInput() {
@@ -131,20 +149,34 @@ function getUserInput() {
 	return parseInt(string)	
 }
 
-$(document).ready(() => {	
-	const currentState = nextState(null)
+function initInputs() {
+	const input1 = document.getElementById("puzzle-input-1")
+	const input2 = document.getElementById("puzzle-input-2")
+	const input3 = document.getElementById("puzzle-input-3")
+	const button = document.getElementById("puzzle-submit")
 
-	const modalDismissButton = document.getElementById("modal-dialog-ok")
-	modalDismissButton.addEventListener("click", () => {
-		$('#modal-dialog').modal('hide')
+	$(".puzzle-number-input").keyup((evnt) => {		
+		console.log("hit")
+
+		const intValue = parseInt(evnt.originalEvent.key)
+		console.log(intValue)
+		if(intValue !== 0 && !intValue) {
+			evnt.target.value = 0
+			return
+		}
+		
+		evnt.target.value = intValue
+
+		if(evnt.target.id === "puzzle-input-1") {
+			input2.focus()
+		}
+
+		if(evnt.target.id === "puzzle-input-2") {
+			input3.focus()
+		}
+
+		if(evnt.target.id === "puzzle-input-3") {
+			button.focus()
+		}
 	})
-
-	$(".puzzle-number-input").keyup((evnt) => {
-		 const currentValue = evnt.target.value		 
-		 const newValue = currentValue[currentValue.length-1]
-		 evnt.target.value = newValue		
-	})
-
-	render(currentState)	
-})
-
+}
