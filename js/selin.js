@@ -1,4 +1,27 @@
 
+const images = [
+	"candle",
+	"gift",
+	"santa",
+	"candy",
+	"gingerbread_men",
+	"sleigh",
+	"candy_cane",
+	"hat",
+	"snowflake",
+	"christmas_ball",
+	"ice_skate",
+	"snowman",
+	"christmas_tree",
+	"jingle_bell",
+	"sock",
+	"deer",
+	"mitten",
+	"star",
+	"firework",	
+	"penguin"
+]
+
 
 const standardModalMessage = {
 	title: "Incorrect",
@@ -106,6 +129,7 @@ function render(state) {
 	title.innerHTML = state.title
 
 	renderInputs()	
+	renderImages()
 	
 	const button = document.getElementById("puzzle-submit")	
 	console.log(state)
@@ -128,6 +152,22 @@ function render(state) {
 	if(state.success) {
 	 	$("#puzzle-content").effect( "bounce", {times:3}, 600 )
 	}
+
+
+}
+
+function renderImages() {	
+	renderImage("selin-image-1")
+	renderImage("selin-image-2")
+	renderImage("selin-image-3")
+}
+
+function renderImage(imageId) {
+	const image = document.getElementById(imageId)	
+	const randomIndex = Math.floor(Math.random() * images.length)
+	console.log(randomIndex)
+
+	image.src = `/media/xmas/${images[randomIndex]}.svg`
 }
 
 function renderInputs() {
@@ -156,10 +196,7 @@ function initInputs() {
 	const button = document.getElementById("puzzle-submit")
 
 	$(".puzzle-number-input").keyup((evnt) => {		
-		console.log("hit")
-
-		const intValue = parseInt(evnt.originalEvent.key)
-		console.log(intValue)
+		const intValue = parseInt(evnt.originalEvent.key)		
 		if(intValue !== 0 && !intValue) {
 			evnt.target.value = 0
 			return
