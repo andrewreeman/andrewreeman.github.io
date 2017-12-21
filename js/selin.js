@@ -33,15 +33,22 @@ const successModalMessage = {
 	description: "You have won the game! Enjoy all the presents"
 }
 
+
+const getCode = (string) => {
+	const decrypted = CryptoJS.AES.decrypt(string.toString(), "Secret Passphrase")
+	const result = parseInt( decrypted.toString(CryptoJS.enc.Utf8))		
+	return result
+}
+
 const states = [
-	{title: "Enter the the code you are given...", code: 450, modal: standardModalMessage},
-	{title: "Polka cube", code: 647, modal: standardModalMessage},
-	{title: "Watch TV and put your feet up", code: 259, modal: standardModalMessage},
-	{title: "Hammer time", code: 471, modal: standardModalMessage},	
-	{title: "Literature review", code: 944, modal: standardModalMessage},	
-	{title: "Meter readings", code: 447, modal: standardModalMessage},	
-	{title: "101 No.1 Hits for Piano Buskers", code: 676, modal: standardModalMessage},	
-	{title: "Put on a shirt", code: 838, modal: successModalMessage}	
+	{title: "Enter the the code you are given...", code: getCode("U2FsdGVkX18l9WB6qn+v49pVdJ06nLs7PoWxJucIdHY="), modal: standardModalMessage},
+	{title: "Polka cube", code: getCode("U2FsdGVkX18Kn+nVxnUImapnwvLbmlC5DqtCL5gm+0A="), modal: standardModalMessage},
+	{title: "Watch TV and put your feet up", code: getCode("U2FsdGVkX197sHWEgTdq/eKYQiOgk5Tra/XY+t0km14="), modal: standardModalMessage},
+	{title: "Hammer time", code: getCode("U2FsdGVkX18XF2Byk/IUwqJ/dtSZ9gGA5KrLOpviAsA="), modal: standardModalMessage},	
+	{title: "Literature review", code: getCode("U2FsdGVkX18Y0gIOIk6Y9dEyAySI3kojWBphQRATiT8="), modal: standardModalMessage},	
+	{title: "Meter readings", code: getCode("U2FsdGVkX19nSObeDR3v5Ddt3lC/dpBtZLZCWR12g2s="), modal: standardModalMessage},	
+	{title: "101 No.1 Hits for Piano Buskers", code: getCode("U2FsdGVkX1/hpRbv9h4ZtdRSgFekj+BlIk0yQeClrcU="), modal: standardModalMessage},	
+	{title: "Put on a shirt", code: getCode("U2FsdGVkX1/H6nsqzXkgaIghImxjB3O0my1zG6pchtQ="), modal: successModalMessage}	
 ]
 
 // enumurate states 
