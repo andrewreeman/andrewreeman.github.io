@@ -17,3 +17,6 @@ github_username:  andrewreeman
 
 # Build settings
 markdown: kramdown
+
+gems:
+  - jekyll-jsminify
