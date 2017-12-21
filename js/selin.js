@@ -11,17 +11,28 @@ const successModalMessage = {
 }
 
 const states = [
-	{title: "Type in the code you are given...", code: 354, modal: standardModalMessage},
-	{title: "Next location...", code: 746, modal: standardModalMessage},
-	{title: "Final location...", code: 746, modal: successModalMessage}	
+	{title: "Type in the code you are given...", code: 450, modal: standardModalMessage},
+	{title: "Polka cube", code: 647, modal: standardModalMessage},
+	{title: "Watch TV and put your feet up", code: 259, modal: standardModalMessage},
+	{title: "Hammer time", code: 471, modal: standardModalMessage},	
+	{title: "Literature review", code: 944, modal: standardModalMessage},	
+	{title: "Meter readings", code: 447, modal: standardModalMessage},	
+	{title: "101 No.1 Hits for Piano Buskers", code: 676, modal: standardModalMessage},	
+	{title: "Put on a shirt", code: 838, modal: successModalMessage}	
 ]
+
+// enumurate states 
+for(let i =0; i < states.length; i++) {
+	states[i].index = i
+}
+
+function getStateWithCode(code) {
+	return states.find((state) => {return state.code === code } )
+}
 
 function nextState(currentState) {
 	if(!currentState){
-		return {
-			...states[0],
-			index: 0
-		}
+		return states[0]		
 	}
 
 	const index = currentState.index
@@ -30,12 +41,45 @@ function nextState(currentState) {
 		const nextState = states[nextStateIndex]
 		return {
 			...nextState,
-			oldState: currentState,
-			index: nextStateIndex
+			oldState: currentState,			
 		}
+	}	
+	else {
+		return states[states.length-1]
 	}
+}
 
-	return null
+function checkResult(result, state) {
+	if(result === state.code) {
+		const newState = nextState(state)
+
+		if(newState) {
+			render(newState)
+		}
+		else {
+			window.location = "/selinwin"
+		}		
+		return
+	}
+		
+
+	if(state.index === 0) {		
+		let possibleState = getStateWithCode(result)
+
+		if(possibleState)  {
+			let newState = nextState(possibleState)
+			render(newState)
+			return
+		}		
+	}
+	
+	const modalTitle = document.getElementById("modal-title")
+	modalTitle.innerHTML = state.modal.title
+
+	const modalDescription = document.getElementById("modal-description")
+	modalDescription.innerHTML = state.modal.description
+
+	$('#modal-dialog').modal('show')	
 }
 
 function render(state) {
@@ -63,26 +107,7 @@ function render(state) {
 			return
 		}
 
-		
-		if(userNumber === state.code) {
-			const newState = nextState(state)
-
-			if(newState) {
-				render(newState)
-			}
-			else {
-				window.location = "/selinwin"
-			}
-		}
-		else {
-			const modalTitle = document.getElementById("modal-title")
-			modalTitle.innerHTML = state.modal.title
-
-			const modalDescription = document.getElementById("modal-description")
-			modalDescription.innerHTML = state.modal.description
-
-			$('#modal-dialog').modal('show')
-		}	
+		checkResult(userNumber, state)			
 	}
 	
 	button.addEventListener("click", state.onClick)
