@@ -30,7 +30,7 @@ const standardModalMessage = {
 
 const successModalMessage = {
 	title: "Woo",
-	description: "You have won the game! Enjoy all the presents"
+	description: "You have won the game! Click ok to see your prize..."
 }
 
 
@@ -89,7 +89,8 @@ function nextState(currentState) {
 		}
 	}	
 	else {
-		return states[states.length-1]
+		return null
+		// return states[states.length-1]
 	}
 }
 
@@ -102,7 +103,21 @@ function checkResult(result, state) {
 			render(newState)
 		}
 		else {
-			window.location = "/selinwin"
+			const modalTitle = document.getElementById("modal-title")
+			modalTitle.innerHTML = state.modal.title
+
+			const modalDescription = document.getElementById("modal-description")
+			modalDescription.innerHTML = state.modal.description
+
+			const okbutton = document.getElementById("modal-dialog-ok")
+			okbutton.focus()
+
+			$('#modal-dialog').modal('show')
+
+			okbutton.addEventListener("click", () => {
+				window.location = "/selinwin"	
+			})
+			
 		}		
 		return 
 	}
