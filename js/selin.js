@@ -101,10 +101,8 @@ function checkResult(result, state) {
 	}
 		
 
-	if(state.index === 0) {		
-		console.log("State index is 0")
-		let possibleState = getStateWithCode(result)
-		console.log(`Possible state with code: ${possibleState}`)
+	if(state.index === 0) {				
+		let possibleState = getStateWithCode(result)		
 		if(possibleState)  {
 			let newState = nextState(possibleState)
 			render(newState)
@@ -131,8 +129,7 @@ function render(state) {
 	renderInputs()	
 	renderImages()
 	
-	const button = document.getElementById("puzzle-submit")	
-	console.log(state)
+	const button = document.getElementById("puzzle-submit")		
 	if(state.oldState && state.oldState.onClick) {		
 		button.removeEventListener("click", state.oldState.onClick)
 	}
@@ -164,8 +161,7 @@ function renderImages() {
 
 function renderImage(imageId) {
 	const image = document.getElementById(imageId)	
-	const randomIndex = Math.floor(Math.random() * images.length)
-	console.log(randomIndex)
+	const randomIndex = Math.floor(Math.random() * images.length)	
 
 	image.src = `/media/xmas/${images[randomIndex]}.svg`
 }
