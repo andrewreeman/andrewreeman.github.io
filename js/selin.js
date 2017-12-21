@@ -1,12 +1,12 @@
 
 
 const standardModalMessage = {
-	title: "Oops!",
-	description: "You have not entered the correct code"
+	title: "Incorrect",
+	description: "Try again or use your head..."
 }
 
 const successModalMessage = {
-	title: "Woo!",
+	title: "Woo",
 	description: "You have won the game! Enjoy all the presents"
 }
 
@@ -49,11 +49,12 @@ function nextState(currentState) {
 	}
 }
 
-function checkResult(result, state) {
+function checkResult(result, state) {	
 	if(result === state.code) {
 		const newState = nextState(state)
 
-		if(newState) {
+		if(newState) {			
+			newState.success = true
 			render(newState)
 		}
 		else {
@@ -64,8 +65,9 @@ function checkResult(result, state) {
 		
 
 	if(state.index === 0) {		
+		console.log("State index is 0")
 		let possibleState = getStateWithCode(result)
-
+		console.log(`Possible state with code: ${possibleState}`)
 		if(possibleState)  {
 			let newState = nextState(possibleState)
 			render(newState)
@@ -97,9 +99,7 @@ function render(state) {
 
 	state.onClick = () => {
 		const userValue = input.value
-
-		console.log(userValue)
-
+		
 		const userNumber = parseInt(userValue) 
 
 		if(!userNumber) {
@@ -111,6 +111,10 @@ function render(state) {
 	}
 	
 	button.addEventListener("click", state.onClick)
+
+	if(state.success) {
+	 	$("#puzzle-content").effect( "bounce", {times:3}, 600 )
+	}
 }
 
 $(document).ready(() => {	

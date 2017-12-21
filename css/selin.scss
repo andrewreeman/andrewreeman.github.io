@@ -2,4 +2,18 @@
 ---
 @charset "utf-8";
 
+$selin_green: #5b924c;
+
+.selin-green {
+	background-color: $selin-green;
+}
+
+.jumbotron.selin-green {
+	background-color: $selin-green;
+}
+
+.btn.selin-green {
+	background-color: $selin-green;
+}
+
 

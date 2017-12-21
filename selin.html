@@ -21,7 +21,7 @@ layout: selin
   </div>
 </div>
 
-<div class="jumbotron">
+<div class="jumbotron selin-green">
 	<h2>Christmas Treasure hunt</h2>
 	<p>Type in the code you are given and read the clue to find the next present and code!</p>
 </div>
@@ -29,10 +29,12 @@ layout: selin
 <div class="container">	
 	<h3 id="puzzle-title">Title</h3>
 
-	<div class="input-group">      
+	<div class="input-group" id="puzzle-content">      
 	      <input type="text" class="form-control" name="puzzle-input" id="puzzle-input" placeholder="Type in the code you find..." />
 	      <span class="input-group-btn">        
-	        <button class="btn btn-secondary" type="button" id="puzzle-submit" >Submit!</button>
+	        <button class="btn btn-secondary selin-green" type="button" id="puzzle-submit" >Submit!</button>
 	      </span>
 	</div>
 </div>
+
+<script src="{{ "/js/selin.js" | prepend: site.baseurl }}""></script>

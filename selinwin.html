@@ -1,1 +1,23 @@
-<p>Yay</p>
+---
+layout: selin
+---
+
+<div class="jumbotron selin-green" id="win-jumbo">
+	<h2>Christmas Treasure hunt</h2>
+	<p>You won. Now here's a dancing snowman...</p>
+</div>
+
+
+<div class="embed-responsive embed-responsive-16by9">
+	<iframe  class="embed-responsive-item" width="560" height="315" src="https://www.youtube.com/embed/rqGScu0EPEw?rel=0&autoplay=1" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen>		
+	</iframe>
+</div>
+
+<script type="text/javascript">
+	$(document).ready(() => {
+		setTimeout(function() {
+			$("#win-jumbo").slideToggle()	
+		}, 8 * 1000);
+	})
+
+</script>
