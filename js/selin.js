@@ -1,6 +1,3 @@
----
----
-
 const images = [
 	"candle",
 	"gift",
