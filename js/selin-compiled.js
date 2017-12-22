@@ -26,7 +26,23 @@ for (let i = 0; i < states.length; i++) {
 }
 
 $(document).ready(() => {
-	const currentState = nextState(null);
+	let currentState = nextState(null);
+
+	try {
+		if (typeof Storage !== "undefined") {
+			if (localStorage.lastState) {
+				const lastState = JSON.parse(localStorage.lastState);
+
+				// check valid
+				if (lastState.code && lastState.title) {
+					currentState = lastState;
+				}
+			}
+		}
+	} catch (e) {
+		console.error(e);
+		currentState = nextState(null);
+	}
 
 	const modalDismissButton = document.getElementById("modal-dialog-ok");
 	modalDismissButton.addEventListener("click", () => {
@@ -34,6 +50,8 @@ $(document).ready(() => {
 	});
 
 	initInputs();
+	initResetButton();
+
 	render(currentState);
 });
 
@@ -136,6 +154,11 @@ function render(state) {
 	if (state.success) {
 		$("#puzzle-content").effect("bounce", { times: 3 }, 600);
 	}
+
+	if (typeof Storage !== "undefined") {
+		console.log("Storing last state");
+		localStorage.setItem("lastState", JSON.stringify(state));
+	}
 }
 
 function renderImages() {
@@ -196,5 +219,25 @@ function initInputs() {
 		if (evnt.target.id === "puzzle-input-3") {
 			button.focus();
 		}
+	});
+}
+
+function initResetButton() {
+	const resetButton = document.getElementById("puzzle-reset");
+	resetButton.addEventListener("click", () => {
+		$("#modal-reset-question").modal("show");
+	});
+
+	const noResetButton = document.getElementById("modal-reset-no");
+	noResetButton.addEventListener("click", () => {
+		$("#modal-reset-question").modal("hide");
+	});
+
+	const yesResetButton = document.getElementById("modal-reset-yes");
+	yesResetButton.addEventListener("click", () => {
+		$("#modal-reset-question").modal("hide");
+
+		localStorage.removeItem("lastState");
+		window.location.reload();
 	});
 }

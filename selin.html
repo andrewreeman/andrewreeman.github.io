@@ -2,6 +2,26 @@
 layout: selin
 ---
 
+<div class="modal fade" id="modal-reset-question">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Reset</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Do you wish to reset the puzzle?</p>
+      </div>
+      <div class="modal-footer">
+      	<button type="button" class="btn btn-success" id="modal-reset-no">NO</button>        
+        <button type="button" class="btn btn-danger" id="modal-reset-yes">YES</button>        
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="modal-dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -38,6 +58,7 @@ layout: selin
 			<img class="mx-auto d-block" id="selin-image-3" class="pull-right" src="/media/xmas/deer.svg">
 		</div>
 	</div>
+	<button class="btn btn-secondary selin-green" type="button" id="puzzle-reset" >Reset</button>	        
 </div>
 
 <div class="container">	
@@ -51,7 +72,7 @@ layout: selin
 	      <span class="input-group-btn">        
 	        <button class="btn btn-secondary selin-green" type="button" id="puzzle-submit" >Submit!</button>	        
 	      </span>
-	</div>
+	</div>		
 </div>
 
  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
