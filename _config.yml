@@ -6,10 +6,10 @@
 # 'jekyll serve'. If you change this file, please restart the server process.
 
 # Site settings
-title: Rem-D Repo
+title: Andrew Reeman's repo
 email: andrewreeman@gmail.com
 description: > # this means to ignore newlines until "baseurl:"
-  This is my lovely repo for projects using git. I also sleep with the enemy using bitbucket. 
+  Software development showcase and blog
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "http://andrewreeman.com" # the base hostname & protocol for your site
 twitter_username: AndrewReeman
