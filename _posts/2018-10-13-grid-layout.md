@@ -1,7 +1,9 @@
 ---
-layout: page
+layout: post
 title: Grid layout examples
-permalink: /grid/
+date:   2018-10-13 13:06:14 +0100
+categories: css grid
+excerpt_separator: <!--more-->
 ---
 
 <h1>Examples of using Grid Layout (with kittens)</h1>
@@ -16,6 +18,7 @@ permalink: /grid/
         To specify the gap between columns we can use <code>grid-column-gap</code> property and for rows we can use the <code>grid-row-gap</code> property.
         If instead we want to specify both at once we can use the <code>grid-gap</code> property. In grid layout terminology we use the term <em>track</em> for referring to a row or a column.
     </p>
+    <!--more-->
     <p data-height="500" data-theme-id="0" data-slug-hash="rqwvmM" data-default-tab="css,result" data-user="andrewreeman" data-pen-title="Defining a grid" data-preview="true" class="codepen">
         See  the Pen <a href="https://codepen.io/andrewreeman/pen/rqwvmM/">Defining a grid</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
     </p>
