@@ -75,3 +75,16 @@ excerpt_separator: <!--more-->
     </p>
     <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
 </section>
+<section id="section-auto-placement">
+    <h2>Using span to auto place items</h2>    
+    <p>
+        We can use <code>grid-column-start</code> and <code>grid-column-end</code> to specify which columns an item can take up. Specifying an integer will ensure the start or end will be this specific column. We can use a negative number to specify a column from the end. For example -1 will be the last column and -2 will be the one before this. We can use the <code>span</code> keyword to indicate that the number specified is how many columns should take up instead of a particular column. For instance <code>grid-column-end: span 2</code> means that the item will be 2 columns from it's start. <code>grid-column-start: 3</code> means that the item will be 3 columns from it's end. The span keyword also applies to the row versions of this which are <code>grid-row-start</code> and <code>grid-row-end</code>.        
+        A shorthand for using grid-column-start and grid-column-end is the <code>grid-column</code> attribute. This one argument for the start and another for the end separated by a forward slash. For example: <code>grid-column: 3 / -1</code> means start at column 3 and continue until the end. The row version of this is unsurprisingly: <code>grid-row</code>.
+        Now that we can specify the span of rows and columns we may end up with many variable sized items and this can lead to quite a bit of white space. 
+        We can use the <code>  grid-auto-flow: dense</code> attribute and keyword which will change the order of items to ensure that they are tightly packed into the grid.
+    </p>.            
+    <p data-height="500" data-theme-id="0" data-slug-hash="YJxmKZ" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Span and     auto-placement" data-preview="true" class="codepen">
+    See the Pen <a href="https://codepen.io/andrewreeman/pen/YJxmKZ/">Span and auto-placement</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
+    </p>
+<script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+</section>
