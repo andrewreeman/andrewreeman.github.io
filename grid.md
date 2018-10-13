@@ -64,3 +64,11 @@ permalink: /grid/
     </p>
 <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
 </section>
+<section id="section-auto-fill">
+    <h2>Auto fill and auto fit</h2>
+    <p>So far we have had to specify how many columns we require. But in many situations it can be difficult to know in advance how many columns we will need especially if we are loading dynamic content. We can use the <code>auto-fill</code> and <code>auto-fit</code> keywords as arguments to the <code>repeat</code> function to create columns to distribute the items evenly. Auto-fill will distribute the items and if there is space left over it will fill it empty items. Auto-fit will do the same but when there is space left over it will grow the items to fit to the space.</p>
+    <p data-height="500" data-theme-id="0" data-slug-hash="jeLoKy" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Autofill and autofit" data-preview="true" class="codepen">
+        See the Pen <a href="https://codepen.io/andrewreeman/pen/jeLoKy/">Autofill and autofit</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
+    </p>
+    <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+</section>
