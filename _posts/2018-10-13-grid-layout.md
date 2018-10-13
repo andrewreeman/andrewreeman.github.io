@@ -88,3 +88,13 @@ excerpt_separator: <!--more-->
     </p>
 <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
 </section>
+<section id="section-named-lines">
+    <h2>Named tracks</h2>
+    <p>
+        We can name tracks by specifying the name in square brackets before the track. For example: <code>grid-template-columns: [sidebar] 100px [content] 300px [ads] auto [ads-end]</code>. In this case the first column is named 'sidebar', the second is named 'content' and the last is named 'ads'. The end of the last column is also named 'ads-end'. The below example shows usage with named rows as well as columns.        
+    </p>
+    <p data-height="500" data-theme-id="0" data-slug-hash="oaGvzM" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Names lines" data-preview="true" class="codepen">
+        See the Pen <a href="https://codepen.io/andrewreeman/pen/oaGvzM/">Names lines</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
+    </p>
+<script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+</section>
