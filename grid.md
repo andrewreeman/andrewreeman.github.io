@@ -51,8 +51,16 @@ permalink: /grid/
     <p>
         The minmax function can be used for column or row templates. It determines the minimum and maximum size a track will be. This is useful for contraining a responsive layout. <aside>The example below also makes use of <code>grid-auto-rows</code> which is used to specify implicitly created row tracks when the row count is greater than the row template count. </aside>
     </p>
-    <p data-height="265" data-theme-id="0" data-slug-hash="OBjGzB" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Minmax" data-preview="true" class="codepen">
+    <p data-height="500" data-theme-id="0" data-slug-hash="OBjGzB" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Minmax" data-preview="true" class="codepen">
         See the Pen <a href="https://codepen.io/andrewreeman/pen/OBjGzB/">Minmax</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
+    </p>
+<script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+</section>
+<section id="section-order">
+    <h2>Order</h2>
+    <p>We can change the display order of items by using the <code>order</code> keyword. The higher the number the lower the priority. By default everything will have a priority of 0.</p>
+    <p data-height="500" data-theme-id="0" data-slug-hash="rqzgVm" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Order" data-preview="true" class="codepen">
+        See the Pen <a href="https://codepen.io/andrewreeman/pen/rqzgVm/">Order</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
     </p>
 <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
 </section>
