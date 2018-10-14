@@ -69,7 +69,9 @@ excerpt_separator: <!--more-->
 </section>
 <section id="section-auto-fill">
     <h2>Auto fill and auto fit</h2>
-    <p>So far we have had to specify how many columns we require. But in many situations it can be difficult to know in advance how many columns we will need especially if we are loading dynamic content. We can use the <code>auto-fill</code> and <code>auto-fit</code> keywords as arguments to the <code>repeat</code> function to create columns to distribute the items evenly. Auto-fill will distribute the items and if there is space left over it will fill it empty items. Auto-fit will do the same but when there is space left over it will grow the items to fit to the space.</p>
+    <p>
+        So far we have had to specify how many columns we require. But in many situations it can be difficult to know in advance how many columns we will need especially if we are loading dynamic content. We can use the <code>auto-fill</code> and <code>auto-fit</code> keywords as arguments to the <code>repeat</code> function to create columns to distribute the items evenly. Auto-fill will distribute the items and if there is space left over it will fill it empty items. Auto-fit will do the same but when there is space left over it will grow the items to fit to the space.
+    </p>
     <p data-height="500" data-theme-id="0" data-slug-hash="jeLoKy" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Autofill and autofit" data-preview="true" class="codepen">
         See the Pen <a href="https://codepen.io/andrewreeman/pen/jeLoKy/">Autofill and autofit</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
     </p>
@@ -91,7 +93,7 @@ excerpt_separator: <!--more-->
 <section id="section-named-lines">
     <h2>Named tracks</h2>
     <p>
-        We can name tracks by specifying the name in square brackets before the track. For example: <code>grid-template-columns: [sidebar] 100px [content] 300px [ads] auto [ads-end]</code>. In this case the first column is named 'sidebar', the second is named 'content' and the last is named 'ads'. The end of the last column is also named 'ads-end'. The below example shows usage with named rows as well as columns.        
+        Tracks can be named by specifying the name in square brackets before the track. For example: <code>grid-template-columns: [sidebar] 100px [content] 300px [ads] auto [ads-end]</code>. In this case the first column is named 'sidebar', the second is named 'content' and the last is named 'ads'. The end of the last column is also named 'ads-end'. The below example shows usage with named rows as well as columns.        
     </p>
     <p data-height="500" data-theme-id="0" data-slug-hash="oaGvzM" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Names lines" data-preview="true" class="codepen">
         See the Pen <a href="https://codepen.io/andrewreeman/pen/oaGvzM/">Names lines</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
@@ -105,4 +107,12 @@ excerpt_separator: <!--more-->
         See the Pen <a href="https://codepen.io/andrewreeman/pen/ReLRmp/">Aligning and justifying items</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
     </p>
 <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+</section>
+<section id="section-align-justfiy-grid">
+    <h2>Align and justify grid tracks</h3>
+    <p>Aligning and justifying the grid tracks instead of the items is done by using the <code>justify-content</code> and <code>align-content</code> keywords. Justify-content will align the columns and align-content will align the rows.</p>
+    <p data-height="500" data-theme-id="0" data-slug-hash="EdwbqY" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Aligning and justifying the grid" data-preview="true" class="codepen">
+        See the Pen <a href="https://codepen.io/andrewreeman/pen/EdwbqY/">Aligning and justifying the grid</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
+    </p>
+    <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
 </section>
