@@ -109,10 +109,25 @@ excerpt_separator: <!--more-->
 <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
 </section>
 <section id="section-align-justfiy-grid">
-    <h2>Align and justify grid tracks</h3>
+    <h2>Align and justify grid tracks</h2>
     <p>Aligning and justifying the grid tracks instead of the items is done by using the <code>justify-content</code> and <code>align-content</code> keywords. Justify-content will align the columns and align-content will align the rows.</p>
     <p data-height="500" data-theme-id="0" data-slug-hash="EdwbqY" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Aligning and justifying the grid" data-preview="true" class="codepen">
         See the Pen <a href="https://codepen.io/andrewreeman/pen/EdwbqY/">Aligning and justifying the grid</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
+    </p>
+    <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+</section>
+<section id="section-grid-areas">
+    <h2>Grid areas</h2>
+    <p>Grid areas are extremely useful for laying out the grid. We can name a particular area that an item belongs too by using the <code>grid-area</code> attribute. On the grid we can use <code>grid-template-areas</code> to create a layout for all of these named areas.</p>
+    <p>We lay this out by writing a grid usings strings that visually represent the grid. For example: </p>
+    <samp>grid-template-areas:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;"header header" 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;"main image" 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;"footer ."
+    </samp>
+    <p>This will create a grid with two columns and three rows placing the header over two columns with the main content and an image taking a column each. The footer will take up a single column with an empty item in the second column.</p>     
+    <p data-height="500" data-theme-id="0" data-slug-hash="XxeYqz" data-default-tab="css,result" data-user="andrewreeman" data-pen-title="Grid areas" data-preview="true" class="codepen">
+        See the Pen <a href="https://codepen.io/andrewreeman/pen/XxeYqz/">Grid areas</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
     </p>
     <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
 </section>
