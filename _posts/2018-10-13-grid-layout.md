@@ -98,3 +98,11 @@ excerpt_separator: <!--more-->
     </p>
 <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
 </section>
+<section id="section-align-justify"> 
+    <h2>Align and justify</h2>
+    <p>We can use <code>justify-items</code> to align items horizontally and <code>align-items</code> to align items vertically. We can also use <code>justify-self</code> and <code>align-self</code> to perform alignment on specific items</p>
+    <p data-height="500" data-theme-id="0" data-slug-hash="ReLRmp" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Aligning and justifying items" data-preview="true" class="codepen">
+        See the Pen <a href="https://codepen.io/andrewreeman/pen/ReLRmp/">Aligning and justifying items</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.
+    </p>
+<script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+</section>
