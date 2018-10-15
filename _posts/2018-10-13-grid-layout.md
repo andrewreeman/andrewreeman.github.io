@@ -131,3 +131,10 @@ excerpt_separator: <!--more-->
     </p>
     <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
 </section>
+<section id="section-content-fit">
+    <h2>Fitting content</h2>
+    <p>We can use content-fitting keywords to control the column and row sizes when using grid-templates.</p>
+    <p>The below example explains and demonstrates this.</p>
+    <p data-height="500" data-theme-id="0" data-slug-hash="VErQXB" data-default-tab="html,result" data-user="andrewreeman" data-pen-title="Content sizing" data-preview="true" class="codepen">See the Pen <a href="https://codepen.io/andrewreeman/pen/VErQXB/">Content sizing</a> by Andrew Reeman (<a href="https://codepen.io/andrewreeman">@andrewreeman</a>) on <a href="https://codepen.io">CodePen</a>.</p>
+    <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+</section>
