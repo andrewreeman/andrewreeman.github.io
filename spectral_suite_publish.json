@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "code": 1,
+  "code": 2,
   "release_notes": ["Simplified plugins", "Using JUCE framework"],
   "release_url": "https://www.example.com"
 }
