@@ -7,7 +7,7 @@ permalink: /spectralsuite/
 <html>
 
 <section>
-<p>The Spectral Suite is a collection of audio plugins that utilise the FFT algorithm to manipulate the spectral components of the input audio.
+<p>The Spectral Suite is a collection of audio plugins that utilise the FFT algorithm to manipulate the spectral components of the input audio. 
 The latest version can be downloaded from:
 <a href="/media/SpectralSuite-v2.0.0.zip">Spectral Suite v2.0.0</a>      
 </p>
