@@ -1,6 +1,6 @@
 {
-  "version": "2.0.0",
-  "code": 2,
-  "release_notes": ["Simplified plugins", "Using JUCE framework"],
-  "release_url": "https://www.example.com"
+  "version": "2.0.1",
+  "code": 3,
+  "release_notes": ["Can now specify the random seed in the bin scrambler", "Frequency shifter can now select the max and minimum frequency range"],
+  "release_url": "https://andrewreeman.github.io/spectralsuite"
 }
