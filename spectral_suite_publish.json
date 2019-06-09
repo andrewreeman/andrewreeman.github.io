@@ -1,6 +1,6 @@
 {
-  "version": "2.0.1",
-  "code": 3,
-  "release_notes": ["Can now specify the random seed in the bin scrambler", "Frequency shifter can now select the max and minimum frequency range"],
+  "version": "2.0.2",
+  "code": 4,
+  "release_notes": ["With AU format", "With Frequency Shifter incrementing in 1hz"],
   "release_url": "https://andrewreeman.github.io/spectralsuite"
 }
