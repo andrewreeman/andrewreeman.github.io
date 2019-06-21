@@ -1,6 +1,6 @@
 {
-  "version": "2.0.2",
-  "code": 4,
-  "release_notes": ["With AU format", "With Frequency Shifter incrementing in 1hz"],
+  "version": "2.0.3",
+  "code": 5,
+  "release_notes": ["Can use legacy frequency magnet shift", "Can now click on urls in about page","Plugins now report correct latency to host"],
   "release_url": "https://andrewreeman.github.io/spectralsuite"
 }
