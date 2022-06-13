@@ -1,6 +1,8 @@
 {
-  "version": "2.1.3",
-  "code": 9,
-  "release_notes": ["Minor release"],
+  "version": "2.1.4",
+  "code": 10,
+  "release_notes": [
+    "Minor release"
+  ],
   "release_url": "https://www.andrewreeman.com/spectralsuite"
 }
