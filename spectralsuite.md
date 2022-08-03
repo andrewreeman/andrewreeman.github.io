@@ -82,4 +82,10 @@ Filters the frequency components according by applying a sinusoudal shape over t
 </p>
 </section>
 
+<section>
+<h2>Video review and tutorial</h2>
+<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/0OT8PVCDJIo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<p>There's not much in the way of documentation yet...so while you wait here is a great video review by <a href="https://www.youtube.com/c/Naircol/videos">Naircol</a> of these plugins that provides more info on how to use them and what they do.</p>
+</section>
+ircol
 </html>
