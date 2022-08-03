@@ -18,3 +18,4 @@ github_username:  andrewreeman
 
 # Build settings
 markdown: kramdown
+theme: jekyll-theme-cayman
