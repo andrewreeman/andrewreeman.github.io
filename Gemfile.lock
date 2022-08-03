@@ -120,6 +120,8 @@ GEM
       jekyll (~> 3.9.0)
       jekyll-commonmark (~> 1.4.0)
       rouge (>= 2.0, < 4.0)
+    jekyll-compose (0.12.0)
+      jekyll (>= 3.7, < 5.0)
     jekyll-default-layout (0.1.4)
       jekyll (~> 3.0)
     jekyll-feed (0.15.1)
@@ -265,6 +267,7 @@ PLATFORMS
 DEPENDENCIES
   github-pages
   jekyll-babel
+  jekyll-compose
   kramdown (>= 2.3.0)
   nokogiri (>= 1.11.0.rc4)
 
