@@ -14,12 +14,24 @@ permalink: /spectralsuite/
 <p>Release history:</p>
 
 <ul>
-  {% for post in site.categories.specsuite %}
+  {% for post in site.categories.specrelease %}
     {% if post.url %}
         <li><a href="{{ post.url }}">{{ post.title }}</a></li>
     {% endif %}
   {% endfor %}
 </ul>
+
+<p>News:</p>
+
+<ul>
+  {% for post in site.categories.specdoc %}
+    {% if post.url %}
+        <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+    {% endif %}
+  {% endfor %}
+</ul>
+
+
 
 <section>
 <h2>Phase Lock</h2>

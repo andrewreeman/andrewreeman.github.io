@@ -2,7 +2,7 @@
 layout: post
 title: Video review
 date: 2022-08-03 20:29 +0100
-categories: vst fft specsuite
+categories: vst fft specdoc
 excerpt_separator: <!--more-->
 ---
 

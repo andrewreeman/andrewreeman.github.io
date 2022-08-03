@@ -2,7 +2,7 @@
 layout: post
 title: Spectral Suite open sourced
 date:   2022-05-10 20:20:12 +0100
-categories: vst fft specsuite
+categories: vst fft specdoc
 excerpt_separator: <!--more-->
 ---
 
