@@ -11,15 +11,17 @@ permalink: /spectralsuite/
 </p>
 </section>
 
-<p>Release history:</p>
+<p>Recent Releases:</p>
 
 <ul>
-  {% for post in site.categories.specrelease %}
+  {% for post in site.categories.specrelease limit:5 %}
     {% if post.url %}
         <li><a href="{{ post.url }}">{{ post.title }}</a></li>
     {% endif %}
   {% endfor %}
+   <li><a href="#release-history">Full release history</a></li>
 </ul>
+
 
 <p>News:</p>
 
@@ -101,3 +103,15 @@ Filters the frequency components according by applying a sinusoudal shape over t
 </section>
 ircol
 </html>
+
+<section id="release-history">
+<h2>Release from version 2 onwards</h2>
+<ul>
+  {% for post in site.categories.specrelease %}
+    {% if post.url %}
+        <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+    {% endif %}
+  {% endfor %}
+</ul>
+
+</section>
