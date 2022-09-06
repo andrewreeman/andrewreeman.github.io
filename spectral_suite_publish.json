@@ -1,8 +1,6 @@
 {
-  "version": "2.1.6",
-  "code": 12,
-  "release_notes": [
-    "Minor release"
-  ],
+  "version": "2.1.7",
+  "code": 13,
+  "release_notes": ["Added tilt paramter to SpectralGate"],
   "release_url": "https://www.andrewreeman.com/spectralsuite"
 }
