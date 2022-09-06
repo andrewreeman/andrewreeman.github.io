@@ -2,7 +2,7 @@
 layout: post
 title: Spectral Suite version 2.1.7
 date: 2022-09-06 19:22 +0100
--categories: vst fft specrelease
+categories: vst fft specrelease
 excerpt_separator: <!--more-->
 ---
 
