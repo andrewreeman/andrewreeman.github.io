@@ -1,6 +1,6 @@
 {
-  "version": "2.1.7",
-  "code": 13,
-  "release_notes": ["Added tilt paramter to SpectralGate"],
+  "version": "2.1.9",
+  "code": 15,
+  "release_notes": ["Fixed bug where morph can only be used after ui opened"],
   "release_url": "https://www.andrewreeman.com/spectralsuite"
 }
