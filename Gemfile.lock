@@ -268,6 +268,7 @@ DEPENDENCIES
   github-pages
   jekyll-babel
   jekyll-compose
+  jekyll-paginate
   kramdown (>= 2.3.0)
   nokogiri (>= 1.11.0.rc4)
 
