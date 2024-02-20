@@ -1,6 +1,10 @@
 {
-  "version": "2.1.9",
-  "code": 15,
-  "release_notes": ["Fixed bug where morph can only be used after ui opened"],
+  "version": "2.1.10",
+  "code": 16,
+  "release_notes": [
+    "Fixed memory leaks",
+    "pixmusix added new plugin script",
+    "a5632645 fixed Spectral Gate ui issue"
+  ],
   "release_url": "https://www.andrewreeman.com/spectralsuite"
 }
