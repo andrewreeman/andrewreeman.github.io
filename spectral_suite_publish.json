@@ -1,10 +1,9 @@
 {
-  "version": "2.1.10",
-  "code": 16,
+  "version": "2.1.11",
+  "code": 17,
   "release_notes": [
-    "Fixed memory leaks",
-    "pixmusix added new plugin script",
-    "a5632645 fixed Spectral Gate ui issue"
+    "Passing AU validation",
+    "a5632645 fixed a memory leak in the Phase Vocoder base class"
   ],
   "release_url": "https://www.andrewreeman.com/spectralsuite"
 }
