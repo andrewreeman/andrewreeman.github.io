@@ -10,7 +10,7 @@ title: Title Goes Here
 author: Andrew Reeman
 email: andrewreeman@gmail.com
 description: > # this means to ignore newlines until "baseurl:"
-  Software development showcase and blog
+  Software development showcase and piano blog
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "http://andrewreeman.com" # the base hostname & protocol for your site
 github_username: andrewreeman
