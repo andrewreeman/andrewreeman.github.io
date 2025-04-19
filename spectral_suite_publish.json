@@ -1,9 +1,6 @@
 {
-  "version": "2.1.11",
-  "code": 17,
-  "release_notes": [
-    "Passing AU validation",
-    "a5632645 fixed a memory leak in the Phase Vocoder base class"
-  ],
+  "version": "2.2.0",
+  "code": 19,
+  "release_notes": ["Added 'Scale' parameter to frequency shift"],
   "release_url": "https://www.andrewreeman.com/spectralsuite"
 }
