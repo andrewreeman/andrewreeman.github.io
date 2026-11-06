@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Inside an 8 KB Page</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: byte map of one data page as the hero, with insert/delete controls; DBCC-style header, slot array and record anatomy panels below; capacity calculator last */
+:root{
+  --bg:#eef2f6; --surface:#ffffff; --ink:#132030; --muted:#566578; --line:#cdd6e0;
+  --row:#b4521a; --row2:#d4874f; --hdr:#5b6b80; --slot:#0d7a72; --hole:#a8331f; --ok:#2f7d3a;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d131a; --surface:#151f2a; --ink:#e3e9f0; --muted:#8e9eb0; --line:#2a3848;
+  --row:#e07e3c; --row2:#b85f26; --hdr:#7d8ea4; --slot:#3cc3b6; --hole:#f27a62; --ok:#6cc47a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d131a; --surface:#151f2a; --ink:#e3e9f0; --muted:#8e9eb0; --line:#2a3848;
+  --row:#e07e3c; --row2:#b85f26; --hdr:#7d8ea4; --slot:#3cc3b6; --hole:#f27a62; --ok:#6cc47a; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px;display:grid;gap:22px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+h1{font-size:clamp(1.7rem,4vw,2.4rem);line-height:1.1;font-weight:800;letter-spacing:-.01em}
+h2{font-size:1.3rem;font-weight:800}
+h3{font-size:1.02rem;font-weight:600}
+p{margin:0;max-width:72ch}
+.muted{color:var(--muted)}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+code{font-family:var(--f-mono);font-size:.86em;background:color-mix(in srgb,var(--muted) 14%,transparent);padding:1px 5px;border-radius:3px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:10px;align-content:start;min-width:0}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.82rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:10px;border-radius:2px;display:inline-block}
+.sw.h{background:var(--hdr)} .sw.r{background:var(--row)} .sw.s{background:var(--slot)}
+.sw.f{background:repeating-linear-gradient(135deg,var(--line) 0 2px,transparent 2px 5px);border:1px solid var(--line)}
+.sw.x{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--hole) 60%,transparent) 0 2px,transparent 2px 5px);border:1px solid var(--hole)}
+
+.pages{display:grid;gap:14px}
+.pagebox{border:1px solid var(--line);border-radius:6px;padding:10px;display:grid;gap:6px;cursor:pointer}
+.pagebox.cur{border-color:var(--ink)}
+.pagebox .ph{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;font-family:var(--f-mono);font-size:.8rem}
+.pagebox .ph b{font-weight:600}
+.svgbox{overflow-x:auto}
+svg.map{width:100%;min-width:560px;display:block}
+svg text{font-family:var(--f-mono);font-size:10px;fill:var(--ink)}
+svg .off{fill:var(--muted);font-size:9px}
+svg .gridl{stroke:var(--line);stroke-width:.6}
+svg .hdr{fill:var(--hdr)}
+svg .row{fill:var(--row);cursor:pointer;transition:opacity .15s}
+svg .row.alt{fill:var(--row2)}
+svg .row.sel{stroke:var(--ink);stroke-width:2}
+svg .rowlbl{fill:#fff;font-size:9.5px;pointer-events:none;font-weight:600}
+svg .slot{fill:var(--slot)}
+svg .slot.sel{fill:var(--ink)}
+svg .free{fill:url(#hatch-free)}
+svg .hole{fill:url(#hatch-hole);stroke:var(--hole);stroke-width:.8}
+svg .hatch-f{stroke:var(--line);stroke-width:1.4}
+svg .hatch-h{stroke:var(--hole);stroke-width:1.2;opacity:.7}
+svg .freelbl{fill:var(--muted);font-size:9.5px}
+
+.ctl{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:end}
+.field{display:grid;gap:4px}
+.field label{font-size:.75rem;color:var(--muted);font-weight:600}
+input[type=number]{font:500 .9rem var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 8px;width:110px}
+button{font:600 .85rem var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:7px 14px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible{outline:2px solid var(--slot);outline-offset:2px}
+.msg{font-size:.92rem;border-left:3px solid var(--line);padding:6px 12px;min-height:1.6em}
+.msg.ok{border-left-color:var(--ok)} .msg.warn{border-left-color:var(--hole)} .msg.split{border-left-color:var(--row)}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.cols{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:5px 14px;font-size:.86rem;align-items:baseline}
+.kv dt{font-family:var(--f-mono);font-weight:600}
+.kv dd{margin:0;color:var(--muted)}
+.kv dd b{color:var(--ink);font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-family:var(--f-mono);font-size:.82rem;font-variant-numeric:tabular-nums}
+th{text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line);padding:5px 8px;white-space:nowrap}
+td{padding:5px 8px;border-bottom:1px dashed var(--line);white-space:nowrap}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:color-mix(in srgb,var(--muted) 8%,transparent)}
+tr.sel td{background:color-mix(in srgb,var(--row) 16%,transparent)!important}
+td.desc{white-space:normal;font-family:var(--f-body);color:var(--muted);font-size:.82rem;min-width:200px}
+.recbar{display:flex;height:22px;border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.recbar i{display:block;height:100%;border-right:1px solid var(--surface)}
+
+.cap{display:grid;gap:14px}
+input[type=range]{width:100%;accent-color:var(--row)}
+.capout{display:flex;flex-wrap:wrap;gap:6px 26px;font-family:var(--f-mono);font-size:.95rem;font-variant-numeric:tabular-nums}
+.capout b{font-size:1.5rem}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.minis{display:flex;flex-wrap:wrap;gap:2px;max-width:100%}
+.minis i{width:6px;height:10px;background:var(--row);border-radius:1px}
+.note{font-size:.85rem;color:var(--muted)}
+.modes{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:6px;overflow:hidden;width:max-content;max-width:100%}
+.modes button{border:0;border-radius:0;padding:9px 16px;background:var(--surface)}
+.modes button+button{border-left:1px solid var(--line)}
+.modes button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.slotscroll{max-height:340px;overflow:auto}
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.compare .panel{gap:6px}
+.big{font-family:var(--f-mono);font-size:1.6rem;font-weight:600;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:grid;gap:10px">
+    <span class="label">Data page anatomy</span>
+    <h1>Inside an 8 KB Page</h1>
+    <p>Two leaf pages from the same table <code>t</code>, drawn to scale. Every horizontal band is 512 bytes, and 16 bands make the full 8,192 bytes. Switch between them to compare how many rows each kind of index fits into the same 8 KB.</p>
+    <div class="modes" role="group" aria-label="Page to show">
+      <button id="m-ci" aria-pressed="true">Clustered leaf · PK_t</button>
+      <button id="m-nc" aria-pressed="false">Nonclustered leaf · IX_t_secondary_id</button>
+    </div>
+    <p id="intro"></p>
+  </header>
+
+  <section class="panel">
+    <div class="legend">
+      <span><i class="sw h"></i>Page header, 96 bytes</span>
+      <span><i class="sw r"></i>Row (click to inspect)</span>
+      <span><i class="sw s"></i>Slot array, 2 bytes per row, grows backwards from the end</span>
+      <span><i class="sw f"></i>Contiguous free space</span>
+      <span><i class="sw x"></i>Freed hole from a delete</span>
+    </div>
+    <div class="pages" id="pages"></div>
+    <div class="ctl">
+      <div class="field" data-mode="ci"><label for="in-id">New row id (1000–1099)</label><input type="number" id="in-id" min="1000" max="1099" value="1050"></div>
+      <div class="field" data-mode="ci"><label for="in-len">notes length, bytes (0–800)</label><input type="number" id="in-len" min="0" max="800" value="750"></div>
+      <div class="field" data-mode="nc" hidden><label for="in-sec">secondary_id (400–469)</label><input type="number" id="in-sec" min="400" max="469" value="431"></div>
+      <div class="field" data-mode="nc" hidden><label for="in-nid">id (1–2,000,000)</label><input type="number" id="in-nid" min="1" max="2000000" value="123456"></div>
+      <button class="primary" id="b-ins">Insert row</button>
+      <button id="b-rand">Insert 10 random rows</button>
+      <button id="b-del">Delete selected row</button>
+      <button id="b-reset">Reset</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </section>
+
+  <div class="cols">
+    <section class="panel">
+      <h3>Page header</h3>
+      <p class="note">These are the main fields <code>DBCC PAGE</code> prints from the 96-byte header of the selected page. Click a page in the map to select it.</p>
+      <dl class="kv" id="hdr"></dl>
+    </section>
+    <section class="panel">
+      <h3>Slot array</h3>
+      <p class="note">The slots are in key order, but the offsets are not. Rows sit in arrival order, and the slot array alone provides the sorting. A binary search on this page runs over the slots.</p>
+      <div class="tbl slotscroll"><table><thead><tr><th>Slot</th><th>Offset</th><th id="keyh">Key</th><th>Length</th></tr></thead><tbody id="slots"></tbody></table></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h3 id="rec-h">Record anatomy</h3>
+    <p class="note" id="rec-note"></p>
+    <div class="recbar" id="recbar"></div>
+    <div class="tbl"><table><thead><tr><th>Bytes</th><th>Field</th><th>Size</th><th>Value</th><th>Purpose</th></tr></thead><tbody id="rec"></tbody></table></div>
+  </section>
+
+  <section style="display:grid;gap:12px">
+    <h2>Same 8 KB, different row counts</h2>
+    <div class="compare">
+      <div class="panel"><span class="label">Clustered leaf · PK_t</span><span class="big">10 rows</span><p class="note">Each row is the whole table row, about 790 bytes here. Narrower tables fit more, but every column of every row lives at this level.</p></div>
+      <div class="panel"><span class="label">Nonclustered leaf · IX_t_secondary_id</span><span class="big">up to 578 rows</span><p class="note">Each entry is only <code>(secondary_id, id)</code> plus a few bytes of overhead, 12 bytes in total. The same 8 KB holds about 58 times as many entries, so the whole index is about 58 times smaller than the table.</p></div>
+      <div class="panel"><span class="label">What that buys</span><span class="big">1 read</span><p class="note">Finding every id with <code>secondary_id = 431</code> touches one nonclustered leaf page. Reading those rows' other columns then costs one clustered traversal per row, which is the key lookup.</p></div>
+    </div>
+  </section>
+
+  <section class="panel cap">
+    <div style="display:grid;gap:6px">
+      <h2>Rows per page by row size</h2>
+      <p class="muted">Usable space is 8,192 − 96 = 8,096 bytes. Each row also costs a 2-byte slot. So rows per page = floor(8,096 ÷ (row bytes + 2)).</p>
+    </div>
+    <div class="field"><label for="cap">Row size in bytes</label><input type="range" id="cap" min="0" max="1000" value="0"></div>
+    <div class="presets">
+      <button data-b="9">NC leaf, NOT NULL key · 9 B</button>
+      <button data-b="12">NC leaf, nullable key · 12 B</button>
+      <button data-b="18">NC non-leaf + page pointer · 18 B</button>
+      <button data-b="80">Typical narrow table row · 80 B</button>
+      <button data-b="790">This page's rows · 790 B</button>
+      <button data-b="8060">Maximum in-row size · 8,060 B</button>
+    </div>
+    <div class="capout"><span>Row <b id="c-b"></b> bytes</span><span>Rows per page <b id="c-n"></b></span><span>Unused <b id="c-w"></b> bytes</span></div>
+    <div class="minis" id="minis" aria-hidden="true"></div>
+    <p class="note">Rows larger than 8,060 bytes do not fit in-row. Variable-length data is pushed to row-overflow or LOB pages, and the row keeps a 24-byte pointer in its place. Real pages also hold less than the maximum, because splits leave pages about half full and fill factor reserves free space at rebuild time.</p>
+  </section>
+</div>
+
+<script>
+(function(){
+const PAGE=8192,HDR=96,BAND=512;
+const X0=44,W=640,BH=20,Y0=6;
+const sx=b=>X0+(b%BAND)/BAND*W, sy=b=>Y0+Math.floor(b/BAND)*BH;
+const $=id=>document.getElementById(id);
+const fmt=n=>n.toLocaleString("en-GB");
+const hex=n=>"0x"+n.toString(16);
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const cmp=(a,b)=>{for(let i=0;i<a.k.length;i++){if(a.k[i]!==b.k[i])return a.k[i]-b.k[i];}return 0;};
+
+const MODES={
+ ci:{
+  index:"PK_t",type:"<b>1</b> data page (clustered leaf)",pid:"1:3120",prev:"1:3119",next:"1:3121",newPid:4471,keyHead:"id",
+  intro:"Leaf page of the clustered index <code>PK_t</code>. Each row is a full table row: <code>id int</code>, <code>secondary_id int</code>, <code>created_at datetime2</code>, <code>status char(10)</code> and <code>notes varchar(800)</code>. At about 790 bytes per row, 10 rows fill the page.",
+  start:"The page starts full: 10 rows and 169 bytes free. A new 787-byte row cannot fit, so inserting id 1050 splits the page. Delete a row first to see the space reused instead.",
+  recNote:"SQL Server stores data rows in the FixedVar format. Fixed-width columns come first, then a column count and null bitmap, then an offset array for the variable-width columns, then the variable data itself.",
+  mk:(id,n)=>({k:[id],len:37+n,notes:n,sec:(id*7)%23+1}),
+  init(){return [[1040,742],[1003,760],[1077,751],[1012,770],[1095,738],[1021,765],[1058,749],[1066,757],[1031,744],[1088,761]].map(([i,n])=>this.mk(i,n));},
+  keyText:r=>String(r.k[0]), label:r=>"id "+r.k[0],
+  read(){const id=Math.round(+$("in-id").value),n=Math.round(+$("in-len").value);
+    if(!(id>=1000&&id<=1099))return{err:`id ${id} is outside this page's key range. In the real index, ids below 1000 belong on the previous page and ids from 1100 upward on the next page, so the insert would go there instead.`};
+    if(!(n>=0&&n<=800))return{err:"notes is varchar(800), so its length must be between 0 and 800 bytes."};
+    return{row:this.mk(id,n)};},
+  random(r,taken){for(let t=0;t<200;t++){const id=1000+Math.floor(r()*100);if(!taken(id+""))return this.mk(id,600+Math.floor(r()*200));}return null;},
+  dup:r=>`Violation of PRIMARY KEY constraint: id ${r.k[0]} already exists.`,
+  anatomy(r){return[
+    ["Status bits A",1,"0x30","Record type (primary data row), with flags saying a null bitmap and variable-length columns are present.","h"],
+    ["Status bits B",1,"0x00","Additional flags, such as ghost or forwarded record.","h"],
+    ["Fixed-length end",2,30,"Offset where the fixed-width columns end, so the engine can jump past them.","h"],
+    ["id",4,r.k[0],"int clustering key, fixed width.","r"],
+    ["secondary_id",4,r.sec,"int, fixed width.","r"],
+    ["created_at",8,"2026-11-04 …","datetime2(7), fixed width.","r"],
+    ["status",10,"'shipped   '","char(10). Always 10 bytes, padded with spaces.","r"],
+    ["Column count",2,5,"Total number of columns in the row.","h"],
+    ["Null bitmap",1,"0x00","One bit per column. 5 columns fit in 1 byte.","h"],
+    ["Variable column count",2,1,"Number of variable-length columns stored.","h"],
+    ["Variable offset array",2,r.len,"One 2-byte end offset per variable column. notes ends at this byte.","h"],
+    ["notes",r.notes,`varchar, ${r.notes} chars`,"Variable-length data. This is why rows on one page differ in size.","r2"]];}
+ },
+ nc:{
+  index:"IX_t_secondary_id",type:"<b>2</b> index page",pid:"1:8840",prev:"1:8839",next:"1:8841",newPid:9312,keyHead:"(secondary_id, id)",
+  intro:"Leaf page of the nonclustered index <code>IX_t_secondary_id</code> on the same table. Each entry holds only the key <code>secondary_id</code> and the clustering key <code>id</code>, which SQL Server appends because the index is non-unique. At 12 bytes per entry, this page holds 560 entries and could take 578.",
+  start:"The page holds 560 entries in physical key order, because CREATE INDEX wrote them sorted. 256 bytes are free, enough for 18 more 14-byte entries (12-byte row plus 2-byte slot). The 19th insert forces a split. Hover any sliver to see its key.",
+  recNote:"Index records use a slimmer format than data rows. There is no status byte B and no fixed-length end offset. The column count and null bitmap are present only because secondary_id is nullable. With a NOT NULL key each entry would be 9 bytes, and the page would hold 736.",
+  mk:(sec,id)=>({k:[sec,id],len:12}),
+  init(){const r=rng(7),out=[];for(let g=400;g<470;g++){const ids=[];while(ids.length<8){const v=1+Math.floor(r()*2000000);if(!ids.includes(v))ids.push(v);}ids.sort((a,b)=>a-b).forEach(v=>out.push(this.mk(g,v)));}return out;},
+  keyText:r=>`(${r.k[0]}, ${r.k[1]})`, label:r=>`(${r.k[0]},${r.k[1]})`,
+  read(){const sec=Math.round(+$("in-sec").value),id=Math.round(+$("in-nid").value);
+    if(!(sec>=400&&sec<=469))return{err:`secondary_id ${sec} is outside this page's key range. Lower values belong on earlier leaf pages and higher values on later ones.`};
+    if(!(id>=1&&id<=2000000))return{err:"id must be between 1 and 2,000,000."};
+    return{row:this.mk(sec,id)};},
+  random(r,taken){for(let t=0;t<200;t++){const x=this.mk(400+Math.floor(r()*70),1+Math.floor(r()*2000000));if(!taken(x.k.join(",")))return x;}return null;},
+  dup:r=>`The entry (${r.k[0]}, ${r.k[1]}) already exists. The same table row cannot appear twice in the index.`,
+  anatomy(r){return[
+    ["Status bits A",1,"0x16","Record type (index record), with a flag saying a null bitmap is present.","h"],
+    ["secondary_id",4,r.k[0],"The index key column, fixed width.","r"],
+    ["id",4,r.k[1],"Clustering key, appended because the index is non-unique. It is the row locator a key lookup uses.","r2"],
+    ["Column count",2,2,"Present because a key column is nullable.","h"],
+    ["Null bitmap",1,"0x00","One bit per column. secondary_id is not NULL here.","h"]];}
+ }
+};
+
+let mode="ci",pages,sel,nextPid,rand=rng(42);
+const M=()=>MODES[mode];
+const used=p=>p.rows.reduce((a,r)=>a+r.len,0);
+const freeCnt=p=>PAGE-HDR-used(p)-2*p.rows.length;
+const slotStart=(p,n)=>PAGE-2*n;
+function place(p,r){r.off=p.freeData;p.freeData+=r.len;p.rows.push(r);}
+function compact(p){const rs=[...p.rows].sort((a,b)=>a.off-b.off);p.rows=[];p.holes=[];p.freeData=HDR;rs.forEach(r=>place(p,r));}
+const sorted=p=>[...p.rows].sort(cmp);
+const kid=r=>r.k.join(",");
+function msg(t,c){const m=$("msg");m.innerHTML=t;m.className="msg "+(c||"");}
+
+function reset(){
+  const m=M();const p={pid:m.pid,prev:m.prev,next:m.next,rows:[],holes:[],freeData:HDR};
+  m.init().forEach(r=>place(p,r));
+  pages=[p];nextPid=m.newPid;sel={pg:0,id:kid(sorted(p)[0])};rand=rng(42);
+  msg(m.start);
+}
+function exists(key){return pages.some(p=>p.rows.some(r=>kid(r)===key));}
+
+function insertRow(r,quiet){
+  if(exists(kid(r))){if(!quiet)msg(M().dup(r),"warn");return "dup";}
+  let pi=0;pages.forEach((p,i)=>{const s=sorted(p);if(s.length&&cmp(s[0],r)<=0)pi=i;});
+  const p=pages[pi],need=r.len+2,label=M().label(r);
+  const contiguous=slotStart(p,p.rows.length+1)-p.freeData;
+  if(r.len<=contiguous){place(p,r);sel={pg:pi,id:kid(r)};if(!quiet)msg(`Inserted ${label} (${r.len} bytes) at offset ${r.off} (${hex(r.off)}), the start of contiguous free space. Its slot goes into the slot array in key order. ${fmt(freeCnt(p))} bytes remain free.`,"ok");return "ok";}
+  if(need<=freeCnt(p)){compact(p);place(p,r);sel={pg:pi,id:kid(r)};if(!quiet)msg(`The page had enough free space in total but not ${r.len} contiguous bytes. SQL Server compacted the page, rewriting rows end to end so the holes merged into one free block, then wrote ${label}. The slot numbers in key order stay valid. Only their offsets changed.`,"ok");return "compact";}
+  split(pi,r,need);return "split";
+}
+function split(pi,r,need){
+  const p=pages[pi],free=freeCnt(p);
+  const all=[...p.rows,r].sort(cmp);
+  const mid=Math.ceil(all.length/2),stay=new Set(all.slice(0,mid).map(kid));
+  const pid="1:"+(nextPid++);
+  const np={pid,prev:p.pid,next:p.next,rows:[],holes:[],freeData:HDR};
+  const keep=[...p.rows].sort((a,b)=>a.off-b.off).filter(x=>stay.has(kid(x)));
+  if(stay.has(kid(r)))keep.push(r);
+  p.rows=[];p.holes=[];p.freeData=HDR;keep.forEach(x=>place(p,x));
+  all.slice(mid).forEach(x=>place(np,x));
+  const after=pages[pi+1];if(after)after.prev=pid;
+  p.next=pid;pages.splice(pi+1,0,np);
+  sel={pg:stay.has(kid(r))?pi:pi+1,id:kid(r)};
+  msg(`<b>Page split.</b> ${M().label(r)} needed ${need} bytes (row plus slot), but only ${free} were free. SQL Server allocated page ${pid}, moved the upper ${all.length-mid} rows by key onto it, and rewired the pointers so the chain reads ${p.pid} → ${pid} → ${np.next}. Both pages are now about half full. Page ${pid} sits elsewhere in the file, not physically after ${p.pid}, which is how logical fragmentation starts.`,"split");
+}
+function insert(){const x=M().read();if(x.err){msg(x.err,"warn");return;}insertRow(x.row);render();}
+function insertRandom(){
+  let ok=0,splits=0;
+  for(let i=0;i<10;i++){const r=M().random(rand,exists);if(!r)break;const res=insertRow(r,true);if(res==="dup")continue;ok++;if(res==="split")splits++;}
+  if(!splits)msg(`Inserted ${ok} random rows into free space. ${pages.map(p=>`${p.pid} has ${fmt(freeCnt(p))} bytes free`).join(", ")}.`,"ok");
+  else msg(`Inserted ${ok} random rows, causing ${splits} page split${splits>1?"s":""}. The leaf chain now reads ${pages.map(p=>p.pid).join(" → ")}. Each split left two pages about half full.`,"split");
+  render();
+}
+function del(){
+  const p=pages[sel.pg],i=p.rows.findIndex(r=>kid(r)===sel.id);
+  if(i<0){msg("Select a row on the map or in the slot array first.","warn");return;}
+  const r=p.rows[i];p.rows.splice(i,1);p.holes.push({off:r.off,len:r.len});
+  const s=sorted(p);sel={pg:sel.pg,id:s.length?kid(s[0]):null};
+  msg(`Deleted ${M().label(r)}. Its slot is removed, but its ${r.len} bytes at offset ${r.off} become a hole. They count toward the page's free total, yet they are not part of the contiguous free block. In SQL Server the row is first marked as a ghost record, and a background task removes it later. This demo jumps straight to the cleaned-up state.`,"ok");
+  render();
+}
+
+const NS="http://www.w3.org/2000/svg";
+function el(t,a,par){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(par)par.appendChild(e);return e;}
+function segs(start,len){const out=[];let b=start,end=start+len;while(b<end){const le=(Math.floor(b/BAND)+1)*BAND,e=Math.min(end,le);out.push({x:sx(b),y:sy(b),w:(e-b)/BAND*W});b=e;}return out;}
+function drawRegion(svg,start,len,cls){return segs(start,len).map(s=>el("rect",{x:s.x,y:s.y+1,width:Math.max(s.w,.6),height:BH-2,class:cls},svg));}
+
+function drawPage(p,pi){
+  const box=document.createElement("div");box.className="pagebox"+(pi===sel.pg?" cur":"");
+  const fc=freeCnt(p);
+  box.innerHTML=`<div class="ph"><span><b>page ${p.pid}</b> · leaf of ${M().index}</span><span>${fmt(p.rows.length)} rows · ${fmt(fc)} bytes free · ${Math.round((PAGE-HDR-fc)/(PAGE-HDR)*100)}% full</span><span>prev ${p.prev} · next ${p.next}</span></div>`;
+  const wrap=document.createElement("div");wrap.className="svgbox";
+  const svg=el("svg",{viewBox:`0 0 ${X0+W+4} ${Y0+16*BH+6}`,class:"map",role:"img","aria-label":`Byte map of page ${p.pid}`});
+  const defs=el("defs",{},svg);
+  const pf=el("pattern",{id:"hatch-free",width:5,height:5,patternUnits:"userSpaceOnUse",patternTransform:"rotate(45)"},defs);el("line",{x1:0,y1:0,x2:0,y2:5,class:"hatch-f"},pf);
+  const ph=el("pattern",{id:"hatch-hole",width:5,height:5,patternUnits:"userSpaceOnUse",patternTransform:"rotate(45)"},defs);el("line",{x1:0,y1:0,x2:0,y2:5,class:"hatch-h"},ph);
+  for(let l=0;l<16;l++){const t=el("text",{x:X0-6,y:Y0+l*BH+13,class:"off","text-anchor":"end"},svg);t.textContent=l*BAND;
+    for(let c=0;c<=8;c++)el("line",{x1:X0+c*W/8,y1:Y0+l*BH+1,x2:X0+c*W/8,y2:Y0+l*BH+BH-1,class:"gridl"},svg);}
+  const ss=slotStart(p,p.rows.length);
+  if(ss>p.freeData){drawRegion(svg,p.freeData,ss-p.freeData,"free");
+    const s0=segs(p.freeData,ss-p.freeData).sort((a,b)=>b.w-a.w)[0];
+    if(s0&&s0.w>90){const t=el("text",{x:s0.x+6,y:s0.y+13,class:"freelbl"},svg);t.textContent=`free · ${fmt(ss-p.freeData)} B`;}}
+  drawRegion(svg,0,HDR,"hdr");
+  const ht=el("text",{x:sx(0)+5,y:sy(0)+13,class:"rowlbl"},svg);ht.textContent="header";
+  p.holes.forEach(h=>drawRegion(svg,h.off,h.len,"hole"));
+  [...p.rows].sort((a,b)=>a.off-b.off).forEach((r,k)=>{
+    const isSel=pi===sel.pg&&kid(r)===sel.id;
+    drawRegion(svg,r.off,r.len,"row"+(k%2?" alt":"")+(isSel?" sel":"")).forEach(rc=>{
+      el("title",{},rc).textContent=`${M().label(r)} · ${r.len} B at offset ${r.off}`;
+      rc.addEventListener("click",e=>{e.stopPropagation();sel={pg:pi,id:kid(r)};render(true);});});
+    const big=segs(r.off,r.len).sort((a,b)=>b.w-a.w)[0];
+    if(big.w>52){const t=el("text",{x:big.x+5,y:big.y+13,class:"rowlbl"},svg);t.textContent=M().label(r);}
+  });
+  const ssl=el("g",{},svg);
+  sorted(p).forEach((r,k)=>{const isSel=pi===sel.pg&&kid(r)===sel.id;drawRegion(ssl,PAGE-2*(k+1),2,"slot"+(isSel?" sel":""));});
+  wrap.appendChild(svg);box.appendChild(wrap);
+  box.addEventListener("click",()=>{if(sel.pg!==pi){const s=sorted(p);sel={pg:pi,id:s.length?kid(s[0]):null};render();}});
+  return box;
+}
+
+function render(scrollSlot){
+  const m=M();
+  $("intro").innerHTML=m.intro;$("rec-note").textContent=m.recNote;$("keyh").textContent=m.keyHead;
+  document.querySelectorAll("[data-mode]").forEach(e=>e.hidden=e.dataset.mode!==mode);
+  $("m-ci").setAttribute("aria-pressed",mode==="ci");$("m-nc").setAttribute("aria-pressed",mode==="nc");
+  const host=$("pages");host.innerHTML="";pages.forEach((p,i)=>host.appendChild(drawPage(p,i)));
+  const p=pages[sel.pg],s=sorted(p),fc=freeCnt(p);
+  const kv=[["m_pageId",`<b>${p.pid}</b> file 1, page ${p.pid.split(":")[1]}`],["m_type",m.type],["m_level","<b>0</b> leaf level"],
+    ["m_slotCnt",`<b>${fmt(p.rows.length)}</b> slots in use`],["m_freeCnt",`<b>${fmt(fc)}</b> bytes free in total, holes included`],["m_freeData",`<b>${fmt(p.freeData)}</b> offset where contiguous free space begins`],
+    ["m_prevPage",`<b>${p.prev}</b> previous leaf in key order`],["m_nextPage",`<b>${p.next}</b> next leaf in key order`],["m_lsn","<b>(…)</b> last log record that changed this page"]];
+  $("hdr").innerHTML=kv.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("");
+  $("slots").innerHTML=s.map((r,k)=>`<tr data-id="${kid(r)}" class="${kid(r)===sel.id?"sel":""}"><td>${k}</td><td>${r.off} (${hex(r.off)})</td><td>${m.keyText(r)}</td><td>${r.len}</td></tr>`).join("")||`<tr><td colspan="4" class="desc">No rows.</td></tr>`;
+  $("slots").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>{sel={pg:sel.pg,id:tr.dataset.id};render();});
+  if(scrollSlot){const tr=$("slots").querySelector("tr.sel");const box=tr&&tr.closest(".slotscroll");if(box)box.scrollTop=tr.offsetTop-box.clientHeight/2;}
+  const r=p.rows.find(x=>kid(x)===sel.id);
+  $("b-del").disabled=!r;
+  if(!r){$("rec-h").textContent="Record anatomy";$("rec").innerHTML=`<tr><td colspan="5" class="desc">Select a row.</td></tr>`;$("recbar").innerHTML="";return;}
+  $("rec-h").textContent=`Record anatomy · ${m.label(r)} · ${r.len} bytes at offset ${r.off}`;
+  const F=m.anatomy(r);let o=0;
+  $("rec").innerHTML=F.map(([f,sz,v,d])=>{const a=o;o+=sz;return `<tr><td>${a}–${o-1}</td><td>${f}</td><td>${sz}</td><td>${v}</td><td class="desc">${d}</td></tr>`;}).join("");
+  const col={h:"var(--hdr)",r:"var(--row)",r2:"var(--row2)"};
+  $("recbar").innerHTML=F.map(([f,sz,,,c])=>`<i title="${f}: ${sz} B" style="flex:${Math.max(sz,mode==="nc"?1:6)} 0 0;background:${col[c]}"></i>`).join("");
+}
+
+function setMode(m){mode=m;reset();render();}
+$("m-ci").onclick=()=>setMode("ci");$("m-nc").onclick=()=>setMode("nc");
+$("b-ins").onclick=insert;$("b-rand").onclick=insertRandom;$("b-del").onclick=del;
+$("b-reset").onclick=()=>{reset();render();};
+
+const LO=9,HI=8060;
+const toV=b=>Math.round(Math.log(b/LO)/Math.log(HI/LO)*1000),toB=v=>Math.round(LO*Math.pow(HI/LO,v/1000));
+function cap(b){
+  const n=Math.floor(8096/(b+2)),w=8096-n*(b+2);
+  $("c-b").textContent=fmt(b);$("c-n").textContent=fmt(n);$("c-w").textContent=fmt(w);
+  $("minis").innerHTML=n<=700?"<i></i>".repeat(n):"<i></i>".repeat(700)+`<span class="note">&nbsp;+${fmt(n-700)} more</span>`;
+}
+$("cap").addEventListener("input",e=>cap(toB(+e.target.value)));
+document.querySelectorAll(".presets button").forEach(b=>b.onclick=()=>{const v=+b.dataset.b;$("cap").value=toV(v);cap(v);});
+$("cap").value=toV(790);cap(790);
+
+reset();render();
+})();
+</script>
+</body>
+</html>

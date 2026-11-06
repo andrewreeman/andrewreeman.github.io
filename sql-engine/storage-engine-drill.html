@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Storage Engine Drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: game console — scoreboard strip, then task column (query, instruction, the page you're holding) beside a state column (tree map, reads, results, cheat sheet) */
+:root{
+  --bg:#eef2f6; --surface:#ffffff; --ink:#132030; --muted:#566578; --line:#cdd6e0;
+  --nc:#0d7a72; --ci:#b4521a; --ok:#2f7d3a; --bad:#b3311c; --hint:#7a5c00;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d131a; --surface:#151f2a; --ink:#e3e9f0; --muted:#8e9eb0; --line:#2a3848;
+  --nc:#3cc3b6; --ci:#f0904c; --ok:#6cc47a; --bad:#f27a62; --hint:#e6c25a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d131a; --surface:#151f2a; --ink:#e3e9f0; --muted:#8e9eb0; --line:#2a3848;
+  --nc:#3cc3b6; --ci:#f0904c; --ok:#6cc47a; --bad:#f27a62; --hint:#e6c25a; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body)}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 56px;display:grid;gap:18px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:clamp(1.6rem,4vw,2.2rem);font-weight:800;letter-spacing:-.01em;line-height:1.1}
+h2{font-size:1.25rem;font-weight:800}
+h3{font-size:1rem;font-weight:600}
+p{margin:0;max-width:72ch}
+code{font-family:var(--f-mono);font-size:.86em;background:color-mix(in srgb,var(--muted) 14%,transparent);padding:1px 5px;border-radius:3px}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:10px;align-content:start;min-width:0}
+
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px}
+.score{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.score div{background:var(--surface);padding:8px 14px;display:grid;gap:0;min-width:84px}
+.score b{font-family:var(--f-mono);font-size:1.25rem;font-variant-numeric:tabular-nums}
+.pips{display:flex;gap:4px;flex-wrap:wrap}
+.pips i{width:26px;height:6px;border-radius:3px;background:var(--line)}
+.pips i.done{background:var(--ink)} .pips i.cur{background:var(--nc)}
+
+.game{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.game{grid-template-columns:1fr}}
+.query{font-family:var(--f-mono);font-size:1rem;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 14px;overflow-x:auto;white-space:nowrap}
+.query .kw{color:var(--nc);font-weight:600}
+.phase{display:inline-flex;gap:8px;align-items:center;font-family:var(--f-mono);font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:3px;border:1px solid var(--line);width:max-content;max-width:100%}
+.phase.nc{color:var(--nc);border-color:var(--nc)} .phase.ci{color:var(--ci);border-color:var(--ci)}
+.instr{font-size:1rem}
+.keybox{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--f-mono);font-size:.88rem}
+.keybox b{font-weight:600}
+
+.pagecard{border:2px solid var(--line);border-radius:8px;overflow:hidden}
+.pagecard.nc{border-color:var(--nc)} .pagecard.ci{border-color:var(--ci)}
+.pagehdr{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 14px;padding:8px 12px;font-family:var(--f-mono);font-size:.8rem;background:color-mix(in srgb,var(--muted) 10%,var(--surface));border-bottom:1px solid var(--line)}
+.pagehdr b{font-weight:600}
+.slots{display:grid}
+.slot{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 12px;border:0;border-top:1px solid var(--line);background:var(--surface);color:var(--ink);text-align:left;font:500 .92rem var(--f-mono);cursor:pointer;border-radius:0;width:100%}
+.slot:first-child{border-top:0}
+.slot:hover{background:color-mix(in srgb,var(--muted) 9%,var(--surface))}
+.slot .sn{color:var(--muted);font-size:.78rem}
+.slot .tag{font-family:var(--f-body);font-size:.75rem;color:var(--muted)}
+.slot.taken{background:color-mix(in srgb,var(--ok) 12%,var(--surface))}
+.slot.taken .tag{color:var(--ok);font-weight:600}
+.slot.flash-bad{animation:bad .45s}
+.slot.hinted,.actions button.hinted{outline:2px dashed var(--hint);outline-offset:-2px}
+@keyframes bad{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.pagefoot{padding:8px 12px;font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);font-family:var(--f-mono)}
+
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+button{font:600 .88rem var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:8px 14px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--nc);outline-offset:2px}
+.slot:focus-visible{outline:2px solid var(--nc);outline-offset:-2px}
+
+.plans{display:grid;gap:8px}
+.plan{display:grid;gap:3px;text-align:left;padding:12px 14px;font-weight:500}
+.plan b{font-family:var(--f-mono);font-size:.9rem;font-weight:600}
+.plan span{font-size:.85rem;color:var(--muted);font-family:var(--f-body)}
+.plan.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--surface))}
+.plan.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--surface))}
+.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem}
+.stats b{font-family:var(--f-mono)}
+
+.fb{border-left:3px solid var(--line);padding:8px 12px;font-size:.93rem;min-height:2.6em;background:var(--surface);border-radius:0 6px 6px 0}
+.fb.ok{border-left-color:var(--ok)} .fb.bad{border-left-color:var(--bad)} .fb.hint{border-left-color:var(--hint)}
+.fb b.t{display:block;font-family:var(--f-display);font-size:.98rem}
+.fb.ok b.t{color:var(--ok)} .fb.bad b.t{color:var(--bad)} .fb.hint b.t{color:var(--hint)}
+
+.side{display:grid;gap:16px;align-content:start}
+.ctrs{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ctrs div{background:var(--surface);padding:10px 12px;display:grid}
+.ctrs b{font-family:var(--f-mono);font-size:1.4rem;font-variant-numeric:tabular-nums;line-height:1.15}
+.ctrs .nc b{color:var(--nc)} .ctrs .ci b{color:var(--ci)}
+svg.mini{width:100%;display:block}
+svg.mini text{font-family:var(--f-mono);font-size:9px;fill:var(--muted)}
+svg.mini rect{fill:var(--surface);stroke:var(--line);stroke-width:1}
+svg.mini .nc.v{fill:color-mix(in srgb,var(--nc) 25%,var(--surface));stroke:var(--nc)}
+svg.mini .ci.v{fill:color-mix(in srgb,var(--ci) 25%,var(--surface));stroke:var(--ci)}
+svg.mini .cur{stroke:var(--ink);stroke-width:2.2}
+svg.mini line{stroke:var(--line);stroke-width:.8}
+.path{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);overflow-wrap:anywhere}
+.res table,.sum table{width:100%;border-collapse:collapse;font-family:var(--f-mono);font-size:.82rem;font-variant-numeric:tabular-nums}
+.res th,.sum th{text-align:left;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding:4px 6px}
+.res td,.sum td{padding:4px 6px;border-bottom:1px dashed var(--line)}
+.tbl{overflow-x:auto}
+details{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+details summary{cursor:pointer;font-family:var(--f-display);font-weight:600}
+details ul{margin:10px 0 0;padding-left:18px;display:grid;gap:6px;font-size:.88rem}
+details a{color:var(--nc)}
+.sum{display:grid;gap:12px}
+.big{font-family:var(--f-mono);font-size:2rem;font-weight:600;font-variant-numeric:tabular-nums}
+.defs{display:grid;gap:4px}
+code.blk{display:block;white-space:pre;overflow-x:auto;padding:10px 12px;font-size:.82rem;line-height:1.5;border:1px solid var(--line);background:var(--bg)}
+.ctrs .wr b{color:var(--bad)}
+svg.mini .modm{fill:var(--bad);stroke:none}
+.gap{border:1px dashed var(--line);border-left:0;border-right:0;background:transparent;color:var(--muted);font:500 .72rem var(--f-mono);padding:3px 12px;text-align:left;border-radius:0;width:100%}
+.gap:hover{color:var(--ink);background:color-mix(in srgb,var(--ok) 10%,var(--surface))}
+.gap.hinted{outline:2px dashed var(--hint);outline-offset:-2px}
+.tgts{display:grid;gap:8px}
+.tg{display:flex;gap:10px;align-items:center;font-family:var(--f-mono);font-size:.9rem;border:1px solid var(--line);border-radius:6px;padding:10px 12px;cursor:pointer}
+.tg input,.bsel input{width:16px;height:16px;accent-color:var(--nc)}
+.ghostbtn{font-size:.8rem;padding:5px 10px}
+[hidden]{display:none!important}
+.levels{display:grid;gap:16px}
+.lvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.lv{display:grid;gap:6px;text-align:left;padding:14px 16px;align-content:start;font-weight:500}
+.lv .lvn{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.lv b{font-family:var(--f-display);font-size:1.08rem;font-weight:600}
+.lv .lvt{font-size:.85rem;color:var(--muted);line-height:1.45}
+.lv .lvs{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.lv.pass{border-color:var(--ok)}
+.lv.pass .lvs{color:var(--ok)}
+.lv:disabled{opacity:.45;cursor:not-allowed}
+.lv:disabled:hover{border-color:var(--line)}
+.hist{display:grid;gap:6px}
+.hist table,table.wl{border-collapse:collapse;font-variant-numeric:tabular-nums}
+.hist td,.hist th{font-family:var(--f-mono);font-size:.8rem;padding:5px 10px;border-bottom:1px dashed var(--line);text-align:right;white-space:nowrap}
+.hist th{color:var(--muted);font-weight:600;border-bottom:1px solid var(--line)}
+.hist td.l{text-align:left;font-family:var(--f-body);color:var(--muted)}
+.hist .note,.builder .note,.sum .note{font-size:.8rem;color:var(--muted)}
+table.wl{width:100%}
+table.wl td,table.wl th{font-size:.82rem;padding:6px 8px;border-bottom:1px dashed var(--line);text-align:left;vertical-align:top}
+table.wl th{color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap}
+table.wl code{white-space:normal;background:none;padding:0}
+.slot.ghost span:nth-child(2){text-decoration:line-through;color:var(--muted)}
+.builder{display:grid;gap:12px;border:1px solid var(--line);border-radius:8px;padding:14px}
+.brow{display:grid;gap:6px}
+.bsel{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-family:var(--f-mono);font-size:.88rem}
+.bsel label{display:flex;gap:6px;align-items:center;cursor:pointer}
+select{font:500 .9rem var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 8px}
+select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-offset:2px}
+@media (max-width:560px){.ctrs{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div style="display:grid;gap:6px">
+      <span class="label">You are the storage engine</span>
+      <h1>Storage Engine Drill</h1>
+      <p class="muted">Execute each statement by hand. Pick the plan, then work page by page: choose which pointer to follow, which slot to read or write, which way to walk the leaf chain, and when to stop. Every page you enter costs a logical read, and every page you change costs a write. Later levels add heaps, statistics, plan reuse and index design.</p>
+    </div>
+    <div style="display:grid;gap:8px;justify-items:end">
+      <div class="pips" id="pips"></div>
+      <div class="score">
+        <div><span class="label">Level</span><b id="s-lvl">–</b></div>
+        <div><span class="label">Round</span><b id="s-round">–</b></div>
+        <div><span class="label">Points</span><b id="s-pts">0</b></div>
+        <div><span class="label">Mistakes</span><b id="s-mis">0</b></div>
+      </div>
+      <button id="b-levels" class="ghostbtn">All levels</button>
+    </div>
+  </div>
+
+  <section class="levels" id="levels" hidden></section>
+
+  <div class="game" id="game" hidden>
+    <div style="display:grid;gap:14px;min-width:0">
+      <section class="panel">
+        <div class="query" id="query"></div>
+        <div class="phase" id="phase"></div>
+        <p class="instr" id="instr"></p>
+        <div class="keybox" id="keybox"></div>
+        <div id="stage" style="display:grid;gap:12px;min-width:0"></div>
+        <div class="actions" id="actions"></div>
+      </section>
+      <div class="fb" id="fb"></div>
+    </div>
+
+    <aside class="side">
+      <div class="ctrs">
+        <div class="nc"><span class="label">IX reads</span><b id="r-ix">0</b></div>
+        <div class="ci"><span class="label" id="lbl-rpk">PK reads</span><b id="r-pk">0</b></div>
+        <div><span class="label">Reads</span><b id="r-tot">0</b></div>
+        <div class="wr"><span class="label">Writes</span><b id="r-wr">0</b></div>
+      </div>
+      <section class="panel">
+        <h3>Tree map</h3>
+        <p class="muted" style="font-size:.82rem">Pages you have read are shaded, and pages you have changed are marked with a dot. The page you hold is outlined. The trees are miniatures with a few rows per page. A real page holds hundreds of entries.</p>
+        <span class="label" style="color:var(--nc)" id="lbl-ix">IX</span>
+        <svg class="mini" id="mini-ix" viewBox="0 0 320 110"></svg>
+        <div class="path" id="path-ix"></div>
+        <span class="label" style="color:var(--ci)" id="lbl-pk">PK_t (clustered) · key (id)</span>
+        <svg class="mini" id="mini-pk" viewBox="0 0 320 110"></svg>
+        <div class="path" id="path-pk"></div>
+      </section>
+      <section class="panel res">
+        <h3 id="res-title">Result set</h3>
+        <div class="tbl"><table><thead id="res-h"></thead><tbody id="res"></tbody></table></div>
+        <span class="muted" id="res-empty" style="font-size:.85rem">Nothing yet.</span>
+      </section>
+      <details>
+        <summary>Rules of the engine</summary>
+        <ul>
+          <li><b>Descending:</b> on a root or intermediate page, follow the <b>last</b> pointer whose separator is ≤ your search key. <code>∅</code> has no lower bound and always qualifies.</li>
+          <li><b>Keys compare left to right.</b> A later column only matters when every earlier column ties. <code>−∞</code> and <code>+∞</code> pad a search key to reach the very start or end of a group.</li>
+          <li><b>Seek range:</b> equality on the leading key columns, then at most one range on the next key column. Any other predicate is a <b>residual</b>: it is checked entry by entry inside the range.</li>
+          <li><b>No seek without the leading key column.</b> An index that can't seek can still be scanned if it covers the query.</li>
+          <li><b>Covered:</b> every column the query touches (SELECT, WHERE and ORDER BY) is in the index key, row locator or INCLUDE list.</li>
+          <li><b>Order for free:</b> with equality on the leading key columns, entries come out sorted by the next key column. Read backwards along <code>m_prevPage</code> for DESC. Otherwise a Sort is needed, and TOP can't stop early.</li>
+          <li><b>UNIQUE index:</b> once every key column is fixed by <code>=</code>, at most one entry matches, so stop after it.</li>
+          <li><b>Filtered index:</b> it only helps when the WHERE clause guarantees its filter.</li>
+          <li><b>Writes:</b> INSERT and DELETE touch every index that holds the row. UPDATE touches an index only if one of its key or INCLUDE columns changes. A key change is a delete plus an insert. DELETE leaves ghost records.</li>
+          <li><b>Heaps:</b> no clustered index. Rows sit in pages in no order, and nonclustered entries hold a RID (file:page:slot) instead of id. A RID lookup reads one page. A forwarding stub costs one more.</li>
+          <li><b>Histogram:</b> a value equal to a <code>RANGE_HI_KEY</code> is estimated from <code>EQ_ROWS</code>. A value strictly between two keys uses the upper step's <code>AVG_RANGE_ROWS</code>.</li>
+          <li><b>Plan reuse:</b> a parameterised query is compiled for the first value it sees, and the cached plan is reused for later values.</li>
+          <li>Reference pages: <a href="key-lookup-walkthrough.html" target="_blank" rel="noopener">Key Lookup Walkthrough</a> · <a href="inside-an-8kb-page.html" target="_blank" rel="noopener">Inside an 8 KB Page</a></li>
+        </ul>
+      </details>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString("en-GB");
+const n1=x=>Number(x).toLocaleString("en-GB",{maximumFractionDigits:1});
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+let R=rng(Date.now()%1000003);
+const ri=(a,b)=>a+Math.floor(R()*(b-a+1));
+const pick=a=>a[Math.floor(R()*a.length)];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+// ---------- keys ----------
+const LO={t:"lo"},HI={t:"hi"};
+function cv(a,b){if(a===b)return 0;if(a===LO||b===HI)return -1;if(a===HI||b===LO)return 1;return a<b?-1:a>b?1:0;}
+function ck(a,b){const n=Math.max(a.length,b.length);for(let i=0;i<n;i++){const c=cv(i<a.length?a[i]:LO,i<b.length?b[i]:LO);if(c)return c;}return 0;}
+const isRid=x=>typeof x==="string"&&/^1:\d+:\d+$/.test(x);
+const vTxt=x=>x===LO?"−∞":x===HI?"+∞":isRid(x)?x:typeof x==="string"?`'${x}'`:String(x);
+const kTxt=k=>k.length===1?vTxt(k[0]):`(${k.map(vTxt).join(", ")})`;
+
+// ---------- schema ----------
+const N=2000000;
+const NONKEY=["status","created_at","notes"],ALL=["id","secondary_id",...NONKEY];
+const STAT=["delivered","held","in transit","packed","returned","shipped"];
+const NOTES=["customs hold","fragile","left with neighbour","none","priority","redelivery","signed for"];
+const DATES=Array.from({length:31},(_,i)=>`2026-10-${String(i+1).padStart(2,"0")}`);
+const PKIX={name:"PK_t",keys:["id"],unique:true,inc:[],clustered:true};
+const ixCols=ix=>[...new Set([...ix.keys,...(ix.heap?[]:["id"]),...ix.inc])];
+const ekey=(ix,e)=>[...ix.keys.map(c=>e[c]),...(ix.unique?[]:[ix.heap?e.rid:e.id])];
+const passFilter=(ix,r)=>!ix.filter||r[ix.filter.col]>ix.filter.v;
+const ixName=ix=>"IX_t_"+ix.keys.join("_");
+function ixDDL(ix){if(!ix)return"-- no nonclustered index on t";
+  return `CREATE ${ix.unique?"UNIQUE ":""}INDEX ${ixName(ix)} ON t (${ix.keys.join(", ")})${ix.inc.length?` INCLUDE (${ix.inc.join(", ")})`:""}${ix.filter?` WHERE ${ix.filter.col} > ${ix.filter.v}`:""};`;}
+function ixLabel(ix){if(!ix)return"no nonclustered index";return `${ixName(ix)} · key (${ix.keys.join(", ")})${ix.unique?" UNIQUE":""}${ix.inc.length?` · INCLUDE (${ix.inc.join(", ")})`:""}${ix.filter?` · WHERE ${ix.filter.col} > ${ix.filter.v}`:""}`;}
+const tableDDL=heap=>heap?"CREATE TABLE t (\n  id int, secondary_id int, status varchar(20),\n  created_at date, notes varchar(800));\n-- no clustered index: t is a heap":"CREATE TABLE t (\n  id int, secondary_id int, status varchar(20),\n  created_at date, notes varchar(800),\n  CONSTRAINT PK_t PRIMARY KEY CLUSTERED (id));";
+
+// ---------- predicates ----------
+function test(p,r){const x=r[p.col];switch(p.op){case"=":return x===p.v;case">":return x>p.v;case">=":return x>=p.v;case"<":return x<p.v;case"<=":return x<=p.v;case"between":return x>=p.lo&&x<=p.hi;}}
+const pTxt=p=>p.param?`${p.col} ${p.op} ${p.param}`:p.op==="between"?`${p.col} BETWEEN ${vTxt(p.lo)} AND ${vTxt(p.hi)}`:`${p.col} ${p.op} ${vTxt(p.v)}`;
+const cnt=(rows,preds)=>rows.filter(r=>preds.every(p=>test(p,r))).length;
+
+// ---------- trees ----------
+function mkTree(entries,keyOf,fill,cap,fan,base,name,kind){
+  entries=[...entries].sort((a,b)=>ck(keyOf(a),keyOf(b)));
+  let cur=[];for(let i=0;i<entries.length;i+=fill)cur.push({level:0,rows:entries.slice(i,i+fill)});
+  if(!cur.length)cur.push({level:0,rows:[]});
+  const levels=[cur];
+  while(cur.length>1){const up=[];for(let i=0;i<cur.length;i+=fan)up.push({level:levels.length,kids:cur.slice(i,i+fan)});levels.push(up);cur=up;}
+  let n=base;levels.slice().reverse().forEach(l=>l.forEach(p=>{p.pid="1:"+(n++);}));
+  const leaves=levels[0];leaves.forEach((p,i)=>{p.prev=leaves[i-1]||null;p.next=leaves[i+1]||null;});
+  return{root:cur[0],keyOf,cap,fan,nextPid:n,name,kind};
+}
+function mkHeap(rows,cap,fill){
+  const order=shuffle([...rows]),pages=[];let n=800;
+  for(let i=0;i<order.length;i+=fill)pages.push({pid:"1:"+(n++),level:0,heap:true,rows:order.slice(i,i+fill)});
+  pages.forEach((p,i)=>{p.next=pages[i+1]||null;p.prev=null;p.rows.forEach((r,s)=>{r.rid=p.pid+":"+s;});});
+  return{heap:true,pages,cap,name:"t (heap)",keyOf:r=>[r.rid],byPid:Object.fromEntries(pages.map(p=>[p.pid,p]))};
+}
+const heapPage=(t,rid)=>t.byPid[rid.split(":").slice(0,2).join(":")];
+const ridSlot=rid=>+rid.split(":")[2];
+function levelsOf(t){if(t.heap)return[t.pages];const L=[];let cur=[t.root];while(cur.length){L.push(cur);cur=cur[0].level>0?cur.flatMap(p=>p.kids):[];}return L;}
+function firstKey(t,p){if(p.level===0)return p.rows.length?t.keyOf(p.rows[0]):(p.next?firstKey(t,p.next):[HI]);return firstKey(t,p.kids[0]);}
+const sepOf=(t,p,i)=>i?firstKey(t,p.kids[i]):null;
+function childFor(t,p,K){let c=0;p.kids.forEach((k,i)=>{if(i===0||ck(firstKey(t,k),K)<=0)c=i;});return c;}
+function parentOf(t,x,p=t.root){if(p.level===0)return null;if(p.kids.includes(x))return p;for(const k of p.kids){const r=parentOf(t,x,k);if(r)return r;}return null;}
+const edgeLeaf=(t,dir)=>{let p=t.root;const path=[];while(p.level){path.push(p);p=dir>0?p.kids[0]:p.kids[p.kids.length-1];}return{leaf:p,path};};
+function splitLeaf(t,p){
+  const mid=Math.ceil(p.rows.length/2),np={pid:"1:"+(t.nextPid++),level:0,rows:p.rows.splice(mid)};
+  np.next=p.next;if(np.next)np.next.prev=np;np.prev=p;p.next=np;
+  const par=parentOf(t,p);
+  if(par)par.kids.splice(par.kids.indexOf(p)+1,0,np);
+  else t.root={pid:"1:"+(t.nextPid++),level:1,kids:[p,np]};
+  return{np,par:par||t.root,newRoot:!par};
+}
+function applyForward(sc){
+  const t=sc.pk,v=sc.q.where[0].v,r=pick(sc.rows.filter(x=>x.secondary_id===v)),P=heapPage(t,r.rid),sl=ridSlot(r.rid);
+  const D=t.pages.filter(p=>p!==P&&p.rows.length<t.cap);let dest=D.length?pick(D):null;
+  if(!dest){dest={pid:"1:"+(800+t.pages.length),level:0,heap:true,rows:[],next:null,prev:null};t.pages[t.pages.length-1].next=dest;t.pages.push(dest);t.byPid[dest.pid]=dest;}
+  const at=dest.pid+":"+dest.rows.length;
+  P.rows[sl]={stub:true,rid:r.rid,fwd:at};r.forwarded=true;r.at=at;r.notes=r.notes+" (lengthened by an update)";dest.rows.push(r);
+}
+
+// ---------- data ----------
+function secValues(k){const base=ri(10,800),step=ri(1,9);return Array.from({length:k},(_,i)=>base+step*(i+1));}
+function makeRows(n,sv,uniqueSec){
+  const ids=new Set();while(ids.size<n)ids.add(ri(1,9999));
+  const secs=uniqueSec?shuffle([...sv]).slice(0,n):null;
+  return [...ids].sort((a,b)=>a-b).map((id,i)=>({id,secondary_id:uniqueSec?secs[i]:pick(sv),status:pick(STAT),created_at:pick(DATES),notes:pick(NOTES)}));
+}
+const lowEst=()=>ri(1,40),highEst=()=>Math.round(N*ri(15,250)/1000);
+function randInc(p,maxN=3,exclude=[]){const pool=NONKEY.filter(c=>!exclude.includes(c));if(R()>=p||!pool.length)return[];const n=ri(1,Math.min(maxN,pool.length));const ch=shuffle([...pool]).slice(0,n);return ALL.filter(c=>ch.includes(c));}
+function selCovered(ix,must=[]){const pool=ixCols(ix);for(;;){const c=shuffle([...pool]).slice(0,ri(1,Math.min(3,pool.length)));if(must.every(m=>c.includes(m)))return ALL.filter(x=>c.includes(x));}}
+function selUncovered(ix){const miss=ALL.filter(c=>!ixCols(ix).includes(c));if(!miss.length)return null;if(R()<.35)return["*"];const c=new Set([pick(miss)]);if(R()<.6)c.add(pick(ixCols(ix)));return ALL.filter(x=>c.has(x));}
+const anySel=ix=>(ix&&R()<.5?selCovered(ix):(ix&&selUncovered(ix)))||["*"];
+function base(n,k,uniqueSec){const sv=secValues(k);return{sv,rows:makeRows(n,sv,uniqueSec)};}
+function vWith(rows,sv,lo,hi,extra){for(let i=0;i<60;i++){const v=pick(sv),m=rows.filter(r=>r.secondary_id===v);if(m.length>=lo&&m.length<=hi&&(!extra||extra(m)))return v;}return null;}
+const distinctDates=m=>new Set(m.map(r=>r.created_at)).size===m.length;
+const eqPred=v=>({col:"secondary_id",op:"=",v});
+
+// ---------- planning ----------
+function filterOk(ix,preds){if(!ix.filter)return true;const F=ix.filter.v;
+  return preds.some(p=>p.col===ix.filter.col&&((p.op==="="&&p.v>F)||(p.op===">"&&p.v>=F)||(p.op===">="&&p.v>F)||(p.op==="between"&&p.lo>F)));}
+const refCols=q=>[...new Set([...(q.select[0]==="*"?ALL:q.select),...q.where.map(p=>p.col),...(q.orderBy?[q.orderBy.col]:[])])];
+function orderSeq(ix,preds){const keys=[...ix.keys,...(ix.unique?[]:[ix.heap?"rid":"id"])];let m=0;while(m<ix.keys.length&&preds.some(p=>p.col===keys[m]&&p.op==="="))m++;return{eq:keys.slice(0,m),next:keys[m]||null,seq:keys};}
+function orderVia(ix,preds,ob){if(!ob)return null;const o=orderSeq(ix,preds);if(o.next===ob.col)return ob.dir==="ASC"?"fwd":"bwd";return null;}
+function decide(sc){
+  const q=sc.q,ix=sc.ix,heap=!!sc.heap;if(q.kind!=="select")return null;
+  const preds=q.where,ob=q.orderBy,pkOrd=heap?null:orderVia(PKIX,preds,ob);
+  if(!heap&&preds.some(p=>p.col==="id"))return{path:"pkseek",order:ob?(pkOrd||"sort"):null};
+  const usable=!!ix&&filterOk(ix,preds),seekable=usable&&preds.some(p=>p.col===ix.keys[0]);
+  const cov=usable&&refCols(q).every(c=>ixCols(ix).includes(c)),ixOrd=usable?orderVia(ix,preds,ob):null;
+  if(seekable){
+    if(cov)return{path:"covering",order:ob?(ixOrd||"sort"):null};
+    const eff=q.top&&(!ob||ixOrd)?Math.min(q.top,sc.est):sc.est;
+    if(eff<=(heap?3000:1000))return{path:"lookup",order:ob?(ixOrd||"sort"):null,eff};
+  }else if(cov)return{path:"ixscan",order:ob?(ixOrd||"sort"):null};
+  return{path:"pkscan",order:ob?(pkOrd||"sort"):null};
+}
+function writeTargets(sc){
+  const q=sc.q,ix=sc.ix,t=["pk"];if(!ix)return t;
+  if(q.kind==="insert"&&passFilter(ix,q.row))t.push("ix");
+  if(q.kind==="delete"&&passFilter(ix,sc.rows.find(r=>r.id===q.id)))t.push("ix");
+  if(q.kind==="update"&&ixCols(ix).includes(q.set.col)&&q.set.col!=="id")t.push("ix");
+  return t;
+}
+
+// ---------- statistics ----------
+function makeSteps(his){return his.map((hi,i)=>{const gap=i?hi-his[i-1]-1:0;const distinct=gap>0?ri(Math.max(1,Math.floor(gap*.4)),gap):0;const avg=distinct?ri(8,300)+ri(0,9)/10:1;const range=distinct?Math.round(avg*distinct):0;return{hi,eq:ri(5,600),range,distinct,avg:distinct?range/distinct:1};});}
+function setAvg(st,target){st.range=Math.round(target*st.distinct);st.avg=st.range/st.distinct;}
+function dedupe(o){const seen=new Set();return o.filter(x=>{const k=n1(x.v);if(seen.has(k))return false;seen.add(k);return true;}).slice(0,4);}
+function histOpts(steps,ti,v,mode){
+  const st=steps[ti],pv=steps[ti-1],nx=steps[ti+1];let o;
+  if(mode==="eq")o=[{v:st.eq,ok:1,why:`${v} is a RANGE_HI_KEY, so the histogram stores its exact count in EQ_ROWS.`},
+    {v:st.range,why:`RANGE_ROWS counts the rows whose values fall strictly between ${pv?pv.hi:"the start of the histogram"} and ${st.hi}. ${v} is this step's upper bound, which is counted separately in EQ_ROWS.`},
+    {v:st.avg,why:`AVG_RANGE_ROWS estimates values strictly inside a step's range. ${v} is the step's upper bound and has its own exact count in EQ_ROWS.`},
+    ...(nx?[{v:nx.eq,why:`That is EQ_ROWS for ${nx.hi}, a different value.`}]:[]),...(pv?[{v:pv.eq,why:`That is EQ_ROWS for ${pv.hi}, a different value.`}]:[])];
+  else o=[{v:st.avg,ok:1,why:`${v} falls strictly between the RANGE_HI_KEYs ${pv.hi} and ${st.hi}, so it belongs to the ${st.hi} step, which has no exact count for it. The estimate is AVG_RANGE_ROWS, which is RANGE_ROWS ÷ DISTINCT_RANGE_ROWS.`},
+    {v:st.range,why:`RANGE_ROWS is the total for all ${fmt(st.distinct)} distinct values inside the range, not for one value.`},
+    {v:st.eq,why:`EQ_ROWS for this step counts only rows equal to ${st.hi}, its upper bound.`},
+    {v:pv.eq,why:`That is EQ_ROWS for ${pv.hi}. ${v} is greater than ${pv.hi}, so it belongs to the next step.`}];
+  return shuffle(dedupe(o));
+}
+function beyondOpts(steps,v,dens){const last=steps[steps.length-1];
+  return shuffle(dedupe([{v:1,ok:1,why:`${v} is above the highest RANGE_HI_KEY, ${last.hi}, so as far as the histogram knows, no such rows exist. The legacy estimator (compatibility level 110 and below) never estimates zero, so it uses 1 row.`},
+    {v:dens,why:`That is the average density: rows ÷ distinct values. The modern estimator (compatibility level 120 and above) uses it for values beyond the histogram, but this database is at level 110.`},
+    {v:last.eq,why:`That is EQ_ROWS for ${last.hi}, a different value.`},
+    {v:0,why:"The optimizer never estimates fewer than 1 row."}]));}
+function makeHist(v,mode,big){
+  const n=6,ti=mode==="beyond"?n-1:ri(1,4),his=new Array(n);
+  his[ti]=mode==="eq"?v:mode==="avg"?v+ri(2,8):v-ri(3,Math.min(25,v-8));
+  for(let i=ti-1;i>=0;i--){const g=(mode==="avg"&&i===ti-1)?his[ti]-v+ri(2,12):ri(6,22);his[i]=Math.max(i+1,his[i+1]-g);if(his[i]>=his[i+1])his[i]=his[i+1]-1;}
+  for(let i=ti+1;i<n;i++)his[i]=his[i-1]+ri(6,22);
+  const steps=makeSteps(his),st=steps[ti];
+  if(mode==="eq")st.eq=big?ri(30,300)*1000+ri(0,999):ri(5,400);
+  if(mode==="avg")setAvg(st,big?ri(20,200)*1000+ri(0,9)/10:ri(4,300)+ri(0,9)/10);
+  const dens=ri(30,60),est=mode==="eq"?st.eq:mode==="avg"?Math.max(1,Math.round(st.avg)):1;
+  return{type:"hist",steps,v,est,dens,options:mode==="beyond"?beyondOpts(steps,v,dens):histOpts(steps,ti,v,mode),
+    header:"DBCC SHOW_STATISTICS ('t', IX_t_secondary_id) WITH HISTOGRAM · 6 of 200 steps shown",
+    sub:`Statistics updated 2026-11-05 · 2,000,000 rows · ${ri(0,900)} rows modified since · compatibility level 160`,
+    question:`How many rows will the optimizer estimate for secondary_id = ${v}?`};
+}
+
+// ---------- scenarios ----------
+const GEN={
+ eqLookup(o){for(;;){const{rows,sv}=base(ri(36,50),ri(10,14)),v=vWith(rows,sv,2,3);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(o.incP??.5,2)};const s=selUncovered(ix);if(!s)continue;
+   return{ix,rows,est:lowEst(),q:{kind:"select",select:s,where:[eqPred(v)]},title:"A selective query that needs other columns",take:"Each matching row costs a full clustered traversal. The index side stays cheap because neighbouring matches share a leaf page."};}},
+ eqCover(o){for(;;){const{rows,sv}=base(ri(36,50),ri(10,14)),v=vWith(rows,sv,2,4);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(o.incP??.6)};
+   return{ix,rows,est:pick([lowEst(),highEst()]),q:{kind:"select",select:selCovered(ix,ix.inc.length?[pick(ix.inc)]:[]),where:[eqPred(v)]},title:"An index-only seek",take:"Every column the query touches is in the leaf entry, so there are no lookups. When that holds, selectivity barely matters, because matching entries sit next to each other."};}},
+ eqScan(o){for(;;){const{rows,sv}=base(ri(22,30),ri(4,6)),v=vWith(rows,sv,3,7);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(o.incP??.4,2)};const s=selUncovered(ix);if(!s)continue;
+   return{ix,rows,est:highEst(),q:{kind:"select",select:s,where:[eqPred(v)]},title:"An unselective query that isn't covered",take:"At this selectivity a lookup per row costs far more than reading every clustered leaf page once, even though most of the rows read are thrown away."};}},
+ eqZero(o){const sm=ri(10,14),sv=secValues(sm),v=sv[ri(2,sm-3)],rows=makeRows(ri(36,50),sv.filter(x=>x!==v));const ix={keys:["secondary_id"],unique:false,inc:randInc(o.incP??.4,2)};
+   return{ix,rows,est:1,q:{kind:"select",select:anySel(ix),where:[eqPred(v)]},title:"Nothing to find",take:"An empty result still costs a full descent. The seek only learns there are no matches when it reaches a leaf and sees a key past the target. The optimizer never estimates zero rows."};},
+ unique(o){const{rows,sv}=base(ri(30,40),ri(60,90),true);const hit=R()<.85;const ix={keys:["secondary_id"],unique:true,inc:randInc(o.incP??.4,2)};let v;
+   if(hit)v=pick(rows).secondary_id;else{const used=new Set(rows.map(r=>r.secondary_id)),mn=Math.min(...used),mx=Math.max(...used);v=sv.find(x=>!used.has(x)&&x>mn&&x<mx)??pick(rows).secondary_id;}
+   return{ix,rows,est:1,q:{kind:"select",select:anySel(ix),where:[eqPred(v)]},title:"A unique index",take:"A unique index guarantees at most one entry per value, so the seek key is just (v), and the seek stops as soon as it has found the one match, or the place where it would be."};},
+ noIndex(){for(;;){const{rows,sv}=base(ri(22,30),ri(8,12)),v=vWith(rows,sv,1,3);if(v==null)continue;
+   return{ix:null,rows,est:lowEst(),q:{kind:"select",select:anySel(null),where:[eqPred(v)]},title:"No index on the predicate",take:"With nothing ordered by secondary_id, every row has to be read. A missing index shows up as a scan that returns very few rows."};}},
+ includeCov(){for(;;){const{rows,sv}=base(ri(36,50),ri(8,12)),v=vWith(rows,sv,2,5);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(1,2)};
+   return{ix,rows,est:pick([lowEst(),highEst()]),q:{kind:"select",select:selCovered(ix,[pick(ix.inc)]),where:[eqPred(v)]},title:"INCLUDE makes it covering",take:"INCLUDE columns are stored in every leaf entry, so a query that needs them is answered by an index-only seek. They sit only at the leaf level and never appear in separators."};}},
+ includeMiss(){for(;;){const{rows,sv}=base(ri(36,50),ri(10,14)),v=vWith(rows,sv,2,3);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(1,2)};const a=pick(ix.inc),b=pick(NONKEY.filter(c=>!ix.inc.includes(c)));
+   return{ix,rows,est:lowEst(),q:{kind:"select",select:ALL.filter(c=>c===a||c===b),where:[eqPred(v)]},title:"The INCLUDE list misses a column",take:"Covering is all or nothing. One requested column missing from the INCLUDE list is enough to need a lookup for every matching row."};}},
+ includeAll(){for(;;){const{rows,sv}=base(ri(36,50),ri(8,12)),v=vWith(rows,sv,2,4);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:[...NONKEY]};
+   return{ix,rows,est:pick([lowEst(),highEst()]),q:{kind:"select",select:R()<.6?["*"]:selCovered(ix,[pick(NONKEY)]),where:[eqPred(v)]},title:"Every column included",take:"With every non-key column INCLUDEd, even SELECT * is an index-only seek. The cost moves to storage and writes: the index duplicates the table's data and has to change with every update to those columns."};}},
+ filteredHit(){for(;;){const{rows,sv}=base(ri(30,44),ri(11,14));const F=sv[ri(3,6)],v=vWith(rows,sv.filter(x=>x>F),2,3);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(.4,2),filter:{col:"secondary_id",v:F}};
+   return{ix,rows,est:lowEst(),q:{kind:"select",select:anySel(ix),where:[eqPred(v)]},title:"A filtered index that applies",take:"The predicate value sits inside the index's WHERE filter, so every matching row is in the index and it behaves like a normal nonclustered index, only smaller."};}},
+ filteredMiss(){for(;;){const{rows,sv}=base(ri(22,30),ri(10,13));const F=sv[ri(4,7)],v=vWith(rows,sv.filter(x=>x<=F),1,3);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(.4),filter:{col:"secondary_id",v:F}};
+   return{ix,rows,est:lowEst(),q:{kind:"select",select:anySel(ix),where:[eqPred(v)]},title:"A filtered index that doesn't apply",take:"The filtered index holds only rows inside its WHERE clause. Your value is outside it, so the index can't be used, however selective the query."};}},
+ pkSeek(){const{rows}=base(ri(30,44),ri(8,12));const ix={keys:["secondary_id"],unique:false,inc:randInc(.5,2)};
+   return{ix,rows,est:1,q:{kind:"select",select:anySel(ix),where:[{col:"id",op:"=",v:pick(rows).id}]},title:"A predicate on the clustering key",take:"The clustered index is ordered by id, so it can seek straight to the row in one root-to-leaf traversal. A nonclustered index on another column is irrelevant here, whatever it INCLUDEs."};},
+ compRange(){for(;;){const{rows,sv}=base(ri(36,50),ri(6,9)),v=vWith(rows,sv,4,8,distinctDates);if(v==null)continue;
+   const ds=rows.filter(r=>r.secondary_id===v).map(r=>r.created_at).sort(),k=ri(2,3),op=pick([">=","<=","between",">"]);let p;
+   if(op===">=")p={col:"created_at",op,v:ds[ds.length-k]};else if(op===">")p={col:"created_at",op,v:ds[ds.length-k-1]};else if(op==="<=")p={col:"created_at",op,v:ds[k-1]};else{const s=ri(0,ds.length-k);p={col:"created_at",op,lo:ds[s],hi:ds[s+k-1]};}
+   const ix={keys:["secondary_id","created_at"],unique:false,inc:randInc(.4,2,["created_at"])};const s=R()<.5?selCovered(ix):selUncovered(ix);if(!s)continue;
+   return{ix,rows,est:lowEst(),q:{kind:"select",select:s,where:[eqPred(v),p]},title:"A seek on two key columns",take:"Equality on the first key column plus a range on the second gives a single contiguous seek range. Both predicates are seek predicates, so nothing outside the range is read."};}},
+ residual(){for(;;){const{rows,sv}=base(ri(36,50),ri(6,9)),v=vWith(rows,sv,4,8);if(v==null)continue;const m=rows.filter(r=>r.secondary_id===v),s=pick(m).status,c=m.filter(r=>r.status===s).length;if(c>3||c===m.length)continue;
+   const keys=R()<.5?["secondary_id"]:["secondary_id","created_at"],extra=randInc(.4,1,["status",...keys]);const ix={keys,unique:false,inc:ALL.filter(x=>x==="status"||extra.includes(x))};
+   return{ix,rows,est:lowEst(),q:{kind:"select",select:selCovered(ix),where:[eqPred(v),{col:"status",op:"=",v:s}]},title:"A residual predicate",take:"Only secondary_id is a seek predicate. status is not a key column, so every entry in the secondary_id range is read and then filtered. Moving status into the key would turn it into a seek predicate and skip those reads."};}},
+ skipLeading(){for(;;){const{rows,sv}=base(ri(22,30),ri(8,12)),v=vWith(rows,sv,1,3);if(v==null)continue;const ix={keys:["status","secondary_id"],unique:false,inc:randInc(.4,1,["status"])};
+   const cov=R()<.6,s=cov?selCovered(ix,["secondary_id"]):selUncovered(ix);if(!s)continue;
+   return{ix,rows,est:lowEst(),q:{kind:"select",select:s,where:[eqPred(v)]},title:"No predicate on the leading key column",take:cov?"Entries are sorted by status first, so the matches could be anywhere in the index and it can't seek. It still covers the query, and its leaf level is far smaller than the table's, so scanning it beats a clustered scan.":"Entries are sorted by status first, so the index can't seek on secondary_id. It doesn't cover the query either, so a clustered scan is the only option."};}},
+ rangeK1(){for(;;){const{rows,sv}=base(ri(36,50),ri(12,16));const i=ri(1,sv.length-3),op=pick(["between",">",">="]);let p;
+   if(op==="between")p={col:"secondary_id",op,lo:sv[i],hi:sv[i+1]};else p={col:"secondary_id",op,v:op===">"?sv[sv.length-2]:sv[sv.length-1]};
+   const c=cnt(rows,[p]);if(c<2||c>5)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(.5,2)};const s=R()<.5?selCovered(ix):selUncovered(ix);if(!s)continue;
+   return{ix,rows,est:lowEst(),q:{kind:"select",select:s,where:[p]},title:"A range seek",take:"The seek starts at the lower bound and reads forward until an entry passes the upper bound. With no upper bound it runs to the end of the leaf chain."};}},
+ pkRange(){const{rows}=base(ri(30,44),ri(8,12));const i=ri(2,rows.length-6),k=ri(2,4),p={col:"id",op:"between",lo:rows[i].id,hi:rows[i+k-1].id};const ix=R()<.7?{keys:["secondary_id"],unique:false,inc:randInc(.4,2)}:null;
+   return{ix,rows,est:k,q:{kind:"select",select:anySel(ix),where:[p],orderBy:R()<.5?{col:"id",dir:pick(["ASC","DESC"])}:null},title:"A range on the clustering key",take:"The clustered index is ordered by id, so an id range is one seek followed by a short walk along the leaf chain, in either direction."};},
+ topLatest(){for(;;){const{rows,sv}=base(ri(36,50),ri(5,8)),v=vWith(rows,sv,4,8,distinctDates);if(v==null)continue;const ix={keys:["secondary_id","created_at"],unique:false,inc:[]};
+   return{ix,rows,est:highEst(),q:{kind:"select",select:R()<.6?["*"]:selUncovered(ix),top:ri(1,2),where:[eqPred(v)],orderBy:{col:"created_at",dir:pick(["DESC","DESC","ASC"])}},title:"TOP with ORDER BY on the next key column",take:"secondary_id is fixed, so the entries come out in created_at order. Reading in the right direction lets TOP stop after n entries. That means n lookups, however many rows match."};}},
+ topSort(){for(;;){const{rows,sv}=base(ri(36,50),ri(7,10)),v=vWith(rows,sv,3,6,distinctDates);if(v==null)continue;const inc=R()<.5?["created_at"]:randInc(.4,1,["created_at"]);const ix={keys:["secondary_id"],unique:false,inc};
+   const s=inc.includes("created_at")&&R()<.7?selCovered(ix,["created_at"]):["*"];
+   return{ix,rows,est:lowEst(),q:{kind:"select",select:s,top:ri(1,2),where:[eqPred(v)],orderBy:{col:"created_at",dir:pick(["ASC","DESC"])}},title:"ORDER BY the index can't supply",take:"Within one secondary_id the entries are ordered by id, not created_at. Every match has to be read and sorted before TOP can choose, so TOP saves nothing on the reads."};}},
+ rangeDescTop(){for(;;){const{rows,sv}=base(ri(36,50),ri(10,14));const a=sv[ri(2,sv.length-4)],p={col:"secondary_id",op:">=",v:a};if(cnt(rows,[p])<4)continue;
+   const ix={keys:["secondary_id"],unique:false,inc:randInc(.5,2)};const s=R()<.6?selCovered(ix,["secondary_id"]):(selUncovered(ix)||["*"]);
+   return{ix,rows,est:highEst(),q:{kind:"select",select:s,top:ri(1,2),where:[p],orderBy:{col:"secondary_id",dir:"DESC"}},title:"A backward range seek",take:"The seek starts at the top end of the range and walks the leaf chain backwards through m_prevPage. TOP stops it after n entries, long before it reaches the lower bound."};}},
+ pkTop(){const{rows}=base(ri(30,44),ri(8,12));const ix={keys:["secondary_id"],unique:false,inc:randInc(.4,2)};
+   return{ix,rows,est:N,q:{kind:"select",select:["*"],top:ri(1,2),where:[],orderBy:{col:"id",dir:pick(["DESC","ASC"])}},title:"TOP without a WHERE clause",take:"A scan isn't always expensive. Clustered leaves are already in id order, so the scan starts at the right end of the chain and TOP stops it after a page or two."};},
+ insert(){const{rows,sv}=base(ri(28,40),ri(8,12));const keys=R()<.5?["secondary_id"]:["secondary_id","created_at"];const ix={keys,unique:false,inc:randInc(.5,2,keys),filter:R()<.4?{col:"secondary_id",v:sv[ri(3,6)]}:null};
+   const used=new Set(rows.map(r=>r.id));let id;do{id=R()<.25?ri(rows[rows.length-1].id+1,9999):ri(rows[0].id+1,rows[rows.length-1].id-1);}while(used.has(id));
+   const row={id,secondary_id:pick(sv),status:pick(STAT),created_at:pick(DATES),notes:pick(NOTES)};
+   return{ix,rows,fillFull:true,q:{kind:"insert",row},title:"An INSERT",take:"Every index the row belongs in gets a new entry in key order, so each one costs a descent plus a leaf write. Inserting into a full leaf splits it, which costs extra page writes and leaves two half-full pages."};},
+ updNon(){const{rows,sv}=base(ri(28,40),ri(8,12));const keys=R()<.5?["secondary_id"]:["secondary_id","created_at"];const ix={keys,unique:false,inc:randInc(.5,1,keys)};
+   const col=pick(NONKEY.filter(c=>!ixCols(ix).includes(c))),r=pick(rows);
+   return{ix,rows,q:{kind:"update",id:r.id,set:{col,v:newVal(col,r[col],sv)}},title:"An UPDATE of a column the index doesn't hold",take:"The nonclustered index stores neither this column nor anything derived from it, so only the clustered row changes. Each extra INCLUDE column widens the set of updates that touch the index."};},
+ updInc(){const{rows,sv}=base(ri(28,40),ri(8,12));const ix={keys:["secondary_id"],unique:false,inc:randInc(1,2)};const col=pick(ix.inc),r=pick(rows);
+   return{ix,rows,q:{kind:"update",id:r.id,set:{col,v:newVal(col,r[col],sv)}},title:"An UPDATE of an INCLUDE column",take:"The INCLUDE column is copied into the leaf entry, so it must be updated there too. It isn't part of the key, so the entry stays where it is and the change is made in place."};},
+ updKey(){const{rows,sv}=base(ri(28,40),ri(8,12));const keys=R()<.5?["secondary_id"]:["secondary_id","created_at"];const ix={keys,unique:false,inc:randInc(.4,2,keys)};const col=pick(keys),r=pick(rows);
+   return{ix,rows,q:{kind:"update",id:r.id,set:{col,v:newVal(col,r[col],sv)}},title:"An UPDATE of a key column",take:"Changing a key column changes where the entry belongs, so the index deletes it and inserts a new one at the new position, often on another page. Key updates cost two descents."};},
+ del(){const{rows,sv}=base(ri(28,40),ri(8,12));const keys=R()<.5?["secondary_id"]:["secondary_id","created_at"];const ix={keys,unique:false,inc:randInc(.5,2,keys),filter:R()<.4?{col:"secondary_id",v:sv[ri(3,6)]}:null};
+   return{ix,rows,q:{kind:"delete",id:pick(rows).id},title:"A DELETE",take:"A DELETE removes the row from the clustered index and from every nonclustered index that holds it, so each index costs a descent and a page write. Entries become ghost records first, and emptied pages aren't merged, so heavy deletes leave sparse pages behind until the index is rebuilt or reorganised."};},
+ heapRid(){for(;;){const{rows,sv}=base(ri(30,42),ri(8,12)),v=vWith(rows,sv,2,3);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(.4,2),heap:true};
+   return{heap:true,ix,rows,est:lowEst(),q:{kind:"select",select:selUncovered(ix),where:[eqPred(v)]},title:"A RID lookup",take:"On a heap the row locator is a physical address (file:page:slot), so a lookup is one page read instead of a full clustered descent. That makes RID lookups cheaper than key lookups."};}},
+ heapCover(){for(;;){const{rows,sv}=base(ri(30,42),ri(8,12)),v=vWith(rows,sv,2,4);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(.7,2),heap:true};
+   return{heap:true,ix,rows,est:pick([lowEst(),highEst()]),q:{kind:"select",select:selCovered(ix),where:[eqPred(v)]},title:"Covered on a heap",take:"Covering works the same way on a heap: when the leaf entry holds every column the query needs, the heap is never touched."};}},
+ heapIdTrap(){for(;;){const{rows,sv}=base(ri(30,42),ri(8,12)),v=vWith(rows,sv,2,3);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(.3,1),heap:true};
+   return{heap:true,ix,rows,est:lowEst(),q:{kind:"select",select:pick([["id"],["id","secondary_id"]]),where:[eqPred(v)]},title:"id isn't free on a heap",take:"On a clustered table every nonclustered entry carries id, so SELECT id is covered. On a heap the entry carries a RID instead, so the same query needs a RID lookup for each row."};}},
+ heapScan(){for(;;){const{rows,sv}=base(ri(22,30),ri(4,6)),v=vWith(rows,sv,3,7);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(.4,2),heap:true};const s=selUncovered(ix);
+   const ob=R()<.4?{col:pick(["id","created_at"]),dir:pick(["ASC","DESC"])}:null;
+   return{heap:true,ix,rows,est:highEst(),q:{kind:"select",select:s,top:ob&&R()<.5?ri(1,2):undefined,where:[eqPred(v)],orderBy:ob},title:"A table scan",take:"A table scan reads the heap's pages in allocation order, from its IAM page. There is no key order, so any ORDER BY needs a Sort."};}},
+ heapForward(){for(;;){const{rows,sv}=base(ri(30,42),ri(8,12)),v=vWith(rows,sv,3,4);if(v==null)continue;const ix={keys:["secondary_id"],unique:false,inc:randInc(.3,1),heap:true};
+   return{heap:true,forward:true,ix,rows,est:lowEst(),q:{kind:"select",select:selUncovered(ix),where:[eqPred(v)]},title:"A forwarded record",take:"When an update makes a heap row too big for its page, SQL Server moves it and leaves a forwarding stub at the old RID. Indexes keep pointing at the stub, so every lookup through them pays an extra read. Rebuilding the table removes forwarded records."};}},
+ statEq(o){return statRound("eq",o);},
+ statAvg(o){return statRound("avg",o);},
+ statTwo(){for(;;){const{rows,sv}=base(ri(36,50),ri(6,9)),v=vWith(rows,sv,4,7);if(v==null)continue;const s=pick(rows.filter(r=>r.secondary_id===v)).status;
+   const eq1=ri(150,900),s1=eq1/N,s2=ri(10,40)/100,eq2=Math.round(N*s2);
+   const back=Math.round(N*s1*Math.sqrt(s2)),ind=Math.max(1,Math.round(N*s1*s2)),wrong=Math.round(N*s2*Math.sqrt(s1));
+   const ix={keys:["secondary_id"],unique:false,inc:R()<.5?["status"]:[]};
+   const opts=shuffle(dedupe([{v:back,ok:1,why:`The modern estimator assumes the predicates are partly correlated (exponential backoff). It takes the most selective predicate in full and the square root of the next: 2,000,000 × ${s1.toPrecision(3)} × √${s2}.`},
+     {v:ind,why:`That multiplies the selectivities as if the columns were independent. The legacy estimator did that. The modern one backs off with a square root on the less selective predicate.`},
+     {v:eq1,why:"That ignores the status predicate, which can only reduce the row count."},
+     {v:wrong,why:"Backoff applies the square root to the less selective predicate, not the more selective one."}]));
+   return{ix,rows,est:back,q:{kind:"select",select:anySel(ix),where:[eqPred(v),{col:"status",op:"=",v:s}]},
+     stats:{type:"two",lines:[[`secondary_id = ${v}`,eq1,`${v} is a RANGE_HI_KEY in its histogram`],[`status = '${s}'`,eq2,`'${s}' is a RANGE_HI_KEY in its histogram`]],options:opts,question:"How many rows will the optimizer estimate for both predicates together?",sub:"Compatibility level 160 (modern cardinality estimator) · 2,000,000 rows"},
+     title:"Two predicates",take:"Each predicate's selectivity comes from its own histogram. The modern estimator combines them with exponential backoff, which assumes some correlation between columns. The legacy estimator assumed independence and multiplied them, which underestimates when the columns are correlated."};}},
+ sniff(){for(;;){const{rows,sv}=base(ri(36,50),ri(8,11));const B=vWith(rows,sv,4,7),A=vWith(rows,sv,1,2);if(B==null||A==null||A===B)continue;
+   const ix={keys:["secondary_id"],unique:false,inc:randInc(.3,1)};const sel=selUncovered(ix);if(!sel)continue;
+   const set=new Set([A,B]),lo=Math.max(1,Math.min(A,B)-40),hi=Math.max(A,B)+40;while(set.size<6)set.add(ri(lo,hi));const his=[...set].sort((a,b)=>a-b);
+   const steps=makeSteps(his),ta=his.indexOf(A),tb=his.indexOf(B);steps[ta].eq=ri(5,60);steps[tb].eq=ri(80,400)*1000+ri(0,999);const eqA=steps[ta].eq,eqB=steps[tb].eq;
+   return{ix,rows,est:eqA,sniff:{A,B,eqA,eqB},q:{kind:"select",select:sel,where:[{col:"secondary_id",op:"=",v:A,param:"@p"}]},
+     stats:{type:"hist",steps,v:A,options:histOpts(steps,ta,A,"eq"),header:"DBCC SHOW_STATISTICS ('t', IX_t_secondary_id) WITH HISTOGRAM · 6 of 200 steps shown",sub:"Statistics updated 2026-11-05 · 2,000,000 rows · compatibility level 160",question:`The first call passes @p = ${A}. How many rows does the optimizer estimate?`},
+     title:"Parameter sniffing",take:`Compiled for @p = ${A} (${fmt(eqA)} rows), seek plus lookup costs about ${fmt(3+3*eqA)} reads. Reused for @p = ${B}, which has ${fmt(eqB)} rows, the same plan costs about ${fmt(3*eqB)} reads, against about 20,000 for the scan a fresh compile would choose. Fixes include OPTION (RECOMPILE), OPTIMIZE FOR, and Parameter Sensitive Plan optimization (compatibility level 160), which can cache more than one plan for the query.`};}},
+ stale(){for(;;){const{rows,sv}=base(ri(36,50),ri(8,11));const v=Math.max(...sv)+ri(1,5);const byId=[...rows].sort((a,b)=>b.id-a.id),k=ri(4,6);byId.slice(0,k).forEach(r=>{r.secondary_id=v;});
+   const ix={keys:["secondary_id"],unique:false,inc:randInc(.3,1)};const sel=selUncovered(ix);if(!sel)continue;
+   const H=makeHist(v,"beyond"),mods=ri(40,90)*1000,last=H.steps[H.steps.length-1];
+   H.sub=`Statistics updated 2026-10-28 · 2,000,000 rows at the time · ${fmt(mods)} rows modified since · compatibility level 110 (legacy estimator)`;
+   return{ix,rows,est:1,stale:{mods},stats:H,q:{kind:"select",select:sel,where:[eqPred(v)]},title:"Stale statistics",
+     take:`The ${fmt(mods)} rows with secondary_id ${v} were inserted after statistics were last updated, so the histogram ends at ${last.hi}. The legacy estimator guessed 1 row and chose seek plus lookup. At the real row count that plan costs about ${fmt(3*mods)} reads, against 20,000 for a scan. Updating statistics fixes the estimate. The modern estimator would guess the average density instead, about ${H.dens} rows: closer, but it would still choose the seek.`};}},
+ design(){return{design:true,wl:designWorkload(),title:"Index design",take:"Equality columns go first, then the range or ORDER BY column. INCLUDE what the frequent queries read, and leave out columns that frequent UPDATEs change."};}
+};
+function statRound(mode,o){for(;;){const{rows,sv}=base(ri(36,50),ri(10,14)),v=vWith(rows,sv,2,4);if(v==null)continue;
+  const big=o.big??R()<.45,H=makeHist(v,mode,big);const ix={keys:["secondary_id"],unique:false,inc:randInc(.4,2)};const s=R()<.3?selCovered(ix):selUncovered(ix);if(!s)continue;
+  return{ix,rows,est:H.est,stats:H,q:{kind:"select",select:s,where:[eqPred(v)]},title:mode==="eq"?"An exact histogram step":"A value between steps",
+    take:mode==="eq"?"When the value is a RANGE_HI_KEY, the histogram stores its exact count, EQ_ROWS. The estimate then drives the plan choice like every round before.":"Only about 200 values get exact counts. Everything else is estimated as the average for its step, AVG_RANGE_ROWS, so skewed values inside a step can be badly misestimated."};}}
+function newVal(col,old,sv){const pool=col==="secondary_id"?sv:col==="status"?STAT:col==="notes"?NOTES:DATES;let v;do{v=pick(pool);}while(v===old);return v;}
+
+// ---------- index design ----------
+const DW={id:4,secondary_id:4,status:9,created_at:3,notes:120};
+const prodSel=a=>a.reduce((x,p)=>x*p.sel,1);
+const dWidth=ix=>9+ixCols(ix).reduce((a,c)=>a+DW[c],0);
+function designWorkload(){
+  const p=()=>({col:"secondary_id",op:"=",param:"@p",sel:ri(5,120)/N});
+  const d=days=>({col:"created_at",op:">=",param:"@d",sel:days/365});
+  const s=()=>({col:"status",op:"=",param:"@s",sel:ri(8,30)/100});
+  const T={
+    eq:()=>({select:pick([["id","status"],["status"],["*"],["created_at"],["status","created_at"]]),where:[p()]}),
+    top:()=>({select:pick([["status"],["*"],["id"],["status","created_at"]]),top:1,where:[p()],orderBy:{col:"created_at",dir:"DESC"}}),
+    eqRange:()=>({select:pick([["id"],["status"],["*"],["id","status"]]),where:[p(),d(pick([7,30]))]}),
+    statusDate:()=>({select:pick([["id"],["secondary_id"],["id","secondary_id"]]),where:[s(),d(pick([1,7]))]}),
+    dateOnly:()=>({select:pick([["id","secondary_id"],["secondary_id"],["*"]]),where:[d(1)]})};
+  const qs=shuffle(Object.keys(T)).slice(0,ri(2,3)).map(k=>({kind:"select",...T[k](),freq:ri(1,24)*25}));
+  const ws=[{kind:"insert",freq:ri(1,30)*20},{kind:"update",col:pick(["status","status","notes","created_at"]),freq:ri(1,40)*25}];
+  return{qs,ws};
+}
+function dParts(ix,preds){const seek=[];for(const c of ix.keys){const p=preds.find(x=>x.col===c);if(!p)break;seek.push(p);if(p.op!=="=")break;}const cols=ixCols(ix);
+  return{seek,res:preds.filter(p=>!seek.includes(p)&&cols.includes(p.col)),post:preds.filter(p=>!cols.includes(p.col))};}
+function dQuery(q,ix){
+  let best={plan:"Clustered Index Scan",cost:20000};if(!ix)return best;
+  const cols=ixCols(ix),cov=refCols(q).every(c=>cols.includes(c)),b=dParts(ix,q.where),w=dWidth(ix);
+  if(b.seek.length){const seekRows=N*prodSel(b.seek),sr=prodSel(b.res),sp=prodSel(b.post),ord=!q.orderBy||!!orderVia(ix,q.where,q.orderBy);
+    let ixRows=seekRows,look=cov?0:seekRows*sr;
+    if(q.top&&ord){ixRows=Math.min(seekRows,q.top/(sr*sp));if(!cov)look=Math.min(seekRows*sr,q.top/sp);}
+    const c=2+Math.max(1,Math.ceil(ixRows*w/8096))+3*Math.ceil(look);
+    if(c<best.cost)best={plan:cov?"Index Seek":"Index Seek + Key Lookup",cost:c};
+  }else if(cov){const c=Math.ceil(N*w/8096);if(c<best.cost)best={plan:"Index Scan",cost:c};}
+  return best;
+}
+function dWrite(w,ix){if(!ix)return{plan:"no index to maintain",cost:0};
+  if(w.kind==="insert")return{plan:"new entry: descent + 1 write",cost:4};
+  if(ix.keys.includes(w.col))return{plan:`${w.col} is a key column: delete + re-insert`,cost:8};
+  if(ix.inc.includes(w.col))return{plan:`${w.col} is INCLUDEd: update in place`,cost:4};
+  return{plan:"index not touched",cost:0};}
+const wText=w=>w.kind==="insert"?"INSERT INTO t VALUES (@id, @p, @s, @d, @n);":`UPDATE t SET ${w.col} = @v WHERE id = @id;`;
+function dCost(wl,ix){const rows=[];let total=0;
+  wl.qs.forEach(q=>{const c=dQuery(q,ix);rows.push({...c,freq:q.freq});total+=c.cost*q.freq;});
+  wl.ws.forEach(w=>{const c=dWrite(w,ix);rows.push({...c,freq:w.freq});total+=c.cost*w.freq;});
+  return{total,rows};}
+function dCandidates(){const K=["secondary_id","status","created_at"],perms=[],out=[null];
+  K.forEach(a=>{perms.push([a]);K.forEach(b=>{if(b===a)return;perms.push([a,b]);K.forEach(c=>{if(c!==a&&c!==b)perms.push([a,b,c]);});});});
+  perms.forEach(keys=>{const rest=NONKEY.filter(c=>!keys.includes(c));for(let m=0;m<(1<<rest.length);m++)out.push({keys,unique:false,inc:rest.filter((c,i)=>m>>i&1)});});
+  return out;}
+const ixSize=ix=>ix?ixCols(ix).length:0;
+
+// ---------- levels and progress ----------
+const LEVELS=[
+ {name:"Seeks and lookups",topics:"Index seeks, key lookups, covered queries, scans, unique indexes",count:4,pool:[["eqLookup",{incP:0}],["eqCover",{incP:0}],["eqScan",{incP:0}],["unique",{incP:0}],["noIndex"],["eqZero",{incP:0}]]},
+ {name:"INCLUDE and filtered indexes",topics:"INCLUDE columns, SELECT *, filtered indexes, seeks on the clustering key",count:4,pool:[["includeCov"],["includeMiss"],["includeAll"],["filteredHit"],["filteredMiss"],["pkSeek"]]},
+ {name:"Ranges and composite keys",topics:"Range seeks, two-column keys, residual predicates, the leading-column rule",count:4,pool:[["rangeK1"],["compRange"],["residual"],["skipLeading"],["pkRange"]]},
+ {name:"ORDER BY and TOP",topics:"Order from the index, backward reads, Sort operators, stopping early",count:4,pool:[["topLatest"],["topSort"],["rangeDescTop"],["pkTop"]]},
+ {name:"Writes",topics:"INSERT, UPDATE and DELETE across indexes, page splits, ghost records",count:4,pool:[["insert"],["updNon"],["updInc"],["updKey"],["del"]]},
+ {name:"Heaps",topics:"Tables without a clustered index, RID lookups, table scans, forwarded records",count:4,pool:[["heapRid"],["heapCover"],["heapIdTrap"],["heapScan"],["heapForward"]]},
+ {name:"Statistics",topics:"Reading a histogram, EQ_ROWS and AVG_RANGE_ROWS, combining two predicates",count:4,pool:[["statEq"],["statAvg"],["statTwo"],["statEq",{big:true}]]},
+ {name:"Plan reuse",topics:"Parameter sniffing, stale statistics, values beyond the histogram",count:4,pool:[["sniff"],["stale"],["sniff"],["statAvg",{big:true}]]},
+ {name:"Index design",topics:"Design one index for a workload of reads and writes, scored against the best possible design",count:3,pool:[["design"],["design"],["design"]]}
+];
+const STORE="storage-engine-drill-progress-v1";
+function loadProg(){try{const p=JSON.parse(localStorage.getItem(STORE)||"null");if(p&&p.unlocked)return p;}catch(e){}return{unlocked:1,best:{}};}
+function saveProg(){try{localStorage.setItem(STORE,JSON.stringify(PROG));}catch(e){}}
+let PROG=loadProg();
+function mixedLevel(){const pool=LEVELS.slice(0,PROG.unlocked).flatMap((L,i)=>i===8?[["design"]]:L.pool);return{name:"Mixed practice",count:7,pool,mixed:true};}
+function makeRounds(L){const p=shuffle([...L.pool]);const out=p.slice(0,L.count);while(out.length<L.count)out.push(pick(L.pool));return shuffle(out);}
+function showLevels(){
+  $("game").hidden=true;$("levels").hidden=false;$("b-levels").hidden=true;
+  $("s-lvl").textContent="–";$("s-round").textContent="–";$("s-pts").textContent="0";$("s-mis").textContent="0";$("pips").innerHTML="";
+  const el=$("levels");
+  el.innerHTML=`<div style="display:grid;gap:6px"><h2>Levels</h2><p class="muted">Each level is a short set of rounds. Score 60% or more to unlock the next one. Progress is saved in this browser.</p></div>
+  <div class="lvgrid">${LEVELS.map((L,i)=>{const n=i+1,lock=n>PROG.unlocked,b=PROG.best[n];return `<button class="lv${b>=60?" pass":""}" data-l="${i}"${lock?" disabled":""}><span class="lvn">Level ${n} · ${L.count} rounds</span><b>${L.name}</b><span class="lvt">${L.topics}</span><span class="lvs">${lock?"Locked":b!=null?`Best ${b}%${b>=60?" · passed":""}`:"Not played"}</span></button>`;}).join("")}</div>
+  <div class="actions"><button id="b-mixed" class="primary">Mixed practice: 7 rounds from your unlocked levels</button><button id="b-unlock">Unlock all levels</button></div>`;
+  el.querySelectorAll(".lv").forEach(b=>b.onclick=()=>startLevel(+b.dataset.l));
+  $("b-mixed").onclick=()=>startLevel(-1);
+  $("b-unlock").onclick=()=>{PROG.unlocked=LEVELS.length;saveProg();showLevels();};
+}
+$("b-levels").onclick=showLevels;
+
+// ---------- game state ----------
+let G,S;
+function startLevel(i){R=rng((Date.now()+Math.floor(Math.random()*1e6))%1000003);const L=i<0?mixedLevel():LEVELS[i];G={li:i,L,round:0,pts:0,mis:0,log:[],rounds:makeRounds(L)};$("levels").hidden=true;$("game").hidden=false;$("b-levels").hidden=false;startRound();}
+function buildScenario(spec){
+  const sc=GEN[spec[0]](spec[1]||{});if(sc.design)return sc;
+  const ncCap=ri(5,7),pkCap=ri(4,6),fan=3,fillN=sc.fillFull?ncCap:ri(ncCap-1,ncCap),fillP=sc.fillFull?pkCap:ri(pkCap-1,pkCap);
+  sc.pk=sc.heap?mkHeap(sc.rows,pkCap,fillP):mkTree(sc.rows,r=>[r.id],fillP,pkCap,fan,500,"PK_t","ci");
+  sc.ixT=sc.ix?mkTree(sc.rows.filter(r=>passFilter(sc.ix,r)).map(r=>({...r})),e=>ekey(sc.ix,e),fillN,ncCap,fan,900,ixName(sc.ix),"nc"):null;
+  if(sc.forward)applyForward(sc);
+  sc.plan=decide(sc);sc.targets=sc.q.kind==="select"?null:writeTargets(sc);
+  return sc;
+}
+function startRound(){
+  const sc=buildScenario(G.rounds[G.round]);
+  S={sc,q:sc.q,ix:sc.ix,T:{ix:sc.ixT||null,pk:sc.pk||null},phase:sc.design?"design":sc.stats?"est":"plan",reads:{ix:0,pk:0},writes:0,vis:{ix:new Set(),pk:new Set()},mod:{ix:new Set(),pk:new Set()},path:{ix:[],pk:[]},out:[],buf:[],log:[],mis:0,hints:0,page:null,hint:null,wrongs:new Set()};
+  setFB("",sc.design?"Choose the key columns and INCLUDE list for one nonclustered index. The design is costed against every statement in the workload.":sc.stats?"Work out the optimizer's row estimate from the statistics first.":isW()?"Work out which indexes this statement has to change.":"Read the schema and the estimate, then pick the access path the optimizer would choose.");
+  render();
+}
+const isW=()=>!!S.q&&S.q.kind!=="select";
+const heapOn=()=>!!(S&&S.sc.heap);
+function estText(sc){if(sc.q.kind!=="select")return"1 row";if(!sc.q.where.length)return"all 2,000,000 rows (no WHERE clause)";return `${fmt(sc.est)} row${sc.est===1?"":"s"} of 2,000,000 (${(sc.est/20000).toFixed(sc.est<200?5:2)}%)`;}
+function enter(k,p){S.reads[k]++;S.vis[k].add(p.pid);S.path[k].push(p.pid);S.page=p;S.hint=null;}
+const treeOf=k=>S.T[k];
+const ixOf=k=>k==="pk"?PKIX:S.ix;
+
+// ---------- read execution ----------
+function bounds(ix,preds){
+  const keyLen=ix.keys.length+(ix.unique?0:1),lowP=[],highP=[],used=[];
+  for(const c of ix.keys){const p=preds.find(x=>x.col===c);if(!p)break;used.push(p);
+    if(p.op==="="){lowP.push({v:p.v});highP.push({v:p.v});continue;}
+    lowP.push(p.op===">"?{v:p.v,pad:HI}:p.op===">="?{v:p.v}:p.op==="between"?{v:p.lo}:null);
+    highP.push(p.op==="<"?{v:p.v,pad:LO}:p.op==="<="?{v:p.v}:p.op==="between"?{v:p.hi}:null);break;}
+  const mk=(parts,def)=>{const k=[];let pad=def;for(const it of parts){if(it===null){pad=def;break;}k.push(it.v);if(it.pad){pad=it.pad;break;}}while(k.length<keyLen)k.push(pad);return k;};
+  return{low:mk(lowP,LO),high:mk(highP,HI),seekP:used,res:preds.filter(p=>!used.includes(p))};
+}
+function startAccess(){
+  const pl=S.sc.plan,q=S.q,dir=pl.order==="bwd"?-1:1;
+  S.needSort=pl.order==="sort";
+  if(pl.path==="pkscan"||pl.path==="ixscan"){
+    const k=pl.path==="pkscan"?"pk":"ix",t=treeOf(k);
+    S.acc={k,ix:k==="pk"?PKIX:S.ix,dir,scan:true,res:q.where,post:[],lookup:false,found:0};
+    if(t.heap){S.acc.dir=1;enter(k,t.pages[0]);S.cur=0;S.phase="leaf";return ` A table scan has no tree to descend. It reads the heap's pages in the order its IAM page lists them, starting at ${t.pages[0].pid}.`;}
+    const e=edgeLeaf(t,dir);
+    e.path.forEach(p=>{S.reads[k]++;S.vis[k].add(p.pid);S.path[k].push(p.pid);});enter(k,e.leaf);
+    S.cur=dir>0?0:e.leaf.rows.length-1;S.phase="leaf";
+    return ` The scan starts at the ${dir>0?"leftmost":"rightmost"} leaf by following the ${dir>0?"first":"last"} pointer down from the root (${e.path.map(p=>p.pid).join(" → ")||"the root is a leaf"}).`;
+  }
+  const k=pl.path==="pkseek"?"pk":"ix",ix=ixOf(k),b=bounds(ix,q.where),cols=ixCols(ix);
+  S.acc={k,ix,dir,scan:false,low:b.low,high:b.high,seekP:b.seekP,res:b.res.filter(p=>cols.includes(p.col)),post:b.res.filter(p=>!cols.includes(p.col)),lookup:pl.path==="lookup",found:0,uniqEq:ix.unique&&ix.keys.every(c=>q.where.some(p=>p.col===c&&p.op==="="))};
+  S.desc={k,key:dir>0?b.low:b.high,then:"leaf"};S.phase="desc";enter(k,treeOf(k).root);if(S.page.level===0)landLeaf();return "";
+}
+function landLeaf(){
+  const a=S.acc,p=S.page,ko=treeOf(a.k).keyOf;
+  if(a.dir>0){S.cur=p.rows.findIndex(e=>ck(ko(e),a.low)>=0);if(S.cur<0)S.cur=p.rows.length;}
+  else{S.cur=-1;p.rows.forEach((e,i)=>{if(ck(ko(e),a.high)<=0)S.cur=i;});}
+  S.phase="leaf";
+}
+const rangePos=e=>{const a=S.acc,k=treeOf(a.k).keyOf(e);return ck(k,a.low)<0?-1:ck(k,a.high)>0?1:0;};
+const topDone=()=>S.q.top&&!S.needSort&&S.out.length>=S.q.top;
+function nextTarget(){
+  const a=S.acc,p=S.page;
+  if(topDone())return{type:"stop",why:"top"};
+  if(a.uniqEq&&a.found>=1)return{type:"stop",why:"unique"};
+  for(let i=S.cur;i>=0&&i<p.rows.length;i+=a.dir){const e=p.rows[i];
+    if(!a.scan){const rp=rangePos(e);if(rp*a.dir>0)return{type:"stop",why:"range",at:i};if(rp)continue;}
+    if(a.res.every(pr=>test(pr,e)))return{type:"row",idx:i};}
+  if(a.uniqEq)return{type:"stop",why:"unique"};
+  return(a.dir>0?p.next:p.prev)?{type:"next"}:{type:"stop",why:"end"};
+}
+
+// ---------- write execution ----------
+function buildOps(){
+  const q=S.q,ix=S.ix,ops=[],hasIx=S.sc.targets.includes("ix");
+  if(q.kind==="insert"){ops.push({k:"pk",act:"insert",entry:{...q.row}});if(hasIx)ops.push({k:"ix",act:"insert",entry:{...q.row}});}
+  else if(q.kind==="delete"){const row=S.sc.rows.find(r=>r.id===q.id);ops.push({k:"pk",act:"delete",entry:{...row}});if(hasIx)ops.push({k:"ix",act:"delete",entry:{...row}});}
+  else{const row=S.sc.rows.find(r=>r.id===q.id),nr={...row,[q.set.col]:q.set.v};
+    ops.push({k:"pk",act:"update",entry:{...row},newRow:nr});
+    if(hasIx)ops.push({k:"ix",act:"modify",entry:{...row},newRow:nr,move:ix.keys.includes(q.set.col)});}
+  S.ops=ops;S.opi=0;startOp();
+}
+function opKey(op){return ekey(ixOf(op.k),op.act==="insert"&&op.k==="ix"&&op.newRow?op.newRow:op.entry);}
+function startOp(){
+  if(S.opi>=S.ops.length){finish(`Statement complete: ${S.writes} page write${S.writes===1?"":"s"}.`);return;}
+  const op=S.ops[S.opi];S.desc={k:op.k,key:opKey(op),then:"wleaf"};S.phase="desc";enter(op.k,treeOf(op.k).root);
+  if(treeOf(op.k).root.level===0)S.phase="wleaf";
+}
+function wExpected(){
+  const op=S.ops[S.opi],p=S.page,ko=treeOf(op.k).keyOf,key=opKey(op);
+  if(op.act==="insert")return{type:"gap",idx:p.rows.filter(r=>ck(ko(r),key)<0).length};
+  return{type:"row",idx:p.rows.findIndex(r=>!r.ghost&&ck(ko(r),key)===0)};
+}
+function markMod(k,p){S.writes++;S.mod[k].add(p.pid);}
+
+// ---------- expected move ----------
+function expected(){
+  if(S.phase==="desc"){const t=treeOf(S.desc.k);return{type:"row",idx:childFor(t,S.page,S.desc.key)};}
+  if(S.phase==="leaf")return nextTarget();
+  if(S.phase==="lk")return heapOn()?{type:"row",idx:ridSlot(S.prid)}:{type:"row",idx:S.page.rows.findIndex(r=>r.id===S.pend.id)};
+  if(S.phase==="wleaf")return wExpected();
+  if(S.phase==="wdecide")return{type:S.ops[S.opi].move?"move":"inplace"};
+  if(S.phase==="sort"){const ob=S.q.orderBy,rem=S.buf.filter(r=>!r._sorted);const best=rem.reduce((b,r)=>!b||(ob.dir==="ASC"?r[ob.col]<b[ob.col]:r[ob.col]>b[ob.col])?r:b,null);return{type:"sort",ok:rem.filter(r=>r[ob.col]===best[ob.col]),first:S.buf.indexOf(best)};}
+  return null;
+}
+
+// ---------- plan steps ----------
+function pathsFor(){const h=heapOn();return[
+ ["lookup",`Index Seek (nonclustered) → ${h?"RID Lookup (heap)":"Key Lookup (PK_t)"}`,h?"Seek the nonclustered index, then read each row directly at its RID.":"Seek the nonclustered index, then fetch each row from the clustered index."],
+ ["covering","Index Seek (nonclustered) only","Seek the nonclustered index and answer from its leaf entries."],
+ ["ixscan","Index Scan (nonclustered)","Read the whole nonclustered leaf level and filter."],
+ ...(h?[]:[["pkseek","Clustered Index Seek (PK_t)","Seek the clustered index on id."]]),
+ ["pkscan",h?"Table Scan (heap)":"Clustered Index Scan (PK_t)",h?"Read every page of the heap and filter.":"Read the whole table's leaf level and filter."]];}
+const ORDERS=[["fwd","No Sort: read in index order (forward)","Rows already arrive in ORDER BY order."],["bwd","No Sort: read the index backwards","Follow m_prevPage from the end of the range."],["sort","Sort operator needed","The access path doesn't deliver ORDER BY order."]];
+const pname=t=>({lookup:heapOn()?"seek + RID lookup":"seek + key lookup",covering:"index-only seek",ixscan:"index scan",pkseek:"clustered seek",pkscan:heapOn()?"table scan":"clustered scan"})[t];
+const ONAME={fwd:"forward, no sort",bwd:"backward, no sort",sort:"Sort"};
+function why(){
+  const sc=S.sc,q=S.q,ix=S.ix,pl=sc.plan,preds=q.where,heap=heapOn(),per=heap?1:3;
+  const usable=!!ix&&filterOk(ix,preds),seekable=usable&&preds.some(p=>p.col===ix.keys[0]),cov=usable&&refCols(q).every(c=>ixCols(ix).includes(c));
+  const miss=ix?refCols(q).filter(c=>!ixCols(ix).includes(c)):[],W={};
+  W.id="The WHERE clause is on id, the clustering key, so PK_t can seek straight to it.";
+  W.noId="The WHERE clause has no predicate on id, so PK_t has nothing to seek on.";
+  W.none=!ix?"There is no nonclustered index on t.":ix.filter&&!usable?`${ixName(ix)} only holds rows where ${ix.filter.col} > ${ix.filter.v}. This WHERE clause doesn't guarantee that, so the rows may not be in the index and it can't be used.`:"";
+  W.seek=ix?(seekable?`The WHERE clause has a predicate on ${ix.keys[0]}, the leading key column, so ${ixName(ix)} can seek.`:`The WHERE clause has no predicate on ${ix.keys[0]}, the leading key column. Entries are sorted by ${ix.keys[0]} first, so matches could be anywhere in the index and it can't seek.`):"";
+  W.cov=ix?(cov?`Every column the query touches (${refCols(q).join(", ")}) is in the index: key ${ix.keys.join(", ")}, row locator ${heap?"RID":"id"}${ix.inc.length?`, INCLUDE ${ix.inc.join(", ")}`:""}.`:`${miss.join(", ")} ${miss.length>1?"are":"is"} not in ${ixName(ix)}${heap&&miss.includes("id")?" (on a heap the row locator is a RID, not id)":""}, so it doesn't cover the query.`):"";
+  const eff=pl.eff??sc.est;
+  W.lookCost=q.top&&pl.path==="lookup"&&eff<sc.est?`TOP ${q.top} with rows arriving in ORDER BY order means at most ${q.top} lookup${q.top>1?"s":""}.`:`With ${estText(sc)}, that is about ${fmt(3+per*eff)} reads${heap?" (one read per RID lookup)":""}, against about 20,000 for a scan.`;
+  W.scanCost=`With ${estText(sc)}, lookups would cost about ${fmt(3+per*sc.est)} reads. One pass over 20,000 ${heap?"heap":"leaf"} pages is cheaper.`;
+  W.ixscan="Its leaf entries are narrow, hundreds per page, so its leaf level is a fraction of the table's size, and scanning it is cheaper than scanning the table.";
+  W.noWhere="There is no WHERE clause, so every row qualifies and there is nothing to seek on.";
+  return{W,usable,seekable,cov};
+}
+function pathFeedback(t,ok){
+  const{W,usable,seekable,cov}=why(),C=S.sc.plan.path,q=S.q;
+  if(ok){const H=`<b class="t">Correct: ${pname(t)}</b>`;
+    if(t==="pkseek")return H+W.id;
+    if(t==="covering")return H+`${W.seek} ${W.cov}`;
+    if(t==="lookup")return H+`${W.seek} ${W.cov} ${W.lookCost}`;
+    if(t==="ixscan")return H+`${W.seek} ${W.cov} ${W.ixscan}`;
+    if(!q.where.length)return H+W.noWhere+(q.top?` TOP ${q.top} can still stop the scan early.`:"");
+    if(!usable)return H+W.none+" The estimate doesn't matter when no index can reach the rows.";
+    if(!seekable)return H+`${W.seek} ${W.cov}`;
+    return H+`${W.cov} ${W.scanCost}`;}
+  const H=`<b class="t">Not that path</b>`;
+  if(C==="pkseek")return H+W.id;
+  if(t==="pkseek")return H+W.noId;
+  if((t==="lookup"||t==="covering"||t==="ixscan")&&!usable)return H+W.none;
+  if((t==="lookup"||t==="covering")&&!seekable)return H+W.seek;
+  if(t==="covering"||(t==="ixscan"&&!cov))return H+W.cov;
+  if(t==="ixscan")return H+`${W.seek} Seeking straight to the range reads far less than scanning the whole index.`;
+  if(t==="lookup"&&cov)return H+`${W.cov} Lookups would fetch nothing new.`;
+  if(t==="lookup")return H+W.scanCost;
+  if(C==="covering")return H+`${W.cov} The index can answer this alone.`;
+  if(C==="ixscan")return H+`${W.cov} ${W.ixscan}`;
+  return H+W.lookCost;
+}
+function orderFeedback(t,ok){
+  const pl=S.sc.plan,ob=S.q.orderBy;let good;
+  if(heapOn()&&pl.path==="pkscan")good=`A heap has no key order. Rows come out in whatever order the pages were allocated, so a Sort is needed.${S.q.top?` With TOP ${S.q.top}, every matching row has to be read before the Sort can choose.`:""}`;
+  else{const ix=pl.path==="pkseek"||pl.path==="pkscan"?PKIX:S.ix,o=orderSeq(ix,S.q.where),name=ix===PKIX?"PK_t":ixName(ix);
+    const src=o.eq.length?`With ${o.eq.join(", ")} fixed by '=', ${name} delivers entries sorted by ${o.next}`:`${name} delivers entries sorted by ${o.seq.join(", then ")}`;
+    good=pl.order==="sort"?`${src}, not by ${ob.col}, so a Sort is needed.${S.q.top?` With TOP ${S.q.top}, every matching row has to be read before the Sort can choose.`:""}`
+      :`${src}, which is the ORDER BY column. ${pl.order==="bwd"?`ORDER BY ${ob.col} DESC is satisfied by reading backwards along m_prevPage.`:"Reading forward already gives ascending order."} No Sort is needed.${S.q.top?` TOP can stop after ${S.q.top} row${S.q.top>1?"s":""}.`:""}`;}
+  if(ok)return`<b class="t">Correct: ${ONAME[t]}</b>${good}`;
+  if(t!=="sort"&&pl.order!=="sort")return`<b class="t">Right that no Sort is needed, wrong direction</b>ORDER BY ${ob.col} ${ob.dir} means reading ${pl.order==="bwd"?"backwards":"forwards"}.`;
+  return`<b class="t">Not that one</b>${good}`;
+}
+function targetFeedback(ok){
+  const q=S.q,ix=S.ix,T=S.sc.targets,parts=["PK_t always changes: the clustered index is the table, so the row's change happens in its leaf."];
+  if(ix){const n=ixName(ix);
+    if(q.kind==="insert")parts.push(T.includes("ix")?`${n} holds an entry for every row, so it needs a new entry too.`:`The new row has ${ix.filter.col} = ${q.row[ix.filter.col]}, which is not > ${ix.filter.v}. It's outside the filter, so ${n} is untouched.`);
+    else if(q.kind==="delete"){const r=S.sc.rows.find(x=>x.id===q.id);parts.push(T.includes("ix")?`${n} holds an entry for this row, so the entry has to go too.`:`The row has ${ix.filter.col} = ${r[ix.filter.col]}, outside the filter ${ix.filter.col} > ${ix.filter.v}, so ${n} never held it.`);}
+    else{const c=q.set.col;parts.push(ix.keys.includes(c)?`${c} is a key column of ${n}, so its entry has to move.`:ix.inc.includes(c)?`${c} is an INCLUDE column of ${n}, so its leaf entry has to change.`:`${c} is not a key or INCLUDE column of ${n}, so its entries don't change.`);}}
+  return`<b class="t">${ok?"Correct":"Not quite"}</b>${parts.join(" ")}`;
+}
+
+// ---------- actions ----------
+function mistake(){S.mis++;G.mis++;}
+function chooseEst(i){
+  if(S.phase!=="est")return;const o=S.sc.stats.options[i];
+  if(!o.ok){mistake();S.wrongs.add("e:"+i);setFB("bad",`<b class="t">Not that estimate</b>${o.why}`);render();return;}
+  S.phase="plan";S.wrongs=new Set();setFB("ok",`<b class="t">Correct: ${n1(o.v)} rows</b>${o.why} Now pick the plan the optimizer builds from that estimate.`);render();
+}
+function choosePath(t){
+  if(S.phase!=="plan")return;
+  if(t!==S.sc.plan.path){mistake();S.wrongs.add("p:"+t);setFB("bad",pathFeedback(t,false));render();return;}
+  const fb=pathFeedback(t,true);S.wrongs=new Set();
+  if(S.q.orderBy){S.phase="order";setFB("ok",fb+" Now decide how the ORDER BY is satisfied.");render();return;}
+  if(S.sc.sniff){S.phase="reuse";setFB("ok",fb+" The plan is compiled and cached.");render();return;}
+  setFB("ok",fb+startAccess());render();
+}
+function chooseOrder(t){
+  if(S.phase!=="order")return;
+  if(t!==S.sc.plan.order){mistake();S.wrongs.add("o:"+t);setFB("bad",orderFeedback(t,false));render();return;}
+  setFB("ok",orderFeedback(t,true)+startAccess());render();
+}
+function chooseReuse(t){
+  if(S.phase!=="reuse")return;const sn=S.sc.sniff;
+  if(t!=="cached"){mistake();S.wrongs.add("r:"+t);setFB("bad",`<b class="t">Not what happens</b>SQL Server compiles a parameterised query once, for the first value it sees, and reuses the cached plan for later values until something forces a recompile. It doesn't check whether @p = ${sn.B} suits the plan.`);render();return;}
+  S.q.where[0].v=sn.B;S.sniffRun=true;
+  setFB("ok",`<b class="t">Correct: the cached plan runs</b>@p = ${sn.B} has ${fmt(sn.eqB)} rows according to the same histogram, but the cached plan was built for ${fmt(sn.eqA)}. Execute it.`+startAccess());render();
+}
+function chooseTargets(){
+  const sel=[...document.querySelectorAll(".tgt:checked")].map(x=>x.value).sort().join(),want=[...S.sc.targets].sort().join();
+  if(sel!==want){mistake();setFB("bad",targetFeedback(false));render();return;}
+  setFB("ok",targetFeedback(true));buildOps();render();
+}
+function bad(h,i){mistake();setFB("bad",`<b class="t">Not that move</b>${h}`);render();if(i!=null){const b=document.querySelector(`.slot[data-i="${i}"]`);if(b)b.classList.add("flash-bad");}}
+function clickRow(i){
+  const ex=expected();if(!ex)return;
+  if(S.phase==="sort"){const r=S.buf[i];if(r._sorted)return bad("That row is already placed.",i);if(!ex.ok.includes(r))return bad(`${S.q.orderBy.col} ${vTxt(r[S.q.orderBy.col])} isn't next in ORDER BY ${S.q.orderBy.col} ${S.q.orderBy.dir}. ${vTxt(S.buf[ex.first][S.q.orderBy.col])} comes first.`,i);return sortPick(r);}
+  if(ex.type==="row"&&ex.idx===i)return good(i);
+  bad(rowWhy(i,ex),i);
+}
+function good(i){
+  const p=S.page;
+  if(S.phase==="desc"){const t=treeOf(S.desc.k),child=p.kids[i],K=S.desc.key,nx=p.kids[i+1];
+    setFB("ok",`<b class="t">Read page ${child.pid}</b>${i===0?"∅ has no lower bound":`${kTxt(sepOf(t,p,i))} ≤ ${kTxt(K)}`}${nx?`, and the next separator ${kTxt(sepOf(t,p,i+1))} is greater`:", and it's the last pointer on the page"}.`);
+    enter(S.desc.k,child);
+    if(child.level===0){if(S.desc.then==="leaf")landLeaf();else S.phase=S.desc.then;}
+    render();return;}
+  if(S.phase==="leaf"){const e=p.rows[i],a=S.acc;S.cur=i+a.dir;a.found++;
+    (S.taken=S.taken||new Set()).add(p.pid+"#"+i);
+    if(a.lookup){S.pend=e;S.ret={page:p,cur:S.cur};
+      if(heapOn()){S.prid=e.rid;enter("pk",heapPage(treeOf("pk"),e.rid));S.phase="lk";setFB("ok",`<b class="t">Match: ${kTxt(treeOf(a.k).keyOf(e))}</b>RID Lookup: the entry holds the row's physical address, ${e.rid}, so the engine reads that page directly. There's no tree to descend.`);render();return;}
+      S.desc={k:"pk",key:[e.id],then:"lk"};S.phase="desc";enter("pk",treeOf("pk").root);if(S.page.level===0)S.phase="lk";
+      setFB("ok",`<b class="t">Match: ${kTxt(treeOf(a.k).keyOf(e))}</b>Key Lookup for id ${e.id}, starting again at the PK root.`);render();return;}
+    emit(e,`${a.scan?"Passes the filter":"In range"}${a.res.length?" and passes the residual predicate":""}.`);return;}
+  if(S.phase==="lk"){const r=p.rows[i];
+    if(r.stub){S.prid=r.fwd;enter("pk",heapPage(treeOf("pk"),r.fwd));setFB("ok",`<b class="t">Forwarding stub</b>The row used to live here, but an update made it too big for this page, so it moved to ${r.fwd}. The index still points at the old RID ${r.rid}, so the lookup costs one extra read to follow the stub.`);render();return;}
+    S.page=S.ret.page;S.cur=S.ret.cur;S.phase="leaf";S.hint=null;
+    if(!S.acc.post.every(pr=>test(pr,r))){setFB("ok",`<b class="t">Row discarded</b>id ${r.id} fails ${S.acc.post.map(pTxt).join(" AND ")}, which could only be checked after the lookup.`);render();return;}
+    emit(r,`Fetched from the ${heapOn()?"heap page":"clustered leaf"}. Back to the index page you already hold, at no new read.`);return;}
+  if(S.phase==="wleaf"){const op=S.ops[S.opi],t=treeOf(op.k);
+    if(op.act==="delete"){const e=p.rows[i];e.ghost=true;markMod(op.k,p);S.log.push([t.name,`ghost ${kTxt(t.keyOf(e))}`,p.pid]);
+      setFB("ok",`<b class="t">Marked as a ghost record on ${p.pid}</b>The entry is flagged as deleted and its slot stays until the ghost cleanup task removes it. The page isn't merged with its neighbour, even if it ends up almost empty.`);S.opi++;startOp();render();return;}
+    if(op.k==="pk"&&op.act==="update"){const r=p.rows[i];r[S.q.set.col]=S.q.set.v;markMod("pk",p);S.log.push(["PK_t",`id ${r.id}: ${S.q.set.col} → ${vTxt(S.q.set.v)}`,p.pid]);
+      setFB("ok",`<b class="t">Row updated in page ${p.pid}</b>The clustered row's position depends only on id, which hasn't changed, so it's updated in place.`);S.opi++;startOp();render();return;}
+    S.phase="wdecide";S.wtarget=i;setFB("ok",`<b class="t">Found the entry</b>Now decide how the change is applied to it.`);render();}
+}
+function emit(r,msg){
+  if(S.needSort){S.buf.push(r);setFB("ok",`<b class="t">Row collected for the Sort</b>${msg}`);}
+  else{S.out.push(r);setFB("ok",`<b class="t">Row returned</b>${msg}${S.q.top&&S.out.length>=S.q.top?` TOP ${S.q.top} is now satisfied.`:""}`);}
+  render();
+}
+function sortPick(r){r._sorted=true;S.out.push(r);const lim=S.q.top||S.buf.length;
+  if(S.out.length>=Math.min(lim,S.buf.length)){finish(`The Sort produced ${S.out.length} row${S.out.length===1?"":"s"}.`);return;}
+  setFB("ok",`<b class="t">Placed</b>${S.q.orderBy.col} ${vTxt(r[S.q.orderBy.col])}.`);render();}
+function clickGap(g){
+  if(S.phase!=="wleaf")return;const ex=wExpected();if(ex.type!=="gap")return bad("This step changes an existing entry. Click the entry itself.");
+  const op=S.ops[S.opi],p=S.page,t=treeOf(op.k),key=opKey(op);
+  if(g!==ex.idx){const L=p.rows[g-1],Rr=p.rows[g];return bad(`Entries are kept in key order. ${kTxt(key)} doesn't belong ${L?`after ${kTxt(t.keyOf(L))}`:"at the start"}${Rr?` and before ${kTxt(t.keyOf(Rr))}`:""}.`);}
+  const entry=op.k==="pk"?op.entry:{...(op.newRow||op.entry)};
+  p.rows.splice(g,0,entry);markMod(op.k,p);let msg=`<b class="t">Entry ${kTxt(key)} written to page ${p.pid}</b>`;
+  S.log.push([op.k==="pk"?"PK_t":ixName(S.ix),`insert ${kTxt(key)}`,p.pid]);
+  if(p.rows.length>t.cap){const s=splitLeaf(t,p);markMod(op.k,s.np);markMod(op.k,s.par);
+    msg+=`The page was already full (${t.cap} entries), so it split. Page ${s.np.pid} takes the upper ${s.np.rows.length} entries, the leaf chain is relinked, and ${s.newRoot?`a new root ${s.par.pid} is created`:`parent ${s.par.pid} gains a pointer`}. That's 3 page writes instead of 1.`;
+    S.log.push([t.name,`page split → ${s.np.pid}`,s.par.pid]);}
+  else msg+="There was room on the page, so it took one page write.";
+  setFB("ok",msg);S.opi++;startOp();render();
+}
+function decide2(choice){
+  if(S.phase!=="wdecide")return;const op=S.ops[S.opi],c=S.q.set.col,ix=S.ix,n=ixName(ix);
+  if((choice==="move")!==op.move){mistake();setFB("bad",`<b class="t">Not that</b>${op.move?`${c} is part of the key (${ix.keys.join(", ")}). Changing it changes where the entry belongs in key order, so it can't stay here.`:`${c} is an INCLUDE column. It doesn't affect the entry's position in key order, so the entry stays where it is.`}`);render();return;}
+  const p=S.page,e=p.rows[S.wtarget];
+  if(!op.move){e[c]=S.q.set.v;markMod("ix",p);S.log.push([n,`${kTxt(ekey(ix,e))}: ${c} → ${vTxt(S.q.set.v)}`,p.pid]);
+    setFB("ok",`<b class="t">Updated in place</b>The entry keeps its slot. Only its INCLUDE value changed.`);S.opi++;startOp();render();return;}
+  p.rows.splice(S.wtarget,1);markMod("ix",p);S.log.push([n,`delete ${kTxt(ekey(ix,op.entry))}`,p.pid]);
+  op.act="insert";setFB("ok",`<b class="t">Old entry deleted from ${p.pid}</b>Now insert the new entry ${kTxt(ekey(ix,op.newRow))}. That needs a fresh descent from the root, because it may belong on a different page.`);startOp();render();
+}
+function act(a){
+  const ex=expected();if(!ex||S.phase!=="leaf")return;
+  if(ex.type!==a)return bad(actWhy(a,ex));
+  if(a==="next"){const nx=S.acc.dir>0?S.page.next:S.page.prev;enter(S.acc.k,nx);S.cur=S.acc.dir>0?0:nx.rows.length-1;
+    setFB("ok",`<b class="t">Read page ${nx.pid}</b>${treeOf(S.acc.k).heap?"You moved to the next page listed in the IAM page.":`You followed ${S.acc.dir>0?"m_nextPage":"m_prevPage"} sideways without climbing the tree.`}`);render();return;}
+  if(S.needSort&&S.buf.length){S.phase="sort";setFB("ok",`<b class="t">Access finished: ${S.buf.length} row${S.buf.length>1?"s":""} collected</b>Now act as the Sort operator: click the rows in ORDER BY ${S.q.orderBy.col} ${S.q.orderBy.dir} order${S.q.top?`. Only the first ${S.q.top} are kept`:""}.`);render();return;}
+  finish(ex.why==="top"?`TOP ${S.q.top} satisfied, so the engine stopped early.`:ex.why==="unique"?"The index is unique and every key column is fixed, so there can't be another match.":ex.why==="range"?"The next entry is past the end of the range.":"End of the chain.");
+}
+function rowWhy(i,ex){
+  const p=S.page,ph=S.phase;
+  if(ph==="desc"){const t=treeOf(S.desc.k),K=S.desc.key;if(i>ex.idx)return `Separator ${kTxt(sepOf(t,p,i))} is greater than the search key ${kTxt(K)}. Everything under that pointer starts at ${kTxt(sepOf(t,p,i))} or later.`;
+    return `That pointer qualifies, but a later one does too: ${kTxt(sepOf(t,p,ex.idx))} ≤ ${kTxt(K)}. Follow the <b>last</b> pointer whose separator is ≤ the search key.`;}
+  if(ph==="lk")return heapOn()?`RID ${S.prid} points at slot ${ridSlot(S.prid)} on this page.`:`You're looking up id ${S.pend.id}. That slot holds id ${p.rows[i].id}.`;
+  if(ph==="wleaf"){const op=S.ops[S.opi];if(op.act==="insert")return "You're inserting. Click the insertion point between entries, not an entry.";return `You're looking for ${kTxt(opKey(op))}.`;}
+  if(ph==="leaf"){const a=S.acc,e=p.rows[i],kt=kTxt(treeOf(a.k).keyOf(e));
+    if(S.taken&&S.taken.has(p.pid+"#"+i))return "You already took that entry.";
+    if(ex.type==="stop"&&ex.why==="top")return `TOP ${S.q.top} is already satisfied. Stop reading.`;
+    if(ex.type==="stop"&&ex.why==="unique")return "The index is unique and every key column is fixed by '=', so no further entry can match.";
+    if(e.stub)return "That's a forwarding stub. It holds no column values, only the address the row moved to.";
+    if(!a.scan){const rp=rangePos(e);if(rp)return `${kt} is ${rp*a.dir>0?"past the end of":"before the start of"} the seek range ${kTxt(a.low)} … ${kTxt(a.high)}.`;}
+    if(!a.res.every(pr=>test(pr,e)))return `${a.scan&&treeOf(a.k).heap?`id ${e.id}`:kt} ${a.scan?"":"is in range but "}fails ${a.res.filter(pr=>!test(pr,e)).map(pTxt).join(" AND ")}${S.sniffRun?` (@p = ${S.q.where[0].v})`:""}.`;
+    if((i-S.cur)*a.dir<0)return "That entry is behind your reading position.";
+    return `Read in ${a.dir>0?"forward":"backward"} slot order. Slot ${ex.idx} comes first.`;}
+  return "";
+}
+function actWhy(a,ex){
+  const p=S.page;
+  if(ex.type==="row")return `Slot ${ex.idx} still qualifies on this page.`;
+  if(a==="next"){if(ex.why==="top")return `TOP ${S.q.top} is satisfied. Reading another page would be wasted.`;if(ex.why==="unique")return "The index is unique and every key column is fixed by '=', so there's nothing more to find. Reading another page would be wasted.";if(ex.why==="range")return `${kTxt(treeOf(S.acc.k).keyOf(p.rows[ex.at]))} is already past the end of the range. The seek is over.`;return `There's no ${S.acc.dir>0?"next":"previous"} page.`;}
+  return S.acc.scan?"The scan isn't finished: there are more pages to read.":"This page ran out, but the range might continue on the next page. You only know it's over when you see an entry past the range, or the chain ends.";
+}
+function hint(){const ex=expected();if(!ex)return;S.hints++;S.hint=ex;setFB("hint",`<b class="t">Hint</b>The highlighted control is the right move. Hints cost 10 points.`);render();}
+function finish(note){
+  S.phase="done";const pts=Math.max(0,100-15*S.mis-10*S.hints);G.pts+=pts;
+  G.log.push({title:S.sc.title,plan:isW()?"write":pname(S.sc.plan.path)+(S.sc.plan.order?` · ${ONAME[S.sc.plan.order]}`:""),r:S.reads.ix+S.reads.pk,w:S.writes,mis:S.mis,hints:S.hints,pts});
+  setFB("ok",`<b class="t">Complete</b>${note||""}`);render();
+}
+
+// ---------- design actions ----------
+function designRead(){
+  if($("d-none").checked)return{ix:null};
+  const ks=["d-k1","d-k2","d-k3"].map(i=>$(i).value).filter(Boolean);
+  if(!ks.length)return{err:"Pick at least one key column, or tick ‘No nonclustered index’."};
+  if(new Set(ks).size!==ks.length)return{err:"Each key column can appear only once."};
+  if(NONKEY.some(c=>$("d-i-"+c).checked&&ks.includes(c)))return{err:"A column can't be both a key column and an INCLUDE column."};
+  return{ix:{keys:ks,unique:false,inc:NONKEY.filter(c=>$("d-i-"+c).checked)}};
+}
+function designPreview(){const d=designRead();$("d-ddl").textContent=d.err?"-- "+d.err:ixDDL(d.ix);}
+function designEval(){
+  const d=designRead();if(d.err){setFB("bad",`<b class="t">Fix the design first</b>${d.err}`);return;}
+  const wl=S.sc.wl,mine=dCost(wl,d.ix);let best=null;
+  for(const c of dCandidates()){const x=dCost(wl,c);if(!best||x.total<best.total-1e-6||(Math.abs(x.total-best.total)<1e-6&&ixSize(c)<ixSize(best.ix)))best={...x,ix:c};}
+  const score=Math.min(100,Math.round(100*Math.max(best.total,1)/Math.max(mine.total,1)));
+  const stmts=[...wl.qs.map(q=>sqlText(q)),...wl.ws.map(wText)];
+  S.dres=`<div class="sum"><div class="stats"><span>Your total <b>${fmt(mine.total)}</b> per minute</span><span>Best possible <b>${fmt(best.total)}</b> per minute</span><span>Score <b>${score} / 100</b></span></div>
+   <div class="tbl"><table class="wl"><thead><tr><th>Statement</th><th>Your plan</th><th>Each</th><th>Per minute</th><th>Best design's plan</th><th>Per minute</th></tr></thead><tbody>${stmts.map((s,i)=>{const m=mine.rows[i],b=best.rows[i];return `<tr><td><code>${s}</code></td><td>${m.plan}</td><td>${fmt(m.cost)}</td><td>${fmt(m.cost*m.freq)}</td><td>${b.plan}</td><td>${fmt(b.cost*b.freq)}</td></tr>`;}).join("")}</tbody></table></div>
+   <div class="defs"><span class="label">Your design</span><code class="blk">${ixDDL(d.ix)}</code><span class="label">Best design</span><code class="blk">${ixDDL(best.ix)}</code></div>
+   <p class="note">Costs are logical reads plus page writes, per execution and per minute. Work that is the same for every design, such as the clustered write on an INSERT, is left out.</p></div>`;
+  S.phase="done";G.pts+=score;G.log.push({title:"Index design",plan:"design",r:Math.round(mine.total),w:0,mis:0,hints:0,pts:score});
+  setFB(score>=95?"ok":score>=60?"hint":"bad",`<b class="t">${score>=95?"Optimal or near it":score>=60?"Close":"Far from the best"}</b>Your design costs ${fmt(mine.total)} reads and writes per minute. The best possible single index costs ${fmt(best.total)}.`);render();
+}
+
+// ---------- render ----------
+function setFB(c,h){const f=$("fb");f.className="fb "+c;f.innerHTML=h;}
+function sqlText(q){const K=s=>`<span class="kw">${s}</span>`;
+  if(q.kind==="insert"){const r=q.row;return `${K("INSERT INTO")} t ${K("VALUES")} (${ALL.map(c=>vTxt(r[c])).join(", ")});`;}
+  if(q.kind==="update")return `${K("UPDATE")} t ${K("SET")} ${q.set.col} = ${vTxt(q.set.v)} ${K("WHERE")} id = ${q.id};`;
+  if(q.kind==="delete")return `${K("DELETE FROM")} t ${K("WHERE")} id = ${q.id};`;
+  return `${K("SELECT")} ${q.top?K("TOP")+` ${q.top} `:""}${q.select.join(", ")} ${K("FROM")} t${q.where.length?` ${K("WHERE")} ${q.where.map(pTxt).join(` ${K("AND")} `)}`:""}${q.orderBy?` ${K("ORDER BY")} ${q.orderBy.col} ${q.orderBy.dir}`:""};`;}
+const outCols=()=>S.q.select[0]==="*"?ALL:S.q.select;
+function entryTxt(k,e){
+  if(k==="pk"){if(e.stub)return `forwarding stub → ${e.fwd}`;return `id ${e.id} · sec ${e.secondary_id} · ${e.status} · ${e.created_at} · ${e.notes}${e.forwarded?` · forwarded from ${e.rid}`:""}`;}
+  const ix=S.ix;return (ix.unique?`${kTxt(ekey(ix,e))} → ${ix.heap?"RID "+e.rid:"id "+e.id}`:kTxt(ekey(ix,e)))+(ix.inc.length?" · "+ix.inc.map(c=>vTxt(e[c])).join(" · "):"");}
+function statsHTML(st){
+  if(st.type==="two")return `<div class="hist"><span class="label">Statistics</span><div class="tbl"><table><thead><tr><th>Predicate</th><th>EQ_ROWS</th><th>Note</th></tr></thead><tbody>${st.lines.map(l=>`<tr><td>${l[0]}</td><td>${fmt(l[1])}</td><td class="l">${l[2]}</td></tr>`).join("")}</tbody></table></div><span class="note">${st.sub}</span></div>`;
+  return `<div class="hist"><span class="label">${st.header}</span><div class="tbl"><table><thead><tr><th>RANGE_HI_KEY</th><th>RANGE_ROWS</th><th>EQ_ROWS</th><th>DISTINCT_RANGE_ROWS</th><th>AVG_RANGE_ROWS</th></tr></thead><tbody>${st.steps.map(s=>`<tr><td>${s.hi}</td><td>${fmt(s.range)}</td><td>${fmt(s.eq)}</td><td>${fmt(s.distinct)}</td><td>${n1(s.avg)}</td></tr>`).join("")}</tbody></table></div><span class="note">${st.sub}</span></div>`;}
+function optionButtons(opts,prefix,fn){const box=document.createElement("div");box.className="plans";
+  opts.forEach(([t,a,b])=>{const btn=document.createElement("button");btn.className="plan"+(S.wrongs.has(prefix+t)?" wrong":"");btn.innerHTML=`<b>${a}</b>${b?`<span>${b}</span>`:""}`;btn.onclick=()=>fn(t);box.appendChild(btn);});return box;}
+function render(){
+  const sc=S.sc,q=S.q;
+  $("s-lvl").textContent=G.li<0?"Mix":G.li+1;
+  $("s-round").textContent=`${G.round+1} / ${G.rounds.length}`;$("s-pts").textContent=G.pts;$("s-mis").textContent=G.mis;
+  $("pips").innerHTML=G.rounds.map((_,i)=>`<i class="${i<G.round?"done":i===G.round?"cur":""}"></i>`).join("");
+  $("r-ix").textContent=S.reads.ix;$("r-pk").textContent=S.reads.pk;$("r-tot").textContent=S.reads.ix+S.reads.pk;$("r-wr").textContent=S.writes;
+  $("lbl-rpk").textContent=sc.heap?"Heap reads":"PK reads";
+  $("lbl-ix").textContent=sc.design?"Nonclustered index":ixLabel(S.ix);
+  $("lbl-pk").textContent=sc.design?"PK_t (clustered)":sc.heap?"t (heap) · no key order":"PK_t (clustered) · key (id)";
+  mini("mini-ix","ix","nc");mini("mini-pk","pk","ci");
+  $("path-ix").textContent=!S.T.ix?"":S.path.ix.length?S.path.ix.join(" → "):"not read yet";
+  $("path-pk").textContent=!S.T.pk?"":S.path.pk.length?S.path.pk.join(" → "):"not read yet";
+  if(sc.design){$("res-title").textContent="Result set";$("res-h").innerHTML="";$("res").innerHTML="";$("res-empty").hidden=false;return renderDesign();}
+  if(isW()){$("res-title").textContent="Changes";$("res-h").innerHTML="<tr><th>Index</th><th>Change</th><th>Page</th></tr>";$("res").innerHTML=S.log.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("");$("res-empty").hidden=S.log.length>0;}
+  else{$("res-title").textContent="Result set";$("res-h").innerHTML="<tr>"+outCols().map(c=>`<th>${c}</th>`).join("")+"</tr>";$("res").innerHTML=S.out.map(r=>`<tr>${outCols().map(c=>`<td>${r[c]}</td>`).join("")}</tr>`).join("");$("res-empty").hidden=S.out.length>0;}
+  $("query").innerHTML=sqlText(q);
+  const st=$("stage"),ac=$("actions"),ph=$("phase"),kb=$("keybox"),ins=$("instr");st.innerHTML="";ac.innerHTML="";kb.innerHTML="";
+  if(S.phase==="done")return summary();
+  const sn=sc.sniff,param=sn?`<span>@p <b>= ${q.where[0].v}</b>${S.sniffRun?" (this call)":" (compile time)"}</span>`:"";
+  if(["est","plan","order","reuse"].includes(S.phase)){
+    ph.className="phase";ph.textContent=`Round ${G.round+1} · ${{est:"estimate the rows",plan:isW()?"which indexes change?":"choose the access path",order:"satisfy the ORDER BY",reuse:"the next call"}[S.phase]}`;
+    kb.innerHTML=(S.phase==="est"?`<span>Estimate <b>work it out from the statistics</b></span>`:`<span>Estimate <b>${estText(sc)}</b></span>`)+(isW()?"":"<span>Leaf level <b>20,000 pages</b></span>")+param;
+    st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Schema</span><code class="blk">${tableDDL(sc.heap)}\n${ixDDL(S.ix)}</code></div>`);
+    if(sc.stats)st.insertAdjacentHTML("beforeend",statsHTML(sc.stats));
+    if(S.phase==="est"){ins.textContent=sc.stats.question;st.appendChild(optionButtons(sc.stats.options.map((o,i)=>[i,`${n1(o.v)} rows`,""]),"e:",chooseEst));return;}
+    if(S.phase==="reuse"){ins.textContent=`The plan is cached. The next call passes @p = ${sn.B}. Which plan runs?`;
+      st.appendChild(optionButtons([["cached","The cached plan","Index Seek → Key Lookup, as compiled for @p = "+sn.A],["recompile",`A new plan compiled for @p = ${sn.B}`,"Clustered Index Scan, chosen from the new value's estimate"]],"r:",chooseReuse));return;}
+    if(isW()){ins.textContent="Tick every index this statement has to write to.";
+      const box=document.createElement("div");box.className="tgts";
+      box.innerHTML=[["pk","PK_t (clustered)"],...(S.ix?[["ix",ixName(S.ix)]]:[])].map(([v,l])=>`<label class="tg"><input type="checkbox" class="tgt" value="${v}" id="tg-${v}"> ${l}</label>`).join("");
+      st.appendChild(box);const b=document.createElement("button");b.className="primary";b.textContent="Confirm";b.onclick=chooseTargets;ac.appendChild(b);return;}
+    ins.textContent=S.phase==="order"?`How does the plan produce ORDER BY ${q.orderBy.col} ${q.orderBy.dir}?`:"Which access path would the optimizer choose?";
+    st.appendChild(S.phase==="order"?optionButtons(ORDERS,"o:",chooseOrder):optionButtons(pathsFor(),"p:",choosePath));return;
+  }
+  const ex=S.hint;
+  if(S.phase==="sort"){
+    ph.className="phase";ph.textContent="Sort operator";ins.textContent=`Click rows in ORDER BY ${q.orderBy.col} ${q.orderBy.dir} order.`;
+    const card=document.createElement("div");card.className="pagecard";card.innerHTML=`<div class="pagehdr"><span><b>Sort input</b> · ${S.buf.length} rows</span><span>${q.top?`keep first ${q.top}`:"keep all"}</span></div>`;
+    const sl=document.createElement("div");sl.className="slots";
+    S.buf.forEach((r,i)=>{const b=document.createElement("button");b.className="slot"+(r._sorted?" taken":"")+(ex&&ex.type==="sort"&&ex.first===i?" hinted":"");b.dataset.i=i;
+      b.innerHTML=`<span class="sn">row</span><span>${q.orderBy.col} ${vTxt(r[q.orderBy.col])} · id ${r.id}</span><span class="tag">${r._sorted?"placed":""}</span>`;b.onclick=()=>clickRow(i);sl.appendChild(b);});
+    card.appendChild(sl);st.appendChild(card);addHint(ac);return;
+  }
+  const p=S.page,k=(S.T.ix&&levelsOf(S.T.ix).flat().includes(p))?"nc":"ci",kk=k==="nc"?"ix":"pk",t=treeOf(kk),Ls=levelsOf(t),depth=Ls.findIndex(l=>l.includes(p));
+  const lvlName=t.heap?"data page":p.level===0?"leaf":depth===0?"root":"intermediate";
+  const opAct=isW()&&S.ops?S.ops[S.opi].act:null;
+  const label={desc:S.desc&&S.desc.then==="lk"?"Key Lookup · descending PK_t":S.desc&&S.desc.then==="wleaf"?`${opAct==="insert"?"Insert":opAct==="delete"?"Delete":"Locate"} · descending ${t.name}`:`${S.acc&&S.acc.k==="pk"?"Clustered Index Seek":"Index Seek"} · descending ${t.name}`,
+    leaf:S.acc?(S.acc.scan?`${t.heap?"Table Scan · heap pages":S.acc.k==="pk"?"Clustered Index Scan · PK_t leaf chain":`Index Scan · ${t.name} leaf chain`}`:`${S.acc.k==="pk"?"Clustered Index Seek":"Index Seek"} · reading leaf`):"",
+    lk:heapOn()?`RID Lookup · ${S.prid}`:`Key Lookup · find id ${S.pend&&S.pend.id}`,wleaf:`${opAct==="delete"?"Delete":"Write"} · ${t.name} leaf`,wdecide:`Write · ${t.name} leaf`}[S.phase];
+  ph.className="phase "+k;ph.textContent=label;
+  if(S.phase==="desc")ins.textContent="Click the pointer to follow.";
+  else if(S.phase==="leaf")ins.textContent=S.acc.scan?"Click every row that passes the filter, in reading order, then move to the next page or finish.":"Click the next qualifying entry, move along the chain, or stop.";
+  else if(S.phase==="lk")ins.textContent=heapOn()?`Click slot ${ridSlot(S.prid)}, the slot RID ${S.prid} points at.`:`Click the row for id ${S.pend.id}.`;
+  else if(S.phase==="wleaf")ins.textContent=opAct==="insert"?"Click where the new entry belongs.":`Click the entry ${kTxt(opKey(S.ops[S.opi]))}.`;
+  else ins.textContent="Apply the change to this entry.";
+  const a=S.acc;
+  if(S.phase==="desc")kb.innerHTML=`<span>Search key <b>${kTxt(S.desc.key)}</b></span>`+param;
+  else if(S.phase==="leaf"){kb.innerHTML=a.scan?`<span>Filter <b>${q.where.length?q.where.map(pTxt).join(" AND "):"none"}</b></span>${t.heap?"":`<span>Direction <b>${a.dir>0?"forward":"backward"}</b></span>`}`:
+    `<span>Seek <b>${a.seekP.map(pTxt).join(" AND ")}</b></span><span>Range <b>${kTxt(a.low)} … ${kTxt(a.high)}</b></span>${a.res.length?`<span>Residual <b>${a.res.map(pTxt).join(" AND ")}</b></span>`:""}${a.post.length?`<span>After lookup <b>${a.post.map(pTxt).join(" AND ")}</b></span>`:""}<span>Direction <b>${a.dir>0?"forward":"backward"}</b></span>`;
+    kb.innerHTML+=param;if(q.top)kb.innerHTML+=`<span>TOP <b>${q.top}</b>${S.needSort?" (after the Sort)":`, produced ${S.out.length}`}</span>`;}
+  else if(S.phase==="lk")kb.innerHTML=heapOn()?`<span>RID <b>${S.prid}</b></span>`:`<span>Search key <b>id = ${S.pend.id}</b></span>`;
+  else kb.innerHTML=`<span>Key <b>${kTxt(opKey(S.ops[S.opi]))}</b></span>`;
+  const card=document.createElement("div");card.className="pagecard "+k;
+  card.innerHTML=`<div class="pagehdr"><span><b>page ${p.pid}</b> · ${t.name} · ${lvlName}${t.heap?"":` (level ${p.level})`}</span><span>m_slotCnt ${p.level?p.kids.length:p.rows.length}${p.level===0?` / ${t.cap}${t.heap?` · next in IAM order ${p.next?p.next.pid:"none"}`:` · prev ${p.prev?p.prev.pid:"NULL"} · next ${p.next?p.next.pid:"NULL"}`}`:""}</span></div>`;
+  const sl=document.createElement("div");sl.className="slots";
+  const gapMode=S.phase==="wleaf"&&opAct==="insert";
+  const addGap=g=>{const b=document.createElement("button");b.className="gap"+(ex&&ex.type==="gap"&&ex.idx===g?" hinted":"");b.textContent="＋ insert here";b.onclick=()=>clickGap(g);sl.appendChild(b);};
+  const items=p.level?p.kids:p.rows;
+  items.forEach((r,i)=>{
+    if(gapMode)addGap(i);
+    const b=document.createElement("button");b.className="slot";b.dataset.i=i;let txt,tag;
+    if(p.level){const s=sepOf(t,p,i);txt=`${s===null?"∅":kTxt(s)} → ${r.pid}`;tag=s===null?"no lower bound":"separator";}
+    else{txt=entryTxt(kk,r);tag=r.stub?"stub":kk==="pk"?(t.heap?"row":"full row"):"entry";}
+    if(r.ghost){b.classList.add("ghost");tag="ghost";}
+    if(S.phase==="leaf"&&S.taken&&S.taken.has(p.pid+"#"+i)){b.classList.add("taken");tag="taken";}
+    if(S.phase==="wdecide"&&i===S.wtarget)b.classList.add("taken");
+    if(ex&&ex.type==="row"&&ex.idx===i)b.classList.add("hinted");
+    b.innerHTML=`<span class="sn">slot ${i}</span><span>${txt}</span><span class="tag">${tag}</span>`;b.onclick=()=>clickRow(i);sl.appendChild(b);});
+  if(gapMode)addGap(items.length);
+  card.appendChild(sl);
+  if(p.level===0)card.insertAdjacentHTML("beforeend",`<div class="pagefoot">entry layout: ${kk==="pk"?`id · secondary_id · status · created_at · notes${t.heap?" (rows in no particular order)":""}`:`${S.ix.unique?`(${S.ix.keys.join(", ")}) → ${S.ix.heap?"RID":"id"}`:`(${[...S.ix.keys,S.ix.heap?"RID":"id"].join(", ")})`}${S.ix.inc.length?" · "+S.ix.inc.join(" · "):""}`}</div>`);
+  st.appendChild(card);
+  if(S.phase==="leaf"){const n=document.createElement("button");n.textContent=t.heap?"Next page in IAM order →":a.dir>0?"Follow m_nextPage →":"← Follow m_prevPage";n.onclick=()=>act("next");
+    const s=document.createElement("button");s.textContent=a.scan?"Finish scan":"Stop seek";s.onclick=()=>act("stop");
+    if(ex&&ex.type==="next")n.classList.add("hinted");if(ex&&ex.type==="stop")s.classList.add("hinted");ac.append(n,s);}
+  if(S.phase==="wdecide"){const c=S.q.set.col;[["inplace",`Update ${c} in place`],["move","Delete, then re-insert at the new key"]].forEach(([v,l])=>{const b=document.createElement("button");b.textContent=l;if(ex&&ex.type===v)b.classList.add("hinted");b.onclick=()=>decide2(v);ac.appendChild(b);});}
+  addHint(ac);
+}
+function renderDesign(){
+  const wl=S.sc.wl,st=$("stage"),ac=$("actions");
+  $("query").textContent="Design one nonclustered index for this workload.";
+  $("phase").className="phase";$("phase").textContent=`Round ${G.round+1} · index design`;
+  $("keybox").innerHTML=`<span>Table <b>2,000,000 rows</b></span><span>Clustered leaf level <b>20,000 pages</b></span><span>Cost <b>reads + writes per minute</b></span>`;
+  ac.innerHTML="";
+  if(S.phase==="done"){$("instr").innerHTML=`<b>${S.sc.title}.</b> ${S.sc.take}`;st.innerHTML=S.dres;return summary(true);}
+  $("instr").textContent="Pick the key columns in order, then the INCLUDE columns. The clustered index on id always exists.";
+  const opt=(v,sel)=>`<option value="${v}"${sel?" selected":""}>${v||"—"}</option>`,K=["secondary_id","status","created_at"];
+  st.innerHTML=`<div class="defs"><span class="label">Schema</span><code class="blk">${tableDDL(false)}</code></div>
+  <div class="tbl"><table class="wl"><thead><tr><th>Statement</th><th>Runs per minute</th><th>Rows</th></tr></thead><tbody>${wl.qs.map(q=>`<tr><td><code>${sqlText(q)}</code></td><td>${fmt(q.freq)}</td><td>${fmt(Math.max(1,N*prodSel(q.where)))}</td></tr>`).join("")}${wl.ws.map(w=>`<tr><td><code>${wText(w)}</code></td><td>${fmt(w.freq)}</td><td>1</td></tr>`).join("")}</tbody></table></div>
+  <div class="builder">
+    <div class="brow"><span class="label">Key columns, in order</span><div class="bsel"><select id="d-k1" aria-label="Key column 1">${K.map((c,i)=>opt(c,i===0)).join("")}</select><select id="d-k2" aria-label="Key column 2">${opt("",true)}${K.map(c=>opt(c)).join("")}</select><select id="d-k3" aria-label="Key column 3">${opt("",true)}${K.map(c=>opt(c)).join("")}</select></div></div>
+    <div class="brow"><span class="label">INCLUDE</span><div class="bsel">${NONKEY.map(c=>`<label><input type="checkbox" id="d-i-${c}"> ${c}</label>`).join("")}</div></div>
+    <label class="tg"><input type="checkbox" id="d-none"> No nonclustered index</label>
+    <code class="blk" id="d-ddl"></code>
+    <p class="note">notes is varchar(800), too wide to be a useful key, so it can only be INCLUDEd.</p>
+  </div>`;
+  st.querySelectorAll("select,input").forEach(e=>e.addEventListener("change",designPreview));designPreview();
+  const b=document.createElement("button");b.className="primary";b.id="d-eval";b.textContent="Evaluate design";b.onclick=designEval;ac.appendChild(b);
+}
+function addHint(ac){const h=document.createElement("button");h.textContent="Hint (−10)";h.onclick=hint;ac.appendChild(h);}
+function summary(isDesign){
+  const L=G.log[G.log.length-1],sc=S.sc,last=G.round===G.rounds.length-1,st=$("stage");
+  if(!isDesign){
+    $("phase").className="phase";$("phase").textContent=`Round ${G.round+1} complete`;
+    $("instr").innerHTML=`<b>${sc.title}.</b> ${sc.take}`;
+    const extra=sc.stats?`<span>Estimated <b>${fmt(sc.est)}</b> rows</span>`:"";
+    const scale=sc.sniff?`<span>Actual rows for @p = ${sc.sniff.B} <b>${fmt(sc.sniff.eqB)}</b></span>`:sc.stale?`<span>Actual rows at scale <b>${fmt(sc.stale.mods)}</b></span>`:"";
+    st.innerHTML=`<div class="sum"><div class="stats"><span>Plan <b>${L.plan}</b></span><span>Logical reads <b>${L.r}</b> (IX ${S.reads.ix}, ${sc.heap?"heap":"PK"} ${S.reads.pk})</span>${isW()?`<span>Page writes <b>${L.w}</b></span>`:`<span>Rows <b>${S.out.length}</b></span>`}${extra}${scale}<span>Mistakes <b>${L.mis}</b></span><span>Hints <b>${L.hints}</b></span><span>Points <b>${L.pts} / 100</b></span></div></div>`;
+  }
+  const ac=$("actions");
+  if(!last){const b=document.createElement("button");b.className="primary";b.textContent="Next round";b.onclick=()=>{G.round++;startRound();};ac.appendChild(b);return;}
+  const max=G.rounds.length*100,pct=Math.round(100*G.pts/max),pass=pct>=60,mixed=!!G.L.mixed;
+  if(!mixed){const n=G.li+1;PROG.best[n]=Math.max(PROG.best[n]||0,pct);if(pass)PROG.unlocked=Math.max(PROG.unlocked,Math.min(LEVELS.length,n+1));saveProg();}
+  st.insertAdjacentHTML("beforeend",`<div class="sum"><span class="label">${mixed?"Mixed practice":`Level ${G.li+1}: ${G.L.name}`} complete</span><span class="big">${pct}%</span>
+    <p>${mixed?`${G.pts} of ${max} points.`:pass?(G.li+1<LEVELS.length?`Passed. Level ${G.li+2} is unlocked.`:"Passed. That's the final level."):"Below 60%, so the next level stays locked. Each retry deals new scenarios."}</p>
+    <div class="tbl"><table><thead><tr><th>Round</th><th>Plan</th><th>Reads</th><th>Writes</th><th>Mistakes</th><th>Points</th></tr></thead><tbody>${G.log.map((l,i)=>`<tr><td>${i+1}. ${l.title}</td><td>${l.plan}</td><td>${fmt(l.r)}</td><td>${l.w}</td><td>${l.mis}</td><td>${l.pts}</td></tr>`).join("")}</tbody></table></div></div>`);
+  const mk=(txt,fn,primary)=>{const b=document.createElement("button");b.textContent=txt;if(primary)b.className="primary";b.onclick=fn;ac.appendChild(b);};
+  if(!mixed&&G.li+1<LEVELS.length&&PROG.unlocked>G.li+1)mk(`Next level: ${LEVELS[G.li+1].name}`,()=>startLevel(G.li+1),true);
+  mk(mixed?"Play again":"Retry level",()=>startLevel(G.li),!(!mixed&&PROG.unlocked>G.li+1));
+  mk("All levels",showLevels);
+}
+function mini(id,k,cls){
+  const svg=$(id),W=320,t=S.T[k];
+  if(!t){svg.setAttribute("viewBox","0 0 320 30");svg.innerHTML=`<text x="0" y="18">${S.sc.design?"Design round: nothing to walk.":"No nonclustered index on this table."}</text>`;return;}
+  const lv=levelsOf(t),rowH=40,H=rowH*lv.length;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);let h="";const pos=new Map();
+  lv.forEach((pages,li)=>{const n=pages.length,bw=Math.min(54,(W-8)/n-4);pages.forEach((p,i)=>pos.set(p,{x:(W/n)*(i+.5)-bw/2,y:li*rowH+6,w:bw,h:rowH-16}));});
+  lv.forEach(pages=>pages.forEach(p=>{if(p.kids)p.kids.forEach(c=>{const a=pos.get(p),b=pos.get(c);h+=`<line x1="${a.x+a.w/2}" y1="${a.y+a.h}" x2="${b.x+b.w/2}" y2="${b.y}"/>`;});}));
+  lv.forEach(pages=>pages.forEach(p=>{const q=pos.get(p),v=S.vis[k].has(p.pid),m=S.mod[k].has(p.pid),c=S.page===p&&S.phase!=="done";
+    h+=`<rect x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" rx="3" class="${cls}${v?" v":""}${c?" cur":""}"/><text x="${q.x+q.w/2}" y="${q.y+q.h/2+3}" text-anchor="middle">${p.pid.split(":")[1]}</text>${m?`<circle cx="${q.x+q.w-3}" cy="${q.y+3}" r="3" class="modm"/>`:""}`;}));
+  svg.innerHTML=h;
+}
+showLevels();
+})();
+</script>
+</body>
+</html>

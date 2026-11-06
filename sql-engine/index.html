@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SQL Server Storage Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a short intro above three link cards, one per page, in suggested order */
+:root{
+  --bg:#eef2f6; --surface:#ffffff; --ink:#132030; --muted:#566578; --line:#cdd6e0; --nc:#0d7a72;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{--bg:#0d131a; --surface:#151f2a; --ink:#e3e9f0; --muted:#8e9eb0; --line:#2a3848; --nc:#3cc3b6; color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px;display:grid;gap:28px}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4vw,2.5rem);line-height:1.1;margin:6px 0 0;text-wrap:balance}
+p{margin:0;max-width:65ch;color:var(--muted)}
+.cards{display:grid;gap:12px}
+a.card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 16px;padding:18px 20px;background:var(--surface);border:1px solid var(--line);border-radius:8px;color:inherit;text-decoration:none}
+a.card:hover,a.card:focus-visible{border-color:var(--nc);outline:none}
+.n{grid-row:span 2;font-family:var(--f-mono);font-size:.85rem;color:var(--nc);padding-top:3px}
+.card b{font-family:var(--f-display);font-size:1.2rem;font-weight:600}
+.card span{color:var(--muted);font-size:.95rem}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <span class="label">How SQL Server reads and writes pages</span>
+    <h1>SQL Server Storage Engine</h1>
+  </header>
+  <p>Three interactive pages about B+ tree indexes on disk: what's inside an 8 KB page, how a seek with key lookups walks two trees, and a game where you execute statements by hand.</p>
+  <nav class="cards" aria-label="Pages">
+    <a class="card" href="inside-an-8kb-page.html"><span class="n">1</span><b>Inside an 8 KB Page</b><span>A to-scale byte map of a clustered and a nonclustered leaf page. Insert and delete rows to see compaction and page splits.</span></a>
+    <a class="card" href="key-lookup-walkthrough.html"><span class="n">2</span><b>Key Lookup Walkthrough</b><span>Step through an Index Seek plus Key Lookup one page read at a time, then find where the plan flips to a scan.</span></a>
+    <a class="card" href="storage-engine-drill.html"><span class="n">3</span><b>Storage Engine Drill</b><span>Nine levels: seeks, INCLUDE, ranges, ORDER BY and TOP, writes, heaps, statistics, plan reuse and index design.</span></a>
+  </nav>
+</main>
+</body>
+</html>

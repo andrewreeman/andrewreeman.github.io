@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Key Lookup Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: page-inspector console — query strip, two B+ tree panels side by side, transport bar, then a cost model below */
+:root{
+  --bg:#eef2f6; --surface:#ffffff; --ink:#132030; --muted:#566578; --line:#cdd6e0;
+  --nc:#0d7a72; --ci:#b4521a; --ok:#2f7d3a; --warn:#a8331f;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d131a; --surface:#151f2a; --ink:#e3e9f0; --muted:#8e9eb0; --line:#2a3848;
+  --nc:#3cc3b6; --ci:#f0904c; --ok:#6cc47a; --warn:#f27a62; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d131a; --surface:#151f2a; --ink:#e3e9f0; --muted:#8e9eb0; --line:#2a3848;
+  --nc:#3cc3b6; --ci:#f0904c; --ok:#6cc47a; --warn:#f27a62; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px;display:grid;gap:22px}
+h1,h2{font-family:var(--f-display);font-weight:800;letter-spacing:-.01em;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.7rem,4vw,2.4rem);line-height:1.1}
+h2{font-size:1.35rem}
+p{margin:0;max-width:68ch}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono)}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+
+.head{display:grid;gap:10px}
+.query{font-family:var(--f-mono);font-size:.95rem;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px;overflow-x:auto;white-space:nowrap}
+.query .kw{color:var(--nc);font-weight:600}
+.assume{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.85rem;color:var(--muted)}
+.assume b{color:var(--ink);font-weight:600}
+
+.plan{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-family:var(--f-mono);font-size:.8rem}
+.op{border:1px solid var(--line);border-radius:4px;padding:5px 10px;background:var(--surface);transition:background .2s,border-color .2s}
+.op.on-nc{border-color:var(--nc);background:color-mix(in srgb,var(--nc) 14%,var(--surface))}
+.op.on-ci{border-color:var(--ci);background:color-mix(in srgb,var(--ci) 14%,var(--surface))}
+.op.on-nl{border-color:var(--ink)}
+.plan .arrow{color:var(--muted)}
+
+.trees{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:860px){.trees{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0;display:grid;gap:8px}
+.panel-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.panel-h h3{margin:0;font-family:var(--f-mono);font-size:.9rem;font-weight:600}
+.panel.nc h3{color:var(--nc)} .panel.ci h3{color:var(--ci)}
+.svgbox{overflow-x:auto}
+svg.tree{width:100%;min-width:430px;display:block}
+
+svg text{font-family:var(--f-mono);font-size:11px;fill:var(--ink)}
+.pg rect.body{fill:var(--surface);stroke:var(--line);stroke-width:1.2;transition:fill .25s,stroke .25s}
+.pg rect.hdr{fill:color-mix(in srgb,var(--muted) 12%,var(--surface))}
+.pg text.h{font-size:10px;fill:var(--muted);font-weight:600}
+.pg rect.rowhl{fill:transparent;transition:fill .2s}
+.edge{stroke:var(--line);stroke-width:1.2;fill:none;transition:stroke .25s}
+.sib{stroke:var(--line);stroke-width:1.2;fill:none}
+.nc .pg.visited rect.body{stroke:color-mix(in srgb,var(--nc) 55%,var(--line))}
+.ci .pg.visited rect.body{stroke:color-mix(in srgb,var(--ci) 55%,var(--line))}
+.nc .pg.active rect.body{fill:color-mix(in srgb,var(--nc) 12%,var(--surface));stroke:var(--nc);stroke-width:2.4}
+.ci .pg.active rect.body{fill:color-mix(in srgb,var(--ci) 12%,var(--surface));stroke:var(--ci);stroke-width:2.4}
+.nc .rowhl.on{fill:color-mix(in srgb,var(--nc) 30%,transparent)}
+.ci .rowhl.on{fill:color-mix(in srgb,var(--ci) 30%,transparent)}
+.nc .edge.on,.nc .sib.on{stroke:var(--nc);stroke-width:2.4}
+.ci .edge.on{stroke:var(--ci);stroke-width:2.4}
+.lvl{font-size:9.5px;fill:var(--muted);letter-spacing:.06em}
+
+.console{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.console{grid-template-columns:1fr}}
+.narr{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:12px;align-content:start}
+.transport{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:600 .85rem var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:7px 14px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-offset:2px}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:disabled{opacity:.4;cursor:default}
+.stepno{margin-left:auto;font-family:var(--f-mono);font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--ink);transition:width .3s}
+.phase{display:inline-block;font-family:var(--f-mono);font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:3px;border:1px solid var(--line);color:var(--muted)}
+.phase.nc{color:var(--nc);border-color:var(--nc)} .phase.ci{color:var(--ci);border-color:var(--ci)}
+.narr h4{margin:0;font-family:var(--f-display);font-size:1.15rem;font-weight:600}
+.narr p{font-size:.95rem}
+.narr code{font-family:var(--f-mono);font-size:.88em;background:color-mix(in srgb,var(--muted) 14%,transparent);padding:1px 5px;border-radius:3px}
+.kbd{font-size:.78rem}
+
+.side{display:grid;gap:16px;align-content:start}
+.counters{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ctr{background:var(--surface);padding:12px 14px;display:grid;gap:2px}
+.ctr .v{font-family:var(--f-mono);font-size:1.6rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.ctr.nc .v{color:var(--nc)} .ctr.ci .v{color:var(--ci)}
+.ctr .v.bump{animation:bump .4s}
+@keyframes bump{from{transform:translateY(-3px)}to{transform:none}}
+.result{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:grid;gap:8px}
+.result table{width:100%;border-collapse:collapse;font-family:var(--f-mono);font-size:.82rem;font-variant-numeric:tabular-nums}
+.result th{text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line);padding:4px 6px}
+.result td{padding:4px 6px;border-bottom:1px dashed var(--line)}
+.result .empty{color:var(--muted);font-size:.85rem}
+
+section.cost{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:20px;display:grid;gap:16px}
+.ctrls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px 24px;align-items:center}
+@media (max-width:640px){.ctrls{grid-template-columns:1fr}}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.toggle{display:flex;gap:8px;align-items:center;font-size:.9rem;cursor:pointer}
+.toggle input{accent-color:var(--nc);width:16px;height:16px}
+.readout{display:flex;flex-wrap:wrap;gap:6px 22px;font-family:var(--f-mono);font-size:.9rem;font-variant-numeric:tabular-nums}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:150px minmax(0,1fr) 110px;gap:12px;align-items:center;font-size:.88rem}
+@media (max-width:560px){.bar{grid-template-columns:1fr auto}.bar .track{grid-column:1 / -1;grid-row:2}}
+.track{height:18px;background:color-mix(in srgb,var(--muted) 12%,transparent);border-radius:3px;position:relative;overflow:hidden}
+.track i{position:absolute;inset:0 auto 0 0;border-radius:3px;transition:width .25s}
+.bar.seek i{background:var(--nc)} .bar.scan i{background:var(--ci)}
+.bar .n{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.bar.win .n{font-weight:600}
+.axis{display:grid;grid-template-columns:150px minmax(0,1fr) 110px;gap:12px;font-family:var(--f-mono);font-size:.7rem;color:var(--muted)}
+.axis div:nth-child(2){display:flex;justify-content:space-between}
+@media (max-width:560px){.axis{display:none}}
+.verdict{border-left:3px solid var(--ok);padding:6px 12px;font-size:.95rem}
+.verdict.scan{border-left-color:var(--ci)}
+.note{font-size:.85rem;color:var(--muted)}
+section.legend{display:grid;gap:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:grid;gap:8px;align-content:start;min-width:0}
+.card h3{margin:0;font-family:var(--f-display);font-size:1.02rem;font-weight:600}
+.card p,.card li{font-size:.9rem}
+.card ul{margin:0;padding-left:18px;display:grid;gap:6px}
+.card code,.why code,.info code{font-family:var(--f-mono);font-size:.86em;background:color-mix(in srgb,var(--muted) 14%,transparent);padding:1px 5px;border-radius:3px;white-space:nowrap}
+.card.nc{border-top:3px solid var(--nc)} .card.ci{border-top:3px solid var(--ci)}
+.sample{font-family:var(--f-mono);font-size:.85rem;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.sample div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:10px;padding:5px 10px;border-top:1px solid var(--line)}
+.sample div:first-child{border-top:0;background:color-mix(in srgb,var(--muted) 12%,var(--surface));font-size:.75rem;color:var(--muted)}
+.sample span:last-child{font-family:var(--f-body);font-size:.85rem;color:var(--muted)}
+.why{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;display:grid;gap:12px}
+.why h3{margin:0;font-family:var(--f-display);font-size:1.15rem;font-weight:600}
+.why ol{margin:0;padding-left:20px;display:grid;gap:8px;max-width:75ch}
+.strip-box{overflow-x:auto;padding-bottom:4px}
+.strip{display:flex;align-items:stretch;gap:4px;font-family:var(--f-mono);font-size:.8rem;width:max-content}
+.chip{border:1px solid var(--line);border-radius:4px;padding:6px 8px;display:grid;gap:2px;text-align:center;font-variant-numeric:tabular-nums}
+.chip small{font-size:.65rem;color:var(--muted)}
+.chip.hit{border-color:var(--nc);background:color-mix(in srgb,var(--nc) 14%,var(--surface))}
+.caret{display:grid;place-items:center;padding:0 4px;color:var(--warn);font-weight:600;font-size:.75rem;text-align:center;border-left:2px dashed var(--warn);border-right:2px dashed var(--warn);border-radius:3px}
+.stop{color:var(--muted);border-left:2px dashed var(--muted);border-right:0;border-radius:0}
+.info{background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:12px 16px;font-size:.92rem;display:grid;gap:4px}
+.info b{font-family:var(--f-mono)}
+.pg text.r{cursor:pointer}
+.pg rect.rowhl{cursor:pointer}
+.pg .rowhl.pick{stroke:var(--ink);stroke-width:1;stroke-dasharray:3 2}
+.cmp{font-family:var(--f-mono);font-size:.82rem;border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:grid;gap:3px;background:color-mix(in srgb,var(--muted) 6%,var(--surface))}
+.cmp .yes{color:var(--ok);font-weight:600}.cmp .no{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <span class="label">Execution walkthrough</span>
+    <h1>What SQL Server reads for one key-lookup plan</h1>
+    <div class="query"><span class="kw">SELECT</span> * <span class="kw">FROM</span> t <span class="kw">WHERE</span> t.secondary_id = 4;</div>
+    <div class="assume">
+      <span>Clustered index <b class="mono">PK_t (id int)</b></span>
+      <span>Nonclustered <b class="mono">IX_t_secondary_id</b>, non-unique, no INCLUDE</span>
+      <span>Both trees <b>3 levels</b></span>
+      <span>Histogram estimate <b>3 rows</b></span>
+    </div>
+    <div class="plan" aria-label="Plan shape">
+      <span class="op" id="op-nl">Nested Loops (Inner Join)</span><span class="arrow">←</span>
+      <span class="op" id="op-seek">Index Seek · IX_t_secondary_id</span><span class="arrow">+</span>
+      <span class="op" id="op-look">Key Lookup (Clustered) · PK_t</span>
+    </div>
+  </header>
+
+  <section class="legend">
+    <h2>Reading the diagram</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Each box is one 8 KB page</h3>
+        <p><code>page 1:900</code> is the page address: file 1, page 900. Child pointers inside other pages use exactly this address.</p>
+        <ul>
+          <li><b>root</b> is the single entry point. Its address is stored in the system catalog.</li>
+          <li><b>int</b> (intermediate) pages only route the search downward.</li>
+          <li><b>leaf</b> pages hold the actual index entries. The double lines between leaves are the previous/next page pointers.</li>
+        </ul>
+      </div>
+      <div class="card nc">
+        <h3>Rows in IX_t_secondary_id</h3>
+        <p>The index is non-unique, so SQL Server appends the clustering key <code>id</code>. Every entry becomes a pair <code>(secondary_id, id)</code>, sorted by <code>secondary_id</code> first, then <code>id</code>.</p>
+        <div class="sample">
+          <div><span>Row</span><span>Meaning</span></div>
+          <div><span>(4,17)</span><span>Leaf entry. A row with secondary_id 4 exists, and its id is 17.</span></div>
+          <div><span>(3,5120) → 1:902</span><span>Separator. Keys from (3,5120) upward live under page 1:902.</span></div>
+          <div><span>∅ → 1:901</span><span>First pointer on the page. It has no lower bound and covers keys below the next separator.</span></div>
+        </div>
+      </div>
+      <div class="card ci">
+        <h3>Rows in PK_t (clustered)</h3>
+        <p>The key is just <code>id</code>. The leaf level is the table itself, so each leaf row is a complete row.</p>
+        <div class="sample">
+          <div><span>Row</span><span>Meaning</span></div>
+          <div><span>17 ▪ full row</span><span>Every column of the row with id 17.</span></div>
+          <div><span>5000 → 1:502</span><span>Separator. ids from 5000 upward live under page 1:502.</span></div>
+          <div><span>∅ → 1:501</span><span>ids below 5000 live under page 1:501.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="why">
+      <h3>Why the seek starts at (4, −∞)</h3>
+      <p>The query fixes only the first half of the key. All entries for <code>secondary_id = 4</code> sit next to each other in key order, but the query cannot know which <code>id</code> comes first. Here is the whole leaf level laid out in sorted order:</p>
+      <div class="strip-box"><div class="strip">
+        <span class="chip">(1,8)<small>1:910</small></span><span class="chip">(1,330)<small>1:910</small></span><span class="chip">(2,12)<small>1:910</small></span>
+        <span class="chip">(2,40)<small>1:911</small></span><span class="chip">(2,77)<small>1:911</small></span><span class="chip">(3,5)<small>1:911</small></span>
+        <span class="chip">(3,5120)<small>1:912</small></span>
+        <span class="caret">start<br>(4,−∞)</span>
+        <span class="chip hit">(4,17)<small>1:912</small></span><span class="chip hit">(4,203)<small>1:912</small></span><span class="chip hit">(4,9551)<small>1:913</small></span>
+        <span class="caret stop">stop</span>
+        <span class="chip">(5,88)<small>1:913</small></span><span class="chip">(5,412)<small>1:913</small></span>
+      </div></div>
+      <ol>
+        <li>The seek needs the position just before the first <code>4</code>. Written as a pair, that position is "secondary_id 4, with an id smaller than any real id", which is <code>(4, −∞)</code>. −∞ is not stored anywhere. It is notation for "lowest possible value of the unknown column".</li>
+        <li>Pairs compare left to right, like words in a dictionary. The first column decides unless it ties, and only then does the second column matter. So <code>(4, −∞)</code> is greater than <code>(3, anything)</code> and less than <code>(4,17)</code> and every other real <code>(4, …)</code>.</li>
+        <li>The seek descends to that position, then reads forward until the first column exceeds 4.</li>
+      </ol>
+      <p class="muted">In the actual execution plan, the Index Seek's properties show <code>Seek Keys[1]: Prefix: secondary_id = 4</code>. A "prefix" seek on the leading key column is the same operation shown here as <code>(4, −∞)</code>.</p>
+    </div>
+  </section>
+
+  <div class="trees">
+    <div class="panel nc">
+      <div class="panel-h"><h3>IX_t_secondary_id</h3><span class="label">key (secondary_id, id)</span></div>
+      <div class="svgbox"><svg class="tree" id="svg-nc" viewBox="0 0 480 330" role="img" aria-label="Nonclustered index B+ tree"></svg></div>
+    </div>
+    <div class="panel ci">
+      <div class="panel-h"><h3>PK_t (clustered)</h3><span class="label">key (id) · leaf = full row</span></div>
+      <div class="svgbox"><svg class="tree" id="svg-ci" viewBox="0 0 480 330" role="img" aria-label="Clustered index B+ tree"></svg></div>
+    </div>
+  </div>
+
+  <div class="info" id="info"><span class="label">Click any row in either tree</span><span id="info-text">The meaning of that row appears here.</span></div>
+
+  <div class="console">
+    <div class="narr">
+      <div class="transport">
+        <button id="b-reset">Reset</button>
+        <button id="b-prev">Back</button>
+        <button id="b-next" class="primary">Next read</button>
+        <button id="b-play">Play</button>
+        <span class="stepno" id="stepno"></span>
+      </div>
+      <div class="progress"><i id="prog"></i></div>
+      <div><span class="phase" id="phase"></span></div>
+      <h4 id="s-title"></h4>
+      <p id="s-text"></p>
+      <div class="cmp" id="cmp" hidden></div>
+      <span class="muted kbd">Keyboard: ← and → step through.</span>
+    </div>
+    <div class="side">
+      <div class="counters">
+        <div class="ctr nc"><span class="label">IX reads</span><span class="v" id="c-nc">0</span></div>
+        <div class="ctr ci"><span class="label">PK reads</span><span class="v" id="c-ci">0</span></div>
+        <div class="ctr"><span class="label">Logical reads</span><span class="v" id="c-tot">0</span></div>
+      </div>
+      <div class="result">
+        <span class="label">Rows returned</span>
+        <table><thead><tr><th>id</th><th>secondary_id</th><th>other columns</th></tr></thead><tbody id="out"></tbody></table>
+        <span class="empty" id="out-empty">None yet.</span>
+      </div>
+    </div>
+  </div>
+
+  <section class="cost">
+    <div style="display:grid;gap:6px">
+      <h2>Where the plan flips to a scan</h2>
+      <p class="muted">Same table at production scale: 2,000,000 rows, 20,000 clustered leaf pages, both trees 3 levels deep. Drag the match count and compare logical reads for each plan.</p>
+    </div>
+    <div class="ctrls">
+      <div style="display:grid;gap:6px">
+        <label class="label" for="r-rows">Rows matching secondary_id = 4</label>
+        <input type="range" id="r-rows" min="0" max="1000" value="0">
+      </div>
+      <label class="toggle"><input type="checkbox" id="r-cover"> Covering index (all columns in INCLUDE)</label>
+    </div>
+    <div class="readout"><span>Matches <b id="o-rows"></b></span><span>Selectivity <b id="o-sel"></b></span><span>Lookups <b id="o-look"></b></span></div>
+    <div class="bars">
+      <div class="bar seek" id="bar-seek"><span id="seek-lbl">Seek + key lookups</span><div class="track"><i id="w-seek"></i></div><span class="n" id="n-seek"></span></div>
+      <div class="bar scan" id="bar-scan"><span>Clustered index scan</span><div class="track"><i id="w-scan"></i></div><span class="n" id="n-scan"></span></div>
+      <div class="axis"><div></div><div><span>1</span><span>100</span><span>10k</span><span>1M</span></div><div></div></div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <p class="note">The bars use a log scale. Raw read parity is about 6,700 matches (0.33% of the table). The optimizer costs random lookup I/O higher than sequential scan I/O, so its real tipping point usually lands below that figure.</p>
+  </section>
+</div>
+
+<script>
+(function(){
+const NS="http://www.w3.org/2000/svg";
+const leafX=[6,126,246,366];
+function mkTree(prefix,rootId,ints,leaves){
+  const p={};
+  p[rootId.id]={x:165,y:22,w:150,h:62,rows:rootId.rows,kids:rootId.kids,lvl:"root"};
+  ints.forEach((n,i)=>{p[n.id]={x:i?280:30,y:128,w:170,h:62,rows:n.rows,kids:n.kids,lvl:"intermediate"};});
+  leaves.forEach((n,i)=>{p[n.id]={x:leafX[i],y:234,w:108,h:86,rows:n.rows,kids:[],lvl:"leaf"};});
+  return {p,leafOrder:leaves.map(l=>l.id)};
+}
+const NC=mkTree("nc",
+ {id:"1:900",rows:["∅ → 1:901","(3,5120) → 1:902"],kids:["1:901","1:902"]},
+ [{id:"1:901",rows:["∅ → 1:910","(2,40) → 1:911"],kids:["1:910","1:911"]},
+  {id:"1:902",rows:["∅ → 1:912","(4,9551) → 1:913"],kids:["1:912","1:913"]}],
+ [{id:"1:910",rows:["(1,8)","(1,330)","(2,12)"]},{id:"1:911",rows:["(2,40)","(2,77)","(3,5)"]},
+  {id:"1:912",rows:["(3,5120)","(4,17)","(4,203)"]},{id:"1:913",rows:["(4,9551)","(5,88)","(5,412)"]}]);
+const CI=mkTree("ci",
+ {id:"1:500",rows:["∅ → 1:501","5000 → 1:502"],kids:["1:501","1:502"]},
+ [{id:"1:501",rows:["∅ → 1:510","200 → 1:511"],kids:["1:510","1:511"]},
+  {id:"1:502",rows:["∅ → 1:512","9000 → 1:513"],kids:["1:512","1:513"]}],
+ [{id:"1:510",rows:["12 ▪ full row","17 ▪ full row","18 ▪ full row"]},{id:"1:511",rows:["202 ▪ full row","203 ▪ full row","204 ▪ full row"]},
+  {id:"1:512",rows:["5000 ▪ full row","5001 ▪ full row","5002 ▪ full row"]},{id:"1:513",rows:["9550 ▪ full row","9551 ▪ full row","9552 ▪ full row"]}]);
+
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+const refs={nc:{pages:{},rows:{},edges:{},sib:{}},ci:{pages:{},rows:{},edges:{},sib:{}}};
+
+function draw(svg,tree,key){
+  const R=refs[key];
+    // edges
+  for(const id in tree.p){const n=tree.p[id];n.kids.forEach((k,i)=>{const c=tree.p[k];
+    const x1=n.x+n.w*(i?0.75:0.25), y1=n.y+n.h, x2=c.x+c.w/2, y2=c.y;
+    R.edges[id+">"+k]=el("path",{d:`M${x1},${y1} C${x1},${y1+22} ${x2},${y2-22} ${x2},${y2}`,class:"edge"},svg);});}
+  // sibling links
+  for(let i=0;i<3;i++){const a=tree.p[tree.leafOrder[i]],b=tree.p[tree.leafOrder[i+1]];
+    const y=a.y+a.h/2;
+    R.sib[tree.leafOrder[i]+">"+tree.leafOrder[i+1]]=el("path",{d:`M${a.x+a.w},${y-4} L${b.x},${y-4} M${b.x},${y+4} L${a.x+a.w},${y+4}`,class:"sib"},svg);}
+  // pages
+  for(const id in tree.p){const n=tree.p[id];
+    const g=el("g",{class:"pg"},svg);R.pages[id]=g;
+    el("rect",{x:n.x,y:n.y,width:n.w,height:n.h,rx:4,class:"body"},g);
+    el("rect",{x:n.x+1,y:n.y+1,width:n.w-2,height:17,rx:3,class:"hdr"},g);
+    const h=el("text",{x:n.x+7,y:n.y+13,class:"h"},g);h.textContent="page "+id;
+    const lv=el("text",{x:n.x+n.w-7,y:n.y+13,class:"lvl","text-anchor":"end"},g);lv.textContent=n.lvl==="intermediate"?"int":n.lvl;
+    n.rows.forEach((r,i)=>{const ry=n.y+22+i*20;
+      const hl=R.rows[id+"#"+i]=el("rect",{x:n.x+3,y:ry,width:n.w-6,height:18,rx:2,class:"rowhl"},g);
+      const t=el("text",{x:n.x+8,y:ry+13,class:"r"},g);t.textContent=r;
+      const pick=()=>{document.querySelectorAll(".rowhl.pick").forEach(e=>e.classList.remove("pick"));hl.classList.add("pick");
+        document.getElementById("info-text").innerHTML=explain(key,tree,id,i);};
+      hl.addEventListener("click",pick);t.addEventListener("click",pick);});
+  }
+  const cap=el("text",{x:6,y:12,class:"lvl"},svg);cap.textContent=key==="nc"?"LEAF ROWS = (secondary_id, id)  ·  ↔ prev/next page pointers":"LEAF ROWS = complete table rows  ·  separators route by id";
+}
+draw(document.getElementById("svg-nc"),NC,"nc");
+draw(document.getElementById("svg-ci"),CI,"ci");
+
+const S=[
+ {ph:null,op:null,t:"Compile the plan",x:"The histogram on <code>secondary_id</code> estimates 3 matching rows. That is far below the tipping point, so the optimizer picks Nested Loops: an Index Seek on <code>IX_t_secondary_id</code> feeding a Key Lookup on <code>PK_t</code>. No pages have been read yet. The seek's starting position is <code>(4, −∞)</code>, meaning the first entry whose secondary_id is 4."},
+ {ph:"nc",op:"seek",pg:"1:900",row:1,nc:1,t:"Read the IX root page",x:"The root page's address comes from the system catalog. The seek compares its start key <code>(4, −∞)</code> with each separator on the page and follows the last pointer whose separator is not greater than the start key.",
+  cmp:[["∅ → 1:901 always qualifies (no lower bound)",0],["(3,5120) → 1:902: is (4,−∞) ≥ (3,5120)? First column 4 > 3, so yes",1],["Last qualifying pointer → go to page 1:902",1]]},
+ {ph:"nc",op:"seek",pg:"1:902",row:0,nc:1,edge:["1:900","1:902"],t:"Read the intermediate page",x:"The same rule applies one level down.",
+  cmp:[["∅ → 1:912 always qualifies",1],["(4,9551) → 1:913: is (4,−∞) ≥ (4,9551)? First column ties at 4. In the second column −∞ < 9551, so no",0],["Last qualifying pointer → go to leaf page 1:912",1]]},
+ {ph:"nc",op:"seek",pg:"1:912",row:1,nc:1,edge:["1:902","1:912"],t:"Read the leaf page and find the first match",x:"A binary search over the leaf's slot array finds the first entry ≥ <code>(4, −∞)</code>. The leaf entry contains only <code>secondary_id</code> and <code>id</code>, so the remaining columns must come from the clustered index. <code>id = 17</code> is passed to the Key Lookup.",
+  cmp:[["(3,5120): 3 < 4, before the range",0],["(4,17): first column ties at 4, and 17 > −∞, so this is the first match",1]]},
+ {ph:"ci",op:"look",pg:"1:500",row:0,ci:1,t:"Lookup id = 17: PK root",x:"Every lookup is a fresh root-to-leaf traversal of the clustered index, searching on <code>id</code> alone. This page is almost always already in memory, but it still counts as a logical read.",
+  cmp:[["5000 → 1:502: is 17 ≥ 5000? No",0],["∅ → 1:501 → go to page 1:501",1]]},
+ {ph:"ci",op:"look",pg:"1:501",row:0,ci:1,edge:["1:500","1:501"],t:"Lookup id = 17: intermediate",x:"Same rule, one level down.",
+  cmp:[["200 → 1:511: is 17 ≥ 200? No",0],["∅ → 1:510 → go to leaf page 1:510",1]]},
+ {ph:"ci",op:"look",pg:"1:510",row:1,ci:1,edge:["1:501","1:510"],out:17,t:"Lookup id = 17: leaf holds the full row",x:"In a clustered index the leaf row is the table row. All columns for <code>id = 17</code> come back, and Nested Loops emits the first result row.",
+  cmp:[["Binary search the slot array for 17 → found",1]]},
+ {ph:"nc",op:"seek",pg:"1:912",row:2,t:"Advance the seek to the next slot",x:"Control returns to the seek, which moves to the next slot on the leaf page it already holds. No new page is needed.",
+  cmp:[["(4,203): first column is still 4, so it is in range → id 203",1]]},
+ {ph:"ci",op:"look",pg:"1:500",row:0,ci:1,t:"Lookup id = 203: PK root again",x:"The second lookup starts from the root again. Nothing is shared with the first traversal except what is already cached in memory.",
+  cmp:[["5000 → 1:502: is 203 ≥ 5000? No",0],["∅ → 1:501 → go to page 1:501",1]]},
+ {ph:"ci",op:"look",pg:"1:501",row:1,ci:1,edge:["1:500","1:501"],t:"Lookup id = 203: intermediate",x:"This time the second pointer applies.",
+  cmp:[["200 → 1:511: is 203 ≥ 200? Yes",1],["Last qualifying pointer → go to leaf page 1:511",1]]},
+ {ph:"ci",op:"look",pg:"1:511",row:1,ci:1,edge:["1:501","1:511"],out:203,t:"Lookup id = 203: leaf",x:"The full row for <code>id = 203</code> is on a different leaf page from the first lookup. Lookups land wherever their ids live, which becomes random I/O when the pages are not cached.",
+  cmp:[["Binary search the slot array for 203 → found",1]]},
+ {ph:"nc",op:"seek",pg:"1:913",row:0,nc:1,sib:["1:912","1:913"],t:"Follow the next-page pointer",x:"Page <code>1:912</code> has no slots left, but the range of 4s may continue. The seek follows the next-page address stored in the leaf's header straight to the sibling page. It does not climb back up the tree.",
+  cmp:[["End of page 1:912 → next-page pointer → 1:913",1],["(4,9551): first column is still 4, so it is in range → id 9551",1]]},
+ {ph:"ci",op:"look",pg:"1:500",row:1,ci:1,t:"Lookup id = 9551: PK root",x:"The third lookup starts from the root.",
+  cmp:[["5000 → 1:502: is 9551 ≥ 5000? Yes → go to page 1:502",1]]},
+ {ph:"ci",op:"look",pg:"1:502",row:1,ci:1,edge:["1:500","1:502"],t:"Lookup id = 9551: intermediate",x:"The traversal continues on the right-hand side of the tree.",
+  cmp:[["9000 → 1:513: is 9551 ≥ 9000? Yes → go to leaf page 1:513",1]]},
+ {ph:"ci",op:"look",pg:"1:513",row:1,ci:1,edge:["1:502","1:513"],out:9551,t:"Lookup id = 9551: leaf",x:"The third full row is returned.",
+  cmp:[["Binary search the slot array for 9551 → found",1]]},
+ {ph:"nc",op:"seek",pg:"1:913",row:1,t:"Hit the end of the range",x:"The seek stops and the plan completes. The total is 4 IX reads (3 levels plus one sibling page) and 9 PK reads (3 lookups × 3 levels), so <code>STATISTICS IO</code> reports 13 logical reads against <code>t</code>. With <code>SELECT id, secondary_id</code>, the lookups would disappear and only the 4 IX reads would remain.",
+  cmp:[["(5,88): first column 5 > 4, past the range → stop",0]]}
+];
+
+// row explanations
+function explain(key,tree,id,i){
+  const n=tree.p[id], r=n.rows[i];
+  if(n.lvl==="leaf"){
+    if(key==="nc"){const m=r.match(/\((\d+),(\d+)\)/);
+      return `<b>${r}</b> on leaf page ${id}. This index entry means: a row exists with secondary_id = <code>${m[1]}</code> and id = <code>${m[2]}</code>. To read the row's other columns, the engine looks up id ${m[2]} in PK_t.${m[1]==="4"?" This entry matches the query.":""}`;}
+    const idv=r.split(" ")[0];
+    return `<b>${r}</b> on leaf page ${id}. This is the actual table row for id <code>${idv}</code>, with every column stored here. The clustered leaf level is the table.`;
+  }
+  const [sep,child]=r.split(" → ");
+  const next=n.rows[i+1]?n.rows[i+1].split(" → ")[0]:null;
+  const upper=next?`up to, but not including, <code>${next}</code>`:"up to the end of the range this page covers";
+  const what=key==="nc"?"keys":"ids";
+  if(sep==="∅") return `<b>${r}</b> on ${n.lvl} page ${id}. This is the first pointer on the page, so it has no lower bound of its own. It covers all ${what} that reached this page and are below <code>${next}</code>. Those live under page ${child}.`;
+  return `<b>${r}</b> on ${n.lvl} page ${id}. Separator <code>${sep}</code>: ${what} from <code>${sep}</code> ${upper} live under page ${child}.${key==="nc"?" Separators are (secondary_id, id) pairs and compare left to right.":""}`;
+}
+
+const $=id=>document.getElementById(id);
+let cur=0,timer=null;
+function render(){
+  const s=S[cur];
+  let nc=0,ci=0;const vis={nc:new Set(),ci:new Set()};const outs=[];
+  for(let i=0;i<=cur;i++){const t=S[i];nc+=t.nc||0;ci+=t.ci||0;if(t.ph&&t.pg)vis[t.ph].add(t.pg);if(t.out)outs.push(t.out);}
+  ["nc","ci"].forEach(k=>{const R=refs[k];
+    for(const id in R.pages){const g=R.pages[id];g.classList.toggle("visited",vis[k].has(id));g.classList.toggle("active",s.ph===k&&s.pg===id);}
+    for(const id in R.rows)R.rows[id].classList.toggle("on",s.ph===k&&id===s.pg+"#"+s.row);
+    for(const id in R.edges)R.edges[id].classList.toggle("on",s.ph===k&&!!s.edge&&id===s.edge[0]+">"+s.edge[1]);
+    for(const id in R.sib)R.sib[id].classList.toggle("on",s.ph===k&&!!s.sib&&id===s.sib[0]+">"+s.sib[1]);
+  });
+  const set=(id,v)=>{const e=$(id);if(e.textContent!==String(v)){e.textContent=v;e.classList.remove("bump");void e.offsetWidth;e.classList.add("bump");}};
+  set("c-nc",nc);set("c-ci",ci);set("c-tot",nc+ci);
+  $("s-title").textContent=s.t;$("s-text").innerHTML=s.x;
+  const cmp=$("cmp");cmp.hidden=!s.cmp;cmp.innerHTML=(s.cmp||[]).map(([t,y])=>`<span class="${y?"yes":"no"}">${y?"✓":"·"} ${t}</span>`).join("");
+  const ph=$("phase");ph.className="phase"+(s.ph?" "+s.ph:"");
+  ph.textContent=s.ph==="nc"?"Index Seek · IX_t_secondary_id":s.ph==="ci"?"Key Lookup · PK_t":"Optimizer";
+  $("op-seek").className="op"+(s.op==="seek"?" on-nc":"");$("op-look").className="op"+(s.op==="look"?" on-ci":"");$("op-nl").className="op"+(s.op?" on-nl":"");
+  $("stepno").textContent=`Step ${cur} of ${S.length-1}`;
+  $("prog").style.width=(cur/(S.length-1)*100)+"%";
+  $("b-prev").disabled=cur===0;$("b-next").disabled=cur===S.length-1;
+  $("out").innerHTML=outs.map(id=>`<tr><td>${id}</td><td>4</td><td>…</td></tr>`).join("");
+  $("out-empty").hidden=outs.length>0;
+  if(cur===S.length-1)stop();
+}
+function stop(){clearInterval(timer);timer=null;$("b-play").textContent="Play";}
+$("b-next").onclick=()=>{if(cur<S.length-1){cur++;render();}};
+$("b-prev").onclick=()=>{if(cur>0){cur--;render();}};
+$("b-reset").onclick=()=>{stop();cur=0;render();};
+$("b-play").onclick=()=>{if(timer){stop();return;}if(cur===S.length-1)cur=0;$("b-play").textContent="Pause";render();timer=setInterval(()=>{cur++;render();},1600);};
+document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT")return;if(e.key==="ArrowRight")$("b-next").click();if(e.key==="ArrowLeft")$("b-prev").click();});
+render();
+
+// cost model
+const ROWS=2e6,CI_LEAF=20000,NC_PER=600,WIDE_PER=100,MAXR=200000,DOM=6;
+const fmt=n=>n.toLocaleString("en-GB");
+function cost(){
+  const v=+$("r-rows").value, r=Math.max(1,Math.round(Math.pow(10,v/1000*Math.log10(MAXR))));
+  const cov=$("r-cover").checked;
+  const seek=cov?2+Math.ceil(r/WIDE_PER):2+Math.ceil(r/NC_PER)+3*r;
+  const scan=CI_LEAF;
+  $("o-rows").textContent=fmt(r);
+  $("o-sel").textContent=(r/ROWS*100).toFixed(r/ROWS<0.0001?5:3)+"%";
+  $("o-look").textContent=cov?"0":fmt(r);
+  $("seek-lbl").textContent=cov?"Covering index seek":"Seek + key lookups";
+  const w=n=>Math.max(1.5,Math.log10(n)/DOM*100)+"%";
+  $("w-seek").style.width=w(seek);$("w-scan").style.width=w(scan);
+  $("n-seek").textContent=fmt(seek);$("n-scan").textContent=fmt(scan);
+  const seekWins=seek<scan;
+  $("bar-seek").classList.toggle("win",seekWins);$("bar-scan").classList.toggle("win",!seekWins);
+  const vd=$("verdict");vd.classList.toggle("scan",!seekWins);
+  vd.textContent=cov
+    ?`Covering index: no lookups at all. The seek reads ${fmt(seek)} pages against ${fmt(scan)} for a scan, so the seek wins until the matches approach the whole table.`
+    :seekWins
+      ?`Seek wins: ${fmt(seek)} reads against ${fmt(scan)}. Each matching row costs about 3 clustered reads, so this stays cheap only while matches are few.`
+      :`Scan wins: ${fmt(r)} lookups × 3 levels exceeds reading all ${fmt(CI_LEAF)} clustered leaf pages once, sequentially.`;
+}
+$("r-rows").addEventListener("input",cost);$("r-cover").addEventListener("change",cost);
+cost();
+})();
+</script>
+</body>
+</html>
