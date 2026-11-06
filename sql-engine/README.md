@@ -7,7 +7,7 @@ Self-contained interactive pages about how SQL Server stores and reads B+ tree i
 | `index.html` | Landing page linking the three pages |
 | `inside-an-8kb-page.html` | To-scale byte map of a clustered leaf page and a nonclustered leaf page, with inserts, deletes, compaction, page splits and record anatomy |
 | `key-lookup-walkthrough.html` | Step-through of `SELECT * FROM t WHERE secondary_id = 4` as an Index Seek plus Key Lookup, with a cost model for the scan tipping point |
-| `storage-engine-drill.html` | Nine-level game where you execute statements by hand |
+| `storage-engine-drill.html` | Ten-level game where you execute statements by hand, plus the Peak Load arcade mode |
 
 ## Storage Engine Drill levels
 
@@ -20,7 +20,10 @@ Self-contained interactive pages about how SQL Server stores and reads B+ tree i
 7. Statistics (histogram estimates, combining predicates)
 8. Plan reuse (parameter sniffing, stale statistics)
 9. Index design (one index for a workload, scored against the best possible design)
+10. Joins (nested loops, merge join, hash match)
 
-Scenarios are generated randomly each time. Level progress is stored in the browser's `localStorage`.
+**Peak Load** is a real-time arcade mode: keep a server under 60,000 reads a second through five waves of traffic by building and dropping indexes, refreshing statistics, adding OPTION (RECOMPILE) and killing rogue sessions. It has a tutorial, streaks, badges, an overtime mode and a generative melody driven by the statements reaching the server.
+
+Scenarios are generated randomly each time. Level progress, Peak Load scores, badges and sound settings are stored in the browser's `localStorage`.
 
 The trees are miniatures with a few rows per page so they fit on screen. Costs and estimates in the text are scaled to a 2,000,000-row table with 20,000 clustered leaf pages.
