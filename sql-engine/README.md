@@ -24,6 +24,6 @@ Self-contained interactive pages about how SQL Server stores and reads B+ tree i
 
 **Peak Load** is a real-time arcade mode: keep a server under 60,000 reads a second through five waves of traffic by building and dropping indexes, refreshing statistics, adding OPTION (RECOMPILE) and killing rogue sessions. It has a tutorial, streaks, badges, an overtime mode and a generative melody driven by the statements reaching the server.
 
-Scenarios are generated randomly each time. Level progress, Peak Load scores, badges and sound settings are stored in the browser's `localStorage`.
+Scenarios are generated randomly each time, and each round uses one of six schemas (the original `t`/`u`, orders, books, tickets, tracks or sensor readings) with the same table shapes under different names. Level progress, Peak Load scores, badges and sound settings are stored in the browser's `localStorage`.
 
 The trees are miniatures with a few rows per page so they fit on screen. Costs and estimates in the text are scaled to a 2,000,000-row table with 20,000 clustered leaf pages.

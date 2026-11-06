@@ -318,6 +318,7 @@ select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-off
           <li><b>Heaps:</b> no clustered index. Rows sit in pages in no order, and nonclustered entries hold a RID (file:page:slot) instead of id. A RID lookup reads one page. A forwarding stub costs one more.</li>
           <li><b>Histogram:</b> a value equal to a <code>RANGE_HI_KEY</code> is estimated from <code>EQ_ROWS</code>. A value strictly between two keys uses the upper step's <code>AVG_RANGE_ROWS</code>.</li>
           <li><b>Plan reuse:</b> a parameterised query is compiled for the first value it sees, and the cached plan is reused for later values.</li>
+          <li><b>Every round uses a different schema:</b> the same shapes of table, index and query, renamed. The first column is always the clustered primary key.</li>
           <li>Reference pages: <a href="key-lookup-walkthrough.html" target="_blank" rel="noopener">Key Lookup Walkthrough</a> · <a href="inside-an-8kb-page.html" target="_blank" rel="noopener">Inside an 8 KB Page</a></li>
         </ul>
       </details>
@@ -649,7 +650,7 @@ const ixSize=ix=>ix?ixCols(ix).length:0;
 // ---------- joins ----------
 const UROWS=6000000,UPAGES=15600,TPAGES=20000,BUCKETS=4;
 const JCOLS=["t.id","u.amount"];
-const uDDL=cover=>"CREATE TABLE u (\n  id int, t_id int, amount int,\n  CONSTRAINT PK_u PRIMARY KEY CLUSTERED (id));";
+const uDDL=cover=>"CREATE TABLE u (\n  uid int, t_id int, amount int,\n  CONSTRAINT PK_u PRIMARY KEY CLUSTERED (uid));";
 function jBase(nT){
   const sv=secValues(ri(6,9)),tRows=makeRows(nT||ri(12,15),sv),uRows=[],used=new Set();
   tRows.forEach(r=>{const k=pick([0,1,1,2,2,3]);for(let i=0;i<k;i++){let id;do{id=ri(100,999);}while(used.has(id));used.add(id);uRows.push({id,t_id:r.id,amount:ri(1,99)*5});}});
@@ -773,14 +774,14 @@ function renderJoin(){
   if(S.phase==="merge"){const a=j.left[x.L],b=j.right[x.R];
     ph.className="phase";ph.textContent="Merge Join";ins.textContent="Compare the current t row with the current u row and move the right cursor.";
     kb.innerHTML=`<span>t.id <b>${a.id}</b></span><span>u.t_id <b>${b.t_id}</b></span><span>Left <b>Clustered Index Scan PK_t</b></span><span>Right <b>Index Scan IX_u_t_id</b></span>`;
-    st.innerHTML=`<div class="jgrid">${list("t: PK_t leaf, by id",j.left,r=>`id ${r.id} · sec ${r.secondary_id}`,{cur:x.L,done:i=>i<x.L,pre:i=>i===x.L?"▶":"",tag:i=>i===x.L?"current":""})}${list("u: IX_u_t_id leaf, by t_id",j.right,u=>`t_id ${u.t_id} · id ${u.id} · ${u.amount}`,{cur:x.R,done:i=>i<x.R,pre:i=>i===x.R?"▶":"",tag:i=>i===x.R?"current":""})}</div>`;
+    st.innerHTML=`<div class="jgrid">${list("t: PK_t leaf, by id",j.left,r=>`id ${r.id} · sec ${r.secondary_id}`,{cur:x.L,done:i=>i<x.L,pre:i=>i===x.L?"▶":"",tag:i=>i===x.L?"current":""})}${list("u: IX_u_t_id leaf, by t_id",j.right,u=>`t_id ${u.t_id} · u.id ${u.id} · ${u.amount}`,{cur:x.R,done:i=>i<x.R,pre:i=>i===x.R?"▶":"",tag:i=>i===x.R?"current":""})}</div>`;
     [["advT","Advance t ↓"],["match","Match: output the row"],["advU","Advance u ↓"]].forEach(([k,l])=>{const bt=document.createElement("button");bt.textContent=l;if(k==="match")bt.classList.add("primary");if(h&&h.type===k)bt.classList.add("hinted");bt.onclick=()=>jAct(k);ac.appendChild(bt);});}
   if(S.phase==="hbuild"||S.phase==="hprobe"){const build=S.phase==="hbuild",p=build?null:j.probe[x.pi],r=build?j.build[x.bi]:null;
     ph.className="phase";ph.textContent=build?`Hash Match · build ${x.bi+1} of ${j.build.length}`:`Hash Match · probe ${x.pi+1} of ${j.probe.length}`;
     ins.textContent=build?`Which bucket does t.id ${r.id} go in? The hash is id % 4.`:x.step==="bucket"?`Which bucket does u.t_id ${p.t_id} probe? The hash is t_id % 4.`:`Find t.id ${p.t_id} in bucket ${p.t_id%4}, or say there's no match.`;
     kb.innerHTML=build?`<span>Build input <b>t rows where ${j.where}</b></span><span>Current <b>t.id ${r.id}</b></span>`:`<span>Probe input <b>Clustered Index Scan PK_u</b></span><span>Current <b>u.id ${p.id} · t_id ${p.t_id}</b></span>`;
     const bk=x.buckets.map((b,i)=>`<div class="bucket${!build&&x.step==="match"&&i===p.t_id%4?" open":""}"><span class="label">Bucket ${i}</span>${b.map(e=>`<button class="slot jrow${h&&h.type==="entry"&&h.id===e.id&&i===p.t_id%4?" hinted":""}" data-e="${e.id}" ${!build&&x.step==="match"&&i===p.t_id%4?"":"disabled"}><span>id ${e.id}</span></button>`).join("")||`<span class="pn">empty</span>`}</div>`).join("");
-    st.innerHTML=`<div class="jgrid">${build?list("Build input: t, filtered",j.build,t=>`id ${t.id} · ${t.created_at}`,{cur:x.bi,done:i=>i<x.bi,pre:i=>i===x.bi?"▶":"",tag:i=>i<x.bi?`→ ${t2b(j.build[i])}`:""}):list("Probe input: u, in PK_u order",j.probe,u=>`id ${u.id} · t_id ${u.t_id} · ${u.amount}`,{cur:x.pi,done:i=>i<x.pi,pre:i=>i===x.pi?"▶":""})}<div class="jcol"><span class="label">Hash table in memory</span><div class="buckets">${bk}</div></div></div>`;
+    st.innerHTML=`<div class="jgrid">${build?list("Build input: t, filtered",j.build,t=>`id ${t.id} · ${t.created_at}`,{cur:x.bi,done:i=>i<x.bi,pre:i=>i===x.bi?"▶":"",tag:i=>i<x.bi?`→ ${t2b(j.build[i])}`:""}):list("Probe input: u, in PK_u order",j.probe,u=>`u.id ${u.id} · t_id ${u.t_id} · ${u.amount}`,{cur:x.pi,done:i=>i<x.pi,pre:i=>i===x.pi?"▶":""})}<div class="jcol"><span class="label">Hash table in memory</span><div class="buckets">${bk}</div></div></div>`;
     st.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>jAct("entry",+b.dataset.e));
     if(build||x.step==="bucket")for(let i=0;i<BUCKETS;i++){const bt=document.createElement("button");bt.textContent=`Bucket ${i}`;if(h&&h.type==="bucket"&&h.idx===i)bt.classList.add("hinted");bt.onclick=()=>jAct("bucket",i);ac.appendChild(bt);}
     else{const bt=document.createElement("button");bt.textContent="No match in this bucket";if(h&&h.type==="nomatch")bt.classList.add("hinted");bt.onclick=()=>jAct("nomatch");ac.appendChild(bt);}}
@@ -788,6 +789,33 @@ function renderJoin(){
   const hb=document.createElement("button");hb.textContent="Hint (−10)";hb.onclick=jHint;ac.appendChild(hb);
 }
 const t2b=r=>`bucket ${r.id%BUCKETS}`;
+
+// ---------- schema themes: each round renames the tables, columns and values ----------
+const STAT0=[...STAT],NOTES0=[...NOTES];
+const THEMES=[
+  {t:"t",id:"id",sec:"secondary_id",status:"status",date:"created_at",notes:"notes",u:"u",uid:"id",fk:"t_id",amt:"amount",stat:STAT0,nts:NOTES0},
+  {t:"orders",id:"order_id",sec:"customer_id",status:"status",date:"placed_at",notes:"comment",u:"order_lines",uid:"line_id",fk:"order_id",amt:"quantity",
+   stat:["cancelled","complete","packed","paid","pending","refunded"],nts:["call first","express","fragile","gift wrap","none","repeat customer","voucher used"]},
+  {t:"books",id:"book_id",sec:"author_id",status:"genre",date:"published_on",notes:"blurb",u:"loans",uid:"loan_id",fk:"book_id",amt:"days",
+   stat:["biography","fiction","history","poetry","science","travel"],nts:["award winner","first edition","illustrated","large print","none","signed copy","translated"]},
+  {t:"tickets",id:"ticket_id",sec:"project_id",status:"priority",date:"opened_at",notes:"summary",u:"comments",uid:"comment_id",fk:"ticket_id",amt:"likes",
+   stat:["blocked","high","low","medium","urgent","waiting"],nts:["billing","bug report","feature request","how-to","login issue","none","outage"]},
+  {t:"tracks",id:"track_id",sec:"album_id",status:"mood",date:"released_on",notes:"credits",u:"plays",uid:"play_id",fk:"track_id",amt:"seconds",
+   stat:["calm","dark","dreamy","epic","playful","upbeat"],nts:["acoustic","cover version","explicit","instrumental","live recording","none","remix"]},
+  {t:"readings",id:"reading_id",sec:"sensor_id",status:"state",date:"recorded_at",notes:"payload",u:"alerts",uid:"alert_id",fk:"reading_id",amt:"severity",
+   stat:["alarm","calibrating","idle","offline","ok","warning"],nts:["battery low","door open","firmware 2.1","manual check","none","rebooted","signal weak"]}];
+let THEME=THEMES[0];
+function useTheme(th){THEME=th;STAT.splice(0,STAT.length,...th.stat);NOTES.splice(0,NOTES.length,...th.nts);}
+const TOKRE=/(?<![\w'’@])('t'|IX_[tu]_[a-z_]+|PK_[tu]|u\.id|uid|t_id|secondary_id|created_at|status|notes|amount|id|t|u)(?![\w'’])/g;
+function splitKeys(s){const K=["secondary_id","created_at","status"],out=[];while(s){const k=K.find(x=>s.startsWith(x));if(!k){out.push(s);break;}out.push(k);s=s.slice(k.length).replace(/^_/,"");}return out;}
+function tmap(tok){const T=THEME;
+  if(tok==="'t'")return `'${T.t}'`;
+  if(tok.startsWith("IX_t_"))return "IX_"+T.t+"_"+splitKeys(tok.slice(5)).map(tmap).join("_");
+  if(tok.startsWith("IX_u_"))return "IX_"+T.u+"_"+(tok.slice(5)==="t_id"?T.fk:tok.slice(5));
+  if(tok==="PK_t")return "PK_"+T.t;if(tok==="PK_u")return "PK_"+T.u;if(tok==="u.id")return T.u+"."+T.uid;
+  return({uid:T.uid,t_id:T.fk,secondary_id:T.sec,created_at:T.date,status:T.status,notes:T.notes,amount:T.amt,id:T.id,t:T.t,u:T.u})[tok]??tok;}
+function themify(root){if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;
+  while((n=w.nextNode())){if(n.__o===undefined)n.__o=n.nodeValue;const v=THEME===THEMES[0]?n.__o:n.__o.replace(TOKRE,tmap);if(n.nodeValue!==v)n.nodeValue=v;}}
 
 // ---------- levels and progress ----------
 const LEVELS=[
@@ -821,7 +849,7 @@ function showLevels(){
   $("b-arcade").onclick=()=>aStart();
   $("b-unlock").onclick=()=>{PROG.unlocked=LEVELS.length;saveProg();showLevels();};
 }
-$("b-levels").onclick=showLevels;
+$("b-levels").onclick=()=>showLevels();
 
 // ---------- game state ----------
 let G,S;
@@ -836,6 +864,7 @@ function buildScenario(spec){
   return sc;
 }
 function startRound(){
+  useTheme(G.round===0&&G.li===0&&!PROG.best[1]?THEMES[0]:pick(THEMES.filter(x=>x!==THEME)));
   const sc=buildScenario(G.rounds[G.round]);
   S={sc,q:sc.q,ix:sc.ix,T:{ix:sc.ixT||null,pk:sc.pk||null},phase:sc.design?"design":sc.join?"jplan":sc.stats?"est":"plan",reads:{ix:0,pk:0},writes:0,vis:{ix:new Set(),pk:new Set()},mod:{ix:new Set(),pk:new Set()},path:{ix:[],pk:[]},out:[],buf:[],log:[],mis:0,hints:0,page:null,hint:null,wrongs:new Set()};
   setFB("",sc.join?"Two tables this time. Read the schema, the indexes and the estimate, then pick the physical join the optimizer would use.":sc.design?"Choose the key columns and INCLUDE list for one nonclustered index. The design is costed against every statement in the workload.":sc.stats?"Work out the optimizer's row estimate from the statistics first.":isW()?"Work out which indexes this statement has to change.":"Read the schema and the estimate, then pick the access path the optimizer would choose.");
@@ -1671,6 +1700,7 @@ function aQuit(){cancelAnimationFrame(araf);if(A){A.running=false;}document.quer
   new MutationObserver(aColors).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 })();
 
+{const r0=render;render=function(){r0.apply(this,arguments);themify($("game"));};const f0=setFB;setFB=function(c,m){f0(c,m);themify($("fb"));};const s0=showLevels;showLevels=function(){useTheme(THEMES[0]);s0.apply(this,arguments);themify($("game"));};}
 showLevels();
 })();
 </script>
