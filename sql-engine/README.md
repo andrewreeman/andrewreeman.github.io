@@ -4,9 +4,10 @@ Self-contained interactive pages about how SQL Server stores and reads B+ tree i
 
 | File | What it is |
 |---|---|
-| `index.html` | Landing page linking the four pages |
+| `index.html` | Landing page linking the five pages |
 | `inside-an-8kb-page.html` | To-scale byte map of a clustered leaf page and a nonclustered leaf page, with inserts, deletes, compaction, page splits and record anatomy |
 | `key-lookup-walkthrough.html` | Step-through of `SELECT * FROM t WHERE secondary_id = 4` as an Index Seek plus Key Lookup, with a cost model for the scan tipping point |
+| `lock-walkthrough.html` | Step-through of six locking stories (S/X, U, intent locks, isolation levels, a blocking chain, a deadlock) with the lock manager, a wait-for graph and DMV rows side by side |
 | `storage-engine-drill.html` | Twelve-level game where you execute statements by hand, plus the Peak Load arcade mode |
 | `page-runner.html` | 2D platformer where each room is one index page, scored in logical reads |
 
