@@ -240,3 +240,36 @@
         }
     }
 }
+
+/**
+ * Feature card on the home page
+ */
+.feature-card {
+    display: block;
+    margin-bottom: $spacing-unit;
+    padding: $spacing-unit / 2 $spacing-unit * 0.6;
+    border: 1px solid $grey-color-light;
+    border-left: 4px solid $brand-color;
+    border-radius: 4px;
+    color: $text-color;
+
+    &:hover, &:focus-visible {
+        text-decoration: none;
+        border-color: $brand-color;
+    }
+
+    strong {
+        display: block;
+        font-size: 22px;
+        color: $brand-color;
+    }
+
+    span { display: block; }
+
+    .feature-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: $grey-color;
+    }
+}

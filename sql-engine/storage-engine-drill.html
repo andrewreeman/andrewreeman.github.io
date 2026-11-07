@@ -156,15 +156,107 @@ select{font:500 .9rem var(--f-mono);color:var(--ink);background:var(--bg);border
 select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-offset:2px}
 @media (max-width:560px){.ctrs{grid-template-columns:repeat(2,1fr)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+:root{--q1:#0d7a72;--q2:#6d4fc2;--q3:#c25a12;--q4:#c2397a;--qw:#7f8ea3;--qu:#4f6f99}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--q1:#3cc3b6;--q2:#a58cf0;--q3:#f0904c;--q4:#f06aa8;--qw:#8e9eb0;--qu:#7da3d6}}
+:root[data-theme="dark"]{--q1:#3cc3b6;--q2:#a58cf0;--q3:#f0904c;--q4:#f06aa8;--qw:#8e9eb0;--qu:#7da3d6}
+.arcadecard{border-width:2px;border-color:var(--q2);background:color-mix(in srgb,var(--q2) 7%,var(--surface))}
+.arcadecard .lvn{color:var(--q2);font-weight:600}
+.arcade{display:grid;gap:14px}
+.ahud{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ahud .hc{background:var(--surface);padding:8px 14px;display:grid;gap:3px;align-content:start;min-width:96px;flex:1 1 auto}
+.ahud .hc.grow{flex:3 1 200px}
+.ahud b{font-family:var(--f-mono);font-size:1.25rem;font-variant-numeric:tabular-nums}
+.ahud b.warn{color:var(--hint)} .ahud b.bad{color:var(--bad)}
+.gauge{height:12px;border-radius:6px;background:color-mix(in srgb,var(--muted) 16%,transparent);overflow:hidden;margin-top:4px}
+.gauge i{display:block;height:100%;background:var(--ok);border-radius:6px;transition:width .15s}
+.gauge i.warn{background:var(--hint)} .gauge i.bad{background:var(--bad)}
+.pn{font-size:.8rem;color:var(--muted);display:block}
+.lanewrap{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#a-lane{display:block;width:100%;height:220px}
+.acard{position:absolute;inset:12px;margin:auto;max-width:620px;max-height:calc(100% - 24px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:8px;align-content:start;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.acard h3{font-family:var(--f-display);font-size:1.3rem;margin:0}
+.acard ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:.9rem}
+.acard p{font-size:.92rem;color:var(--ink)}
+.lanewrap:has(.acard:not([hidden])) #a-lane{height:400px}
+.atoast{border-left:3px solid var(--hint);background:var(--surface);padding:8px 12px;font-size:.9rem;border-radius:0 6px 6px 0}
+.agrid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.agrid{grid-template-columns:1fr}}
+.awl td{vertical-align:top}
+.awl code{display:block;margin-top:2px;font-size:.78rem}
+.awl .sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.awl .rc{display:flex;gap:6px;align-items:center;font-size:.75rem;color:var(--muted);margin-top:4px;cursor:pointer}
+.share{width:90px;height:8px;border-radius:4px;background:color-mix(in srgb,var(--muted) 16%,transparent);overflow:hidden}
+.share i{display:block;height:100%;background:var(--ok)}
+.share i.warn{background:var(--hint)} .share i.bad{background:var(--bad)}
+.lanewrap.slowmo{box-shadow:inset 0 0 0 2px var(--q2)}
+.lanewrap.slowmo #a-lane{filter:saturate(.45)}
+.jgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:640px){.jgrid{grid-template-columns:1fr}}
+.jcol{display:grid;gap:6px;align-content:start;min-width:0}
+.jlist{border:1px solid var(--line);border-radius:8px;overflow:hidden;display:grid}
+.jlist .slot{border-radius:0}
+.jlist .slot:disabled{cursor:default;opacity:1}
+.slot.cur{background:color-mix(in srgb,var(--q2) 14%,var(--surface));font-weight:600}
+.slot.taken.cur{background:color-mix(in srgb,var(--q2) 14%,var(--surface))}
+.buckets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.bucket{border:1px dashed var(--line);border-radius:8px;padding:8px;display:grid;gap:4px;align-content:start;min-height:70px}
+.bucket.open{border:2px solid var(--q2);background:color-mix(in srgb,var(--q2) 6%,var(--surface))}
+.bucket .slot{border:1px solid var(--line);border-radius:5px;padding:5px 8px;grid-template-columns:1fr}
+.xplan{display:grid;gap:4px;border:1px solid var(--line);border-radius:8px;padding:8px;overflow-x:auto}
+.xnode{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 14px;text-align:left;font:500 .86rem var(--f-mono);padding:7px 10px;width:auto;min-width:0}
+.xnode:disabled{cursor:default;opacity:1}
+.xnode.sel{border-color:var(--q2);background:color-mix(in srgb,var(--q2) 10%,var(--surface))}
+.xnode.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,var(--surface))}
+.xnode.flagged{border-color:var(--bad);border-width:2px}
+.xop b{font-weight:600}.xobj{color:var(--muted)}.xwarn{color:var(--hint);font-weight:700}
+.xstat{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.76rem;color:var(--muted)}
+.xprops{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:5px 16px;margin:0;font-size:.86rem;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.xprops dt{color:var(--muted)}
+.xprops dd{margin:0;font-family:var(--f-mono);white-space:normal;overflow-wrap:anywhere}
+@media (max-width:560px){.xprops{grid-template-columns:1fr}.xprops dd{margin-bottom:4px}}
+.coach{border:2px solid var(--q2);background:color-mix(in srgb,var(--q2) 8%,var(--surface));border-radius:10px;padding:12px 16px;display:grid;gap:6px}
+.coach p{color:var(--ink);font-size:.95rem}
+.coach-hl{outline:3px solid var(--q2);outline-offset:4px;border-radius:8px;animation:coachpulse 1.4s ease-in-out infinite}
+@keyframes coachpulse{50%{outline-color:color-mix(in srgb,var(--q2) 35%,transparent)}}
+.hintbox{border-left:3px solid var(--hint);padding:6px 10px;font-size:.9rem;background:color-mix(in srgb,var(--hint) 8%,var(--surface))}
+@media (prefers-reduced-motion:reduce){.coach-hl{animation:none}}
+.gauge.thin{height:5px}
+.ahud b.good{color:var(--q2)}
+.rogues{display:flex;gap:6px;flex-wrap:wrap}
+.killbtn{background:var(--bad);color:#fff;border-color:var(--bad);font-family:var(--f-mono)}
+.killbtn:hover{border-color:var(--ink)}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.badge{border:1px dashed var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:2px;opacity:.55}
+.badge b{font-family:var(--f-display);font-size:.95rem}
+.badge small{font-size:.75rem;color:var(--muted);line-height:1.35}
+.badge.got{opacity:1;border-style:solid;border-color:var(--q2)}
+.badge.new{background:color-mix(in srgb,var(--q2) 12%,var(--surface))}
+.ixcard{border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:grid;gap:4px;justify-items:start}
+.ixcard code{font-size:.78rem;background:none;padding:0;white-space:normal}
+@media (prefers-reduced-motion:reduce){.gauge i{transition:none}}
+</style>
+<style>
+/* Site strip shared by every SQL Server Storage Engine page. Fixed colours so it reads the same on light and dark pages. */
+.se-nav{background:#0b1620;color:#c9d6df;font:500 13px/1.3 "Segoe UI",system-ui,-apple-system,sans-serif;border-bottom:1px solid #22384a;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.se-nav-in{max-width:980px;margin:0 auto;display:flex;align-items:center;gap:6px 18px;flex-wrap:wrap;padding-block:8px}
+.se-nav a{color:#c9d6df;text-decoration:none;white-space:nowrap}
+.se-nav a:hover{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.se-nav a:focus-visible{outline:2px solid #f2b33d;outline-offset:2px;border-radius:2px}
+.se-nav .se-home{color:#8fa6b3}
+.se-nav ul{list-style:none;margin:0;padding:0;display:flex;gap:4px 16px;overflow-x:auto;scrollbar-width:thin;min-width:0;flex:1 1 auto}
+.se-nav a[aria-current=page]{color:#f2b33d;font-weight:700}
+@media (max-width:600px){.se-nav ul{flex-wrap:nowrap;padding-bottom:2px}}
 </style>
 </head>
 <body>
+<nav class="se-nav" aria-label="SQL Server Storage Engine pages"><div class="se-nav-in"><a class="se-home" href="/">← andrewreeman.com</a><ul><li><a href="index.html">Overview</a></li><li><a href="inside-an-8kb-page.html">Inside an 8 KB Page</a></li><li><a href="key-lookup-walkthrough.html">Key Lookup Walkthrough</a></li><li><a href="storage-engine-drill.html" aria-current="page">Storage Engine Drill</a></li><li><a href="page-runner.html">Page Runner</a></li></ul></div></nav><script>(function(){var u=document.querySelector(".se-nav ul"),a=u&&u.querySelector("[aria-current]");if(a&&u.scrollWidth>u.clientWidth)u.scrollLeft=a.offsetLeft-u.offsetLeft-16;})();</script>
 <div class="wrap">
   <div class="top">
     <div style="display:grid;gap:6px">
       <span class="label">You are the storage engine</span>
       <h1>Storage Engine Drill</h1>
-      <p class="muted">Execute each statement by hand. Pick the plan, then work page by page: choose which pointer to follow, which slot to read or write, which way to walk the leaf chain, and when to stop. Every page you enter costs a logical read, and every page you change costs a write. Later levels add heaps, statistics, plan reuse and index design.</p>
+      <p class="muted">Execute each statement by hand. Pick the plan, then work page by page: choose which pointer to follow, which slot to read or write, which way to walk the leaf chain, and when to stop. Every page you enter costs a logical read, and every page you change costs a write. Later levels add heaps, statistics, plan reuse and index design, and Peak Load is an arcade mode that puts it all under time pressure.</p>
     </div>
     <div style="display:grid;gap:8px;justify-items:end">
       <div class="pips" id="pips"></div>
@@ -179,6 +271,27 @@ select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-off
   </div>
 
   <section class="levels" id="levels" hidden></section>
+
+  <section class="arcade" id="arcade" hidden>
+    <div class="ahud" id="a-hud">
+      <div class="hc"><span class="label">Wave</span><b id="a-wave">1 / 5</b><span class="pn" id="a-wname"></span></div>
+      <div class="hc"><span class="label">Seconds left</span><b id="a-time">30</b></div>
+      <div class="hc grow"><span class="label">Server load</span><div class="gauge"><i id="a-load"></i></div><span class="pn" id="a-loadtxt"></span></div>
+      <div class="hc"><span class="label">Latency</span><b id="a-lat">4 ms</b></div>
+      <div class="hc grow"><span class="label">Customer patience</span><div class="gauge"><i id="a-pat" style="width:100%"></i></div><span class="pn" id="a-patnote"></span></div>
+      <div class="hc"><span class="label">Calm streak</span><b id="a-mult">×1</b><div class="gauge thin"><i id="a-multbar" style="width:0%"></i></div></div>
+      <div class="hc"><span class="label">Score</span><b id="a-score">0</b></div>
+    </div>
+    <div class="coach" id="a-coach" hidden></div>
+    <div class="lanewrap" id="a-lanewrap"><canvas id="a-lane" aria-label="Statements travelling to the server"></canvas><div class="acard" id="a-card" hidden></div></div>
+    <div class="atoast" id="a-toast" hidden></div>
+    <div class="actions"><button id="a-pause">Pause</button><button id="a-speed">Speed ×1</button><button id="a-hint">Hint</button><button id="a-sound">Sound on</button><button id="a-melody">Melody on</button><span class="rogues" id="a-rogues"></span><button id="a-quit">Quit to levels</button><span class="pn">Space pauses.</span></div>
+    <div class="agrid">
+      <section class="panel"><h3>Workload</h3><p class="pn">Plans update the moment you change an index. The bar shows each statement's share of the server's 60,000 reads per second.</p><div class="tbl"><table class="wl awl" id="a-wl"></table></div></section>
+      <section class="panel"><h3>Indexes · <span id="a-slots">0 of 3</span></h3><div id="a-ixlist" style="display:grid;gap:8px"></div><div class="builder" id="a-builder"></div>
+        <h3>DBA tools</h3><button id="a-stats">UPDATE STATISTICS t</button><p class="pn" id="a-statsstate"></p><p class="pn">OPTION (RECOMPILE) is a checkbox on each SELECT in the workload table. It adds about 100 reads of compile work per call.</p></section>
+    </div>
+  </section>
 
   <div class="game" id="game" hidden>
     <div style="display:grid;gap:14px;min-width:0">
@@ -195,7 +308,7 @@ select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-off
 
     <aside class="side">
       <div class="ctrs">
-        <div class="nc"><span class="label">IX reads</span><b id="r-ix">0</b></div>
+        <div class="nc"><span class="label" id="lbl-rix">IX reads</span><b id="r-ix">0</b></div>
         <div class="ci"><span class="label" id="lbl-rpk">PK reads</span><b id="r-pk">0</b></div>
         <div><span class="label">Reads</span><b id="r-tot">0</b></div>
         <div class="wr"><span class="label">Writes</span><b id="r-wr">0</b></div>
@@ -230,6 +343,7 @@ select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-off
           <li><b>Heaps:</b> no clustered index. Rows sit in pages in no order, and nonclustered entries hold a RID (file:page:slot) instead of id. A RID lookup reads one page. A forwarding stub costs one more.</li>
           <li><b>Histogram:</b> a value equal to a <code>RANGE_HI_KEY</code> is estimated from <code>EQ_ROWS</code>. A value strictly between two keys uses the upper step's <code>AVG_RANGE_ROWS</code>.</li>
           <li><b>Plan reuse:</b> a parameterised query is compiled for the first value it sees, and the cached plan is reused for later values.</li>
+          <li><b>Every round uses a different schema:</b> the same shapes of table, index and query, renamed. The first column is always the clustered primary key.</li>
           <li>Reference pages: <a href="key-lookup-walkthrough.html" target="_blank" rel="noopener">Key Lookup Walkthrough</a> · <a href="inside-an-8kb-page.html" target="_blank" rel="noopener">Inside an 8 KB Page</a></li>
         </ul>
       </details>
@@ -386,8 +500,8 @@ function beyondOpts(steps,v,dens){const last=steps[steps.length-1];
     {v:0,why:"The optimizer never estimates fewer than 1 row."}]));}
 function makeHist(v,mode,big){
   const n=6,ti=mode==="beyond"?n-1:ri(1,4),his=new Array(n);
-  his[ti]=mode==="eq"?v:mode==="avg"?v+ri(2,8):v-ri(3,Math.min(25,v-8));
-  for(let i=ti-1;i>=0;i--){const g=(mode==="avg"&&i===ti-1)?his[ti]-v+ri(2,12):ri(6,22);his[i]=Math.max(i+1,his[i+1]-g);if(his[i]>=his[i+1])his[i]=his[i+1]-1;}
+  his[ti]=mode==="eq"?v:mode==="avg"?v+ri(2,8):v-ri(3,25);
+  for(let i=ti-1;i>=0;i--){const g=(mode==="avg"&&i===ti-1)?his[ti]-v+ri(2,12):ri(6,22);his[i]=his[i+1]-g;}
   for(let i=ti+1;i<n;i++)his[i]=his[i-1]+ri(6,22);
   const steps=makeSteps(his),st=steps[ti];
   if(mode==="eq")st.eq=big?ri(30,300)*1000+ri(0,999):ri(5,400);
@@ -492,7 +606,7 @@ const GEN={
      title:"Two predicates",take:"Each predicate's selectivity comes from its own histogram. The modern estimator combines them with exponential backoff, which assumes some correlation between columns. The legacy estimator assumed independence and multiplied them, which underestimates when the columns are correlated."};}},
  sniff(){for(;;){const{rows,sv}=base(ri(36,50),ri(8,11));const B=vWith(rows,sv,4,7),A=vWith(rows,sv,1,2);if(B==null||A==null||A===B)continue;
    const ix={keys:["secondary_id"],unique:false,inc:randInc(.3,1)};const sel=selUncovered(ix);if(!sel)continue;
-   const set=new Set([A,B]),lo=Math.max(1,Math.min(A,B)-40),hi=Math.max(A,B)+40;while(set.size<6)set.add(ri(lo,hi));const his=[...set].sort((a,b)=>a-b);
+   const set=new Set([A,B]),lo=Math.min(A,B)-40,hi=Math.max(A,B)+40;while(set.size<6)set.add(ri(lo,hi));const his=[...set].sort((a,b)=>a-b);
    const steps=makeSteps(his),ta=his.indexOf(A),tb=his.indexOf(B);steps[ta].eq=ri(5,60);steps[tb].eq=ri(80,400)*1000+ri(0,999);const eqA=steps[ta].eq,eqB=steps[tb].eq;
    return{ix,rows,est:eqA,sniff:{A,B,eqA,eqB},q:{kind:"select",select:sel,where:[{col:"secondary_id",op:"=",v:A,param:"@p"}]},
      stats:{type:"hist",steps,v:A,options:histOpts(steps,ta,A,"eq"),header:"DBCC SHOW_STATISTICS ('t', IX_t_secondary_id) WITH HISTOGRAM · 6 of 200 steps shown",sub:"Statistics updated 2026-11-05 · 2,000,000 rows · compatibility level 160",question:`The first call passes @p = ${A}. How many rows does the optimizer estimate?`},
@@ -558,17 +672,313 @@ function dCandidates(){const K=["secondary_id","status","created_at"],perms=[],o
   return out;}
 const ixSize=ix=>ix?ixCols(ix).length:0;
 
+// ---------- joins ----------
+const UROWS=6000000,UPAGES=15600,TPAGES=20000,BUCKETS=4;
+const JCOLS=["t.id","u.amount"];
+const uDDL=cover=>"CREATE TABLE u (\n  uid int, t_id int, amount int,\n  CONSTRAINT PK_u PRIMARY KEY CLUSTERED (uid));";
+function jBase(nT){
+  const sv=secValues(ri(6,9)),tRows=makeRows(nT||ri(12,15),sv),uRows=[],used=new Set();
+  tRows.forEach(r=>{const k=pick([0,1,1,2,2,3]);for(let i=0;i<k;i++){let id;do{id=ri(100,999);}while(used.has(id));used.add(id);uRows.push({id,t_id:r.id,amount:ri(1,99)*5});}});
+  uRows.sort((a,b)=>a.id-b.id);return{sv,tRows,uRows};
+}
+const byTid=a=>[...a].sort((x,y)=>x.t_id-y.t_id||x.id-y.id);
+GEN.joinNL=o=>{for(;;){const{sv,tRows,uRows}=jBase();const v=vWith(tRows,sv,2,3,m=>m.filter(r=>uRows.some(u=>u.t_id===r.id)).length>=2);if(v==null)continue;
+  const cover=!o.nocover,est=ri(5,40);
+  return{join:{alg:"nl",order:"t",cover,est,outer:tRows.filter(r=>r.secondary_id===v).sort((a,b)=>a.id-b.id),inner:byTid(uRows),
+    where:`t.secondary_id = ${v}`,ddl:[ixDDL({keys:["secondary_id"],inc:[]}),`CREATE INDEX IX_u_t_id ON u (t_id)${cover?" INCLUDE (amount)":""};`]},
+    q:{kind:"join"},title:cover?"Nested loops":"Nested loops with lookups",
+    take:`Nested loops runs one inner seek per outer row, so its cost grows with the outer row count: about ${fmt(3+3*est)} reads here.${cover?"":" IX_u_t_id doesn't include amount, so each inner match also needs a key lookup into PK_u, three more reads per row."} It's the right choice when the outer input is small and the inner input has an index on the join column.`};}};
+GEN.joinMerge=()=>{for(;;){const{tRows,uRows}=jBase(ri(9,11));if(uRows.length<8||uRows.length>16)continue;
+  return{join:{alg:"merge",est:N,left:[...tRows].sort((a,b)=>a.id-b.id),right:byTid(uRows),where:null,
+    ddl:[ixDDL({keys:["secondary_id"],inc:[]}),"CREATE INDEX IX_u_t_id ON u (t_id) INCLUDE (amount);"]},
+    q:{kind:"join"},title:"Merge join",take:"Merge join needs both inputs sorted on the join key. Here both already are: PK_t is ordered by id and IX_u_t_id by t_id. So each input is read once, start to finish, with no sort and no memory grant. That's about 35,600 page reads, against millions for nested loops."};}};
+GEN.joinHash=()=>{for(;;){const{tRows,uRows}=jBase(ri(12,15));const ds=[...new Set(tRows.map(r=>r.created_at))].sort();const d=ds[ri(Math.max(0,ds.length-6),ds.length-3)];
+  const build=tRows.filter(r=>r.created_at>=d);if(build.length<3||build.length>6)continue;
+  const ids=new Set(build.map(r=>r.id)),hit=uRows.filter(u=>ids.has(u.t_id)),miss=uRows.filter(u=>!ids.has(u.t_id));if(hit.length<3)continue;
+  const probe=shuffle([...hit.slice(0,5),...shuffle(miss).slice(0,ri(3,5))]).sort((a,b)=>a.id-b.id);const est=ri(30,60)*1000;
+  return{join:{alg:"hash",est,build:[...build].sort((a,b)=>a.id-b.id),probe,where:`t.created_at >= '${d}'`,
+    ddl:[ixDDL({keys:["secondary_id"],inc:[]}),"-- no index on u.t_id"]},
+    q:{kind:"join"},title:"Hash match",take:`With no index on u.t_id, nested loops would scan u once per outer row (${fmt(est)} × ${fmt(UPAGES)} pages), and merge would first have to sort 6,000,000 u rows. Hash match reads each input once: it builds a hash table from the smaller input, the ${fmt(est)} filtered t rows, and probes it with every u row. The price is a memory grant for the hash table, and if the estimate is too low the build side spills to tempdb.`};}};
+
+function jSQL(j){const K=s=>`<span class="kw">${s}</span>`;return `${K("SELECT")} t.id, u.amount ${K("FROM")} t ${K("JOIN")} u ${K("ON")} u.t_id = t.id${j.where?` ${K("WHERE")} ${j.where}`:""};`;}
+const JALG=[["nl","Nested Loops","For each row of the outer input, seek the inner input."],["merge","Merge Join","Walk both inputs in join-key order, side by side."],["hash","Hash Match","Build a hash table from one input, then probe it with every row of the other."]];
+const jName=a=>({nl:"nested loops",merge:"merge join",hash:"hash match"})[a];
+function jWhy(t,ok){
+  const j=S.sc.join,H=ok?`<b class="t">Correct: ${jName(t)}</b>`:`<b class="t">Not that join</b>`;
+  if(j.alg==="nl"){const nl=`The WHERE clause leaves about ${fmt(j.est)} t rows, and IX_u_t_id can seek u on t_id. Nested loops costs about 3 + ${fmt(j.est)} × 3 = ${fmt(3+3*j.est)} reads${j.cover?"":", plus a key lookup per u match because amount isn't in the index"}.`;
+    if(ok)return H+nl;return H+(t==="merge"?`Merge join would read both inputs from start to finish, about ${fmt(TPAGES+UPAGES)} pages, to find a handful of rows. `:`Hash match would scan all ${fmt(UPAGES)} pages of u to probe a tiny hash table. `)+nl;}
+  if(j.alg==="merge"){const m="There's no WHERE clause, so every row of both tables joins. Both inputs are already sorted on the join key: PK_t by id, IX_u_t_id by t_id. Merge join reads each once, about "+fmt(TPAGES+UPAGES)+" pages, with no sort and no memory grant.";
+    if(ok)return H+m;return H+(t==="nl"?"Nested loops would run 2,000,000 inner seeks, about 6,000,000 reads. ":"Hash match reads the same pages, but needs memory for a 2,000,000-row hash table and can spill to tempdb, while merge join gets the order for free. ")+m;}
+  const hsh=`There's no index on u.t_id, so u can't be sought. Hash match builds a table from the ${fmt(j.est)} filtered t rows and scans u once, about ${fmt(TPAGES+UPAGES)} pages in total.`;
+  if(ok)return H+hsh;return H+(t==="nl"?`Nested loops would scan u once per outer row: ${fmt(j.est)} × ${fmt(UPAGES)} pages. `:"Merge join needs both inputs sorted on t_id. u is ordered by id, so all 6,000,000 rows would have to be sorted first. ")+hsh;
+}
+function jChoose(t){
+  if(S.phase!=="jplan")return;const j=S.sc.join;
+  if(t!==j.alg){mistake();S.wrongs.add("j:"+t);setFB("bad",jWhy(t,false));render();return;}
+  S.wrongs=new Set();
+  if(j.alg==="nl"){S.phase="jorder";setFB("ok",jWhy(t,true)+" Now choose which input is outer.");render();return;}
+  jStart();setFB("ok",jWhy(t,true)+jIntro());render();
+}
+function jOrder(t){
+  if(S.phase!=="jorder")return;const j=S.sc.join;
+  if(t!=="t"){mistake();S.wrongs.add("o:"+t);setFB("bad",`<b class="t">Not that order</b>With u outer, the inner side would run for all 6,000,000 u rows, seeking t by id each time: about 18,000,000 reads. With t outer, the WHERE clause cuts the outer input to about ${fmt(j.est)} rows first. Put the small, filtered input on the outside.`);render();return;}
+  jStart();setFB("ok",`<b class="t">Correct: t is outer</b>The outer input is the ${fmt(j.est)} t rows that match ${j.where}, read with one seek on IX_t_secondary_id. Each of them drives one seek into IX_u_t_id.`+jIntro());render();
+}
+function jStart(){const j=S.sc.join;S.j={oi:0,L:0,R:0,bi:0,pi:0,step:"bucket",buckets:Array.from({length:BUCKETS},()=>[]),taken:new Set(),lp:-1,rp:-1};
+  if(j.alg==="nl"){S.phase="nl";S.reads.ix+=3;S.reads.pk+=3;}
+  if(j.alg==="merge"){S.phase="merge";jPage();}
+  if(j.alg==="hash"){S.phase="hbuild";S.reads.ix+=Math.ceil(12/5)+2;}}
+function jIntro(){const a=S.sc.join.alg;return a==="nl"?" For each outer row, click its matching IX_u_t_id entries, then move to the next outer row.":a==="merge"?" Compare the two current rows and move the cursor with the smaller key. When the keys are equal, output the row.":" First build the hash table: put each t row in bucket id % 4.";}
+function jPage(){const j=S.sc.join,x=S.j;const lp=Math.floor(x.L/5),rp=Math.floor(x.R/5);if(lp!==x.lp){S.reads.ix+=x.lp<0?3:1;x.lp=lp;}if(rp!==x.rp){S.reads.pk+=x.rp<0?3:1;x.rp=rp;}}
+function jExpected(){
+  const j=S.sc.join,x=S.j;
+  if(S.phase==="nl"){const o=j.outer[x.oi],i=j.inner.findIndex((u,k)=>u.t_id===o.id&&!x.taken.has(k));return i>=0?{type:"inner",idx:i}:{type:"next"};}
+  if(S.phase==="merge"){const a=j.left[x.L],b=j.right[x.R];return a.id<b.t_id?{type:"advT"}:a.id>b.t_id?{type:"advU"}:{type:"match"};}
+  if(S.phase==="hbuild")return{type:"bucket",idx:j.build[x.bi].id%BUCKETS};
+  if(S.phase==="hprobe"){const p=j.probe[x.pi];if(x.step==="bucket")return{type:"bucket",idx:p.t_id%BUCKETS};const e=x.buckets[p.t_id%BUCKETS].find(r=>r.id===p.t_id);return e?{type:"entry",id:e.id}:{type:"nomatch"};}
+  return null;
+}
+function jOut(t,u){S.out.push({"t.id":t.id,"u.amount":u.amount});}
+function jAct(kind,arg){
+  const j=S.sc.join,x=S.j,ex=jExpected();if(!ex)return;S.jh=null;
+  const bad=m=>{mistake();setFB("bad",`<b class="t">Not that move</b>${m}`);render();};
+  if(S.phase==="nl"){const o=j.outer[x.oi];
+    if(kind==="inner"){const u=j.inner[arg];if(x.taken.has(arg))return bad("You already output that entry.");
+      if(u.t_id!==o.id)return bad(`That entry has t_id ${u.t_id}. The current outer row has id ${o.id}, so the inner seek is for t_id = ${o.id}.`);
+      if(ex.type==="inner"&&arg!==ex.idx)return bad("Read the matching entries in index order. An earlier one comes first.");
+      x.taken.add(arg);jOut(o,u);if(!j.cover)S.reads.pk+=3;
+      setFB("ok",`<b class="t">Row joined</b>t.id ${o.id} with u.id ${u.id}, amount ${u.amount}.${j.cover?"":" amount isn't in IX_u_t_id, so that cost a key lookup into PK_u."}`);render();return;}
+    if(ex.type==="inner")return bad(`There's still an entry with t_id = ${o.id} in IX_u_t_id. The inner seek reads every match before the next outer row.`);
+    x.oi++;if(x.oi>=j.outer.length)return jFinish(`Every outer row has been joined. ${S.out.length} row${S.out.length===1?"":"s"} out of ${j.outer.length} inner seeks.`);
+    S.reads.pk+=3;setFB("ok",`<b class="t">Next outer row: t.id ${j.outer[x.oi].id}</b>A fresh inner seek into IX_u_t_id for t_id = ${j.outer[x.oi].id}: 3 more reads.${j.inner.some(u=>u.t_id===j.outer[x.oi].id)?"":" This one will find nothing, which nested loops only learns by seeking."}`);render();return;}
+  if(S.phase==="merge"){const a=j.left[x.L],b=j.right[x.R];
+    if(kind!==ex.type)return bad(ex.type==="advT"?`t.id ${a.id} is smaller than t_id ${b.t_id}. No u row can match it any more, so advance t.`:ex.type==="advU"?`t_id ${b.t_id} is smaller than t.id ${a.id}. Its t row has already gone by, so advance u.`:`t.id ${a.id} equals t_id ${b.t_id}. That's a match: output it.`);
+    if(kind==="advT")x.L++;else if(kind==="advU")x.R++;else{jOut(a,b);x.R++;}
+    if(x.L>=j.left.length||x.R>=j.right.length){jPage();return jFinish(x.L>=j.left.length?"t is exhausted, so nothing left in u can match.":"u is exhausted, so nothing left in t can match.");}
+    jPage();setFB("ok",kind==="match"?`<b class="t">Row joined</b>t.id ${a.id} with u.id ${b.id}. u moves on, because the next u row may have the same t_id. t stays put.`:`<b class="t">Advanced ${kind==="advT"?"t":"u"}</b>`);render();return;}
+  if(S.phase==="hbuild"){const r=j.build[x.bi];if(arg!==ex.idx)return bad(`${r.id} % 4 = ${r.id%4}, so t.id ${r.id} goes in bucket ${r.id%4}.`);
+    x.buckets[arg].push(r);x.bi++;if(x.bi>=j.build.length){S.phase="hprobe";S.reads.pk+=3;setFB("ok",`<b class="t">Hash table built</b>${j.build.length} t rows in memory. Now probe: for each u row from the scan of PK_u, hash its t_id to a bucket, then look for a matching id in that bucket only.`);}
+    else setFB("ok",`<b class="t">t.id ${r.id} → bucket ${arg}</b>`);render();return;}
+  if(S.phase==="hprobe"){const p=j.probe[x.pi];
+    if(x.step==="bucket"){if(arg!==ex.idx)return bad(`${p.t_id} % 4 = ${p.t_id%4}, so the probe goes to bucket ${p.t_id%4}.`);x.step="match";setFB("ok",`<b class="t">Bucket ${arg}</b>Only rows in this bucket can match t_id ${p.t_id}. Click the match, or say there isn't one.`);render();return;}
+    if(kind==="entry"&&ex.type==="entry"&&arg===ex.id){jOut(x.buckets[p.t_id%BUCKETS].find(r=>r.id===arg),p);}
+    else if(kind==="nomatch"&&ex.type==="nomatch"){}
+    else return bad(ex.type==="nomatch"?`No row in bucket ${p.t_id%4} has id ${p.t_id}. Its t row was filtered out by the WHERE clause, so this u row joins to nothing.`:kind==="nomatch"?`Bucket ${p.t_id%4} does hold id ${p.t_id}. Click it.`:`That row's id isn't ${p.t_id}. Rows share a bucket when their ids leave the same remainder, so you still compare the actual id.`);
+    if(x.step==="match"&&(ex.type==="entry"))setFB("ok",`<b class="t">Row joined</b>u.id ${p.id} matched t.id ${p.t_id}.`);else setFB("ok",`<b class="t">No match</b>u.id ${p.id} is discarded.`);
+    x.pi++;x.step="bucket";if(x.pi>=j.probe.length)return jFinish(`Every u row has probed the hash table. ${S.out.length} row${S.out.length===1?"":"s"} joined.`);
+    if(x.pi%5===0)S.reads.pk++;render();}
+}
+function jHint(){const ex=jExpected();if(!ex)return;S.hints++;S.jh=ex;setFB("hint",`<b class="t">Hint</b>The highlighted control is the right move. Hints cost 10 points.`);render();}
+function jFinish(note){
+  S.phase="done";const j=S.sc.join,pts=Math.max(0,100-15*S.mis-10*S.hints);G.pts+=pts;
+  G.log.push({title:S.sc.title,plan:jName(j.alg)+(j.alg==="nl"?" · t outer":""),r:S.reads.ix+S.reads.pk,w:0,mis:S.mis,hints:S.hints,pts});
+  const scale=j.alg==="nl"?`about ${fmt(3+3*j.est+(j.cover?0:3*j.est))} reads`:`about ${fmt(TPAGES+UPAGES)} page reads`;
+  S.dres=`<div class="sum"><div class="stats"><span>Plan <b>${jName(j.alg)}</b></span><span>Reads in this miniature <b>${S.reads.ix+S.reads.pk}</b> (t ${S.reads.ix}, u ${S.reads.pk})</span><span>At full size <b>${scale}</b></span><span>Rows <b>${S.out.length}</b></span><span>Mistakes <b>${S.mis}</b></span><span>Hints <b>${S.hints}</b></span><span>Points <b>${pts} / 100</b></span></div></div>`;
+  setFB("ok",`<b class="t">Complete</b>${note}`);render();
+}
+function renderJoin(){
+  const j=S.sc.join,x=S.j,st=$("stage"),ac=$("actions"),ph=$("phase"),kb=$("keybox"),ins=$("instr");
+  $("query").innerHTML=jSQL(j);$("lbl-rix").textContent="t reads";$("lbl-rpk").textContent="u reads";$("lbl-ix").textContent="t";$("lbl-pk").textContent="u";
+  $("res-title").textContent="Result set";$("res-h").innerHTML="<tr>"+JCOLS.map(c=>`<th>${c}</th>`).join("")+"</tr>";$("res").innerHTML=S.out.map(r=>`<tr>${JCOLS.map(c=>`<td>${r[c]}</td>`).join("")}</tr>`).join("");$("res-empty").hidden=S.out.length>0;
+  st.innerHTML="";ac.innerHTML="";kb.innerHTML="";
+  if(S.phase==="done"){ph.className="phase";ph.textContent=`Round ${G.round+1} complete`;ins.innerHTML=`<b>${S.sc.title}.</b> ${S.sc.take}`;st.innerHTML=S.dres;return summary(true);}
+  const h=S.jh,hl=c=>c?" hinted":"",estTxt=j.alg==="merge"?"every row: 2,000,000 t rows and 6,000,000 u rows":`about ${fmt(j.est)} t rows match ${j.where}; u has 6,000,000 rows`;
+  if(S.phase==="jplan"||S.phase==="jorder"){
+    ph.className="phase";ph.textContent=`Round ${G.round+1} · ${S.phase==="jplan"?"choose the join":"choose the outer input"}`;
+    kb.innerHTML=`<span>Estimate <b>${estTxt}</b></span>`;
+    st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Schema</span><code class="blk">${tableDDL(false)}\n${uDDL()}\n${j.ddl.join("\n")}</code></div>`);
+    ins.textContent=S.phase==="jplan"?"Which physical join would the optimizer choose?":"Nested loops needs an outer input. Which one?";
+    st.appendChild(S.phase==="jplan"?optionButtons(JALG.map(([t,a,b])=>[t,a,b]),"j:",jChoose):optionButtons([["t",`t, filtered by ${j.where}`,"About "+fmt(j.est)+" rows drive the inner seeks."],["u","u","All 6,000,000 rows drive the inner seeks."]],"o:",jOrder));return;}
+  const list=(title,rows,fmtRow,opts)=>`<div class="jcol"><span class="label">${title}</span><div class="jlist">${rows.map((r,i)=>`<button class="slot jrow${opts.cur===i?" cur":""}${opts.done&&opts.done(i)?" taken":""}${opts.hint===i?" hinted":""}" data-k="${opts.kind||""}" data-i="${i}"${opts.kind?"":" disabled"}><span class="sn">${opts.pre?opts.pre(i):""}</span><span>${fmtRow(r)}</span><span class="tag">${opts.tag?opts.tag(i):""}</span></button>`).join("")}</div></div>`;
+  if(S.phase==="nl"){const o=j.outer[x.oi];
+    ph.className="phase nc";ph.textContent=`Nested Loops · outer row ${x.oi+1} of ${j.outer.length}`;ins.textContent=`Click every IX_u_t_id entry with t_id = ${o.id}, then move to the next outer row.`;
+    kb.innerHTML=`<span>Inner seek <b>t_id = ${o.id}</b></span><span>Outer <b>Index Seek IX_t_secondary_id</b></span><span>Inner <b>Index Seek IX_u_t_id</b>${j.cover?"":" + Key Lookup PK_u"}</span>`;
+    st.innerHTML=`<div class="jgrid">${list("Outer: IX_t_secondary_id seek",j.outer,r=>`(${r.secondary_id}, ${r.id})`,{cur:x.oi,done:i=>i<x.oi,pre:i=>i===x.oi?"▶":"",tag:i=>i<x.oi?"done":i===x.oi?"current":""})}${list("Inner: IX_u_t_id leaf, in key order",j.inner,u=>`(${u.t_id}, ${u.id})${j.cover?` · ${u.amount}`:""}`,{kind:"inner",done:i=>x.taken.has(i),hint:h&&h.type==="inner"?h.idx:-1,tag:i=>x.taken.has(i)?"joined":""})}</div>
+      <p class="pn">IX_u_t_id entries are (t_id, id)${j.cover?" · amount":""}.${j.cover?"":" amount isn't in the index, so each match costs a key lookup into PK_u."}</p>`;
+    const n=document.createElement("button");n.textContent=x.oi===j.outer.length-1?"Finish: no more outer rows":"Next outer row";n.className=hl(h&&h.type==="next").trim();n.onclick=()=>jAct("next");ac.appendChild(n);}
+  if(S.phase==="merge"){const a=j.left[x.L],b=j.right[x.R];
+    ph.className="phase";ph.textContent="Merge Join";ins.textContent="Compare the current t row with the current u row and move the right cursor.";
+    kb.innerHTML=`<span>t.id <b>${a.id}</b></span><span>u.t_id <b>${b.t_id}</b></span><span>Left <b>Clustered Index Scan PK_t</b></span><span>Right <b>Index Scan IX_u_t_id</b></span>`;
+    st.innerHTML=`<div class="jgrid">${list("t: PK_t leaf, by id",j.left,r=>`id ${r.id} · sec ${r.secondary_id}`,{cur:x.L,done:i=>i<x.L,pre:i=>i===x.L?"▶":"",tag:i=>i===x.L?"current":""})}${list("u: IX_u_t_id leaf, by t_id",j.right,u=>`t_id ${u.t_id} · u.id ${u.id} · ${u.amount}`,{cur:x.R,done:i=>i<x.R,pre:i=>i===x.R?"▶":"",tag:i=>i===x.R?"current":""})}</div>`;
+    [["advT","Advance t ↓"],["match","Match: output the row"],["advU","Advance u ↓"]].forEach(([k,l])=>{const bt=document.createElement("button");bt.textContent=l;if(k==="match")bt.classList.add("primary");if(h&&h.type===k)bt.classList.add("hinted");bt.onclick=()=>jAct(k);ac.appendChild(bt);});}
+  if(S.phase==="hbuild"||S.phase==="hprobe"){const build=S.phase==="hbuild",p=build?null:j.probe[x.pi],r=build?j.build[x.bi]:null;
+    ph.className="phase";ph.textContent=build?`Hash Match · build ${x.bi+1} of ${j.build.length}`:`Hash Match · probe ${x.pi+1} of ${j.probe.length}`;
+    ins.textContent=build?`Which bucket does t.id ${r.id} go in? The hash is id % 4.`:x.step==="bucket"?`Which bucket does u.t_id ${p.t_id} probe? The hash is t_id % 4.`:`Find t.id ${p.t_id} in bucket ${p.t_id%4}, or say there's no match.`;
+    kb.innerHTML=build?`<span>Build input <b>t rows where ${j.where}</b></span><span>Current <b>t.id ${r.id}</b></span>`:`<span>Probe input <b>Clustered Index Scan PK_u</b></span><span>Current <b>u.id ${p.id} · t_id ${p.t_id}</b></span>`;
+    const bk=x.buckets.map((b,i)=>`<div class="bucket${!build&&x.step==="match"&&i===p.t_id%4?" open":""}"><span class="label">Bucket ${i}</span>${b.map(e=>`<button class="slot jrow${h&&h.type==="entry"&&h.id===e.id&&i===p.t_id%4?" hinted":""}" data-e="${e.id}" ${!build&&x.step==="match"&&i===p.t_id%4?"":"disabled"}><span>id ${e.id}</span></button>`).join("")||`<span class="pn">empty</span>`}</div>`).join("");
+    st.innerHTML=`<div class="jgrid">${build?list("Build input: t, filtered",j.build,t=>`id ${t.id} · ${t.created_at}`,{cur:x.bi,done:i=>i<x.bi,pre:i=>i===x.bi?"▶":"",tag:i=>i<x.bi?`→ ${t2b(j.build[i])}`:""}):list("Probe input: u, in PK_u order",j.probe,u=>`u.id ${u.id} · t_id ${u.t_id} · ${u.amount}`,{cur:x.pi,done:i=>i<x.pi,pre:i=>i===x.pi?"▶":""})}<div class="jcol"><span class="label">Hash table in memory</span><div class="buckets">${bk}</div></div></div>`;
+    st.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>jAct("entry",+b.dataset.e));
+    if(build||x.step==="bucket")for(let i=0;i<BUCKETS;i++){const bt=document.createElement("button");bt.textContent=`Bucket ${i}`;if(h&&h.type==="bucket"&&h.idx===i)bt.classList.add("hinted");bt.onclick=()=>jAct("bucket",i);ac.appendChild(bt);}
+    else{const bt=document.createElement("button");bt.textContent="No match in this bucket";if(h&&h.type==="nomatch")bt.classList.add("hinted");bt.onclick=()=>jAct("nomatch");ac.appendChild(bt);}}
+  st.querySelectorAll('[data-k="inner"]').forEach(b=>b.onclick=()=>jAct("inner",+b.dataset.i));
+  const hb=document.createElement("button");hb.textContent="Hint (−10)";hb.onclick=jHint;ac.appendChild(hb);
+}
+const t2b=r=>`bucket ${r.id%BUCKETS}`;
+
+// ---------- spot the bug: read an actual plan, flag the culprit, choose the fix ----------
+const PN=(op,obj,o={})=>({op,obj,kids:[],...o});
+const KW=s=>s.replace(/\b(SELECT|FROM|WHERE|AND|ORDER BY|JOIN|ON|TOP|DESC|ASC|OPTION)\b/g,'<span class="kw">$1</span>');
+function bugRound(o){return{bug:o,q:{kind:"bug"},title:"Spot the bug: "+o.name,take:o.take};}
+GEN.bugLookup=()=>{const v=ri(100,900),act=ri(800,4000),est=Math.round(act*(.85+R()*.3)),calls=ri(200,900),cols=pick([["status","notes"],["created_at","notes"],["status","created_at"]]),cl=cols.join(", ");
+  return bugRound({name:"lookup storm",sql:`SELECT id, ${cl} FROM t WHERE secondary_id = ${v}`,ddl:[ixDDL({keys:["secondary_id"],inc:[]})],ctx:[`This query runs ${fmt(calls)} times a minute.`,"Statistics are current."],
+    plan:PN("SELECT","",{kids:[PN("Nested Loops","Inner Join",{est,act,exec:1,cost:2,kids:[
+      PN("Index Seek","IX_t_secondary_id",{est,act,exec:1,reads:3+Math.ceil(act/500),cost:4,seek:`secondary_id = ${v}`,out:"id, secondary_id"}),
+      PN("Key Lookup","PK_t",{est:1,act:1,exec:act,reads:3*act,cost:94,seek:"id = IX_t_secondary_id.id",out:cl,bad:1})]})]}),
+    flag:`The Key Lookup runs once for every row the seek returns: ${fmt(act)} executions at 3 reads each, ${fmt(3*act)} reads and 94% of the cost.`,
+    fixes:[{t:`Rebuild IX_t_secondary_id with INCLUDE (${cl})`,ok:1,why:`The lookup only fetches ${cl}. With them in the leaf entry the seek covers the query and the lookup disappears: about ${fmt(3+Math.ceil(act/200))} reads a call instead of ${fmt(3*act+3)}.`},
+      {t:"Add a nonclustered index on id",why:"id is already the clustered key, and the lookup is already a seek on PK_t. Another index on id doesn't remove the lookup."},
+      {t:"UPDATE STATISTICS t",why:`The estimate (${fmt(est)}) is already close to the actual (${fmt(act)}). The plan is the right shape for the data; the cost comes from the columns the index doesn't hold.`},
+      {t:"Add OPTION (RECOMPILE)",why:"The estimate is accurate, so the plan isn't stale or sniffed. Recompiling produces the same lookups."}],
+    take:"A Key Lookup with thousands of executions is the classic sign of an index that almost covers a query. The fix is usually to INCLUDE the columns listed in the lookup's output list."});};
+GEN.bugStale=()=>{const v=ri(100,900),act=ri(20,60)*1000,mods=act+ri(1000,9000);
+  return bugRound({name:"an estimate of 1 row",sql:`SELECT * FROM t WHERE secondary_id = ${v}`,ddl:[ixDDL({keys:["secondary_id"],inc:[]})],ctx:[`Statistics on IX_t_secondary_id were last updated 9 days ago. ${fmt(mods)} rows have been modified since.`,"Compatibility level 110 (legacy cardinality estimator).",`${v} is a new secondary_id value added this week.`],
+    plan:PN("SELECT","",{kids:[PN("Nested Loops","Inner Join",{est:1,act,exec:1,cost:1,kids:[
+      PN("Index Seek","IX_t_secondary_id",{est:1,act,exec:1,reads:3+Math.ceil(act/500),cost:1,seek:`secondary_id = ${v}`,out:"id",bad:1}),
+      PN("Key Lookup","PK_t",{est:1,act:1,exec:act,reads:3*act,cost:98,seek:"id = IX_t_secondary_id.id",out:"secondary_id, status, created_at, notes"})]})]}),
+    flag:`This is where the estimate breaks: 1 row estimated, ${fmt(act)} actual. Everything after it, including ${fmt(act)} lookups, follows from that wrong estimate.`,
+    wrong:{"Key Lookup":`The Key Lookup is where the reads are, but it's a symptom. Its ${fmt(act)} executions come from the seek's ${fmt(act)} rows, which the optimizer expected to be 1. Look for where estimated and actual rows first diverge.`},
+    fixes:[{t:"UPDATE STATISTICS t",ok:1,why:`The histogram predates the new rows, so the legacy estimator assumes 1 row for ${v}. With fresh statistics it knows about ${fmt(act)} rows and chooses a scan.`},
+      {t:"Add OPTION (RECOMPILE)",why:"Recompiling uses the same stale histogram, so it still estimates 1 row and builds the same plan."},
+      {t:"Add an index on created_at",why:"The query doesn't filter on created_at. The problem is the row estimate for secondary_id."},
+      {t:"Add OPTION (MAXDOP 1)",why:"Parallelism isn't involved. The plan is serial and wrong because of the estimate."}],
+    take:"When a plan goes wrong, find the first operator whose actual rows differ wildly from its estimate. The expensive operators downstream are usually symptoms."});};
+GEN.bugSniff=()=>{const a=ri(100,500),b=ri(600,999),est=ri(8,40),act=ri(80,200)*1000;
+  return bugRound({name:"one plan, two values",sql:"SELECT id, status FROM t WHERE secondary_id = @p",ddl:[ixDDL({keys:["secondary_id"],inc:[]})],ctx:["Statistics on IX_t_secondary_id were updated 2 hours ago.",`Parameter list: @p compiled value = ${a}, runtime value = ${b}.`,`The histogram's EQ_ROWS for ${b} is ${fmt(act)}.`],
+    plan:PN("SELECT","",{kids:[PN("Nested Loops","Inner Join",{est,act,exec:1,cost:1,kids:[
+      PN("Index Seek","IX_t_secondary_id",{est,act,exec:1,reads:3+Math.ceil(act/500),cost:1,seek:"secondary_id = @p",out:"id",bad:1}),
+      PN("Key Lookup","PK_t",{est:1,act:1,exec:act,reads:3*act,cost:98,seek:"id = IX_t_secondary_id.id",out:"status"})]})]}),
+    flag:`The seek estimated ${est} rows and got ${fmt(act)}. The statistics are fresh, so the estimate isn't stale: it was made for @p = ${a}, the value the plan was compiled with.`,
+    wrong:{"Key Lookup":`The lookups are the expensive part, but they follow from the seek returning ${fmt(act)} rows when the plan expected ${est}. Find where estimated and actual rows first diverge.`},
+    fixes:[{t:"Add OPTION (RECOMPILE)",ok:1,why:`Each call gets a plan for its own value. For @p = ${b} the optimizer sees ${fmt(act)} rows and chooses a scan; for small values it keeps the seek.`},
+      {t:"UPDATE STATISTICS t",why:`Statistics are already current and know ${b} has ${fmt(act)} rows. The problem is that the cached plan was compiled for @p = ${a}.`},
+      {t:"Add an index on created_at",why:"The query doesn't touch created_at."},
+      {t:"Add OPTION (MAXDOP 1)",why:"Parallelism isn't the problem. The plan shape was chosen for a different parameter value."}],
+    take:"Compiled and runtime parameter values that differ, with an estimate that matches the compiled value, mean parameter sniffing. Fresh statistics won't help, because the plan isn't being recompiled."});};
+GEN.bugSort=()=>{const v=ri(100,900),act=ri(300,500)*1000,est=Math.round(act*(.9+R()*.15));
+  return bugRound({name:"a Sort that spills",sql:`SELECT id, created_at FROM t WHERE secondary_id = ${v} ORDER BY created_at`,ddl:[ixDDL({keys:["secondary_id"],inc:["created_at"]})],ctx:["Statistics are current."],
+    plan:PN("SELECT","",{kids:[PN("Sort","ORDER BY created_at ASC",{est,act,exec:1,cost:81,warn:"Operator used tempdb to spill data during execution with spill level 1",bad:1,kids:[
+      PN("Index Seek","IX_t_secondary_id",{est,act,exec:1,reads:3+Math.ceil(act/600),cost:19,seek:`secondary_id = ${v}`,out:"id, created_at"})]})]}),
+    flag:`The Sort has to order ${fmt(act)} rows, needs a memory grant to do it, and spilled to tempdb when the grant wasn't enough. It's 81% of the cost.`,
+    fixes:[{t:"Rebuild the index with key (secondary_id, created_at)",ok:1,why:"With secondary_id fixed by '=', the entries come out already sorted by created_at. The Sort, its memory grant and its spill all disappear."},
+      {t:"UPDATE STATISTICS t",why:`The estimate (${fmt(est)}) is already close to the actual (${fmt(act)}). The Sort was expected; sorting that many rows is the cost.`},
+      {t:"Add OPTION (RECOMPILE)",why:"The estimate is accurate, so a fresh plan has the same Sort."},
+      {t:"Add OPTION (MAXDOP 1)",why:"A serial Sort still needs the same memory and still spills."}],
+    take:"A Sort over many rows costs memory and can spill to tempdb. If the ORDER BY column can follow the equality columns in the index key, the index supplies the order and the Sort goes away."});};
+GEN.bugImplicit=()=>{const s=pick(STAT),act=ri(30,90)*1000;
+  return bugRound({name:"a scan that should be a seek",sql:"SELECT id FROM t WHERE status = @s",ddl:["CREATE INDEX IX_t_status ON t (status);"],ctx:["status is varchar(20). The application sends @s as nvarchar(20).","Database collation: SQL_Latin1_General_CP1_CI_AS.",`@s = N'${s}'`],
+    plan:PN("SELECT","",{kids:[PN("Index Scan","IX_t_status",{est:act,act,exec:1,reads:4900,cost:100,pred:"CONVERT_IMPLICIT(nvarchar(20),[t].[status],0) = @s",warn:"Type conversion in expression (CONVERT_IMPLICIT(nvarchar(20),[t].[status],0)) may affect \"SeekPlan\" in query plan choice",out:"id",bad:1})]}),
+    flag:"IX_t_status is keyed on status, yet the plan scans all of it. The warning says why: the column is converted to nvarchar before every comparison, so the index order can't be used to seek.",
+    fixes:[{t:"Declare @s as varchar(20) to match the column",ok:1,why:"With matching types there's no conversion on the column, so the optimizer can seek IX_t_status directly to the matching rows."},
+      {t:"Add an index on status",why:"IX_t_status already exists, and the plan is using it. It can't seek because of the conversion applied to the column."},
+      {t:"UPDATE STATISTICS t",why:"The estimate matches the actual rows. The problem is the data type mismatch, not the statistics."},
+      {t:"Add OPTION (RECOMPILE)",why:"A fresh plan sees the same nvarchar parameter and the same conversion."}],
+    take:"CONVERT_IMPLICIT on a column in a predicate stops a seek. Match parameter types to column types; varchar columns compared with nvarchar parameters are the usual culprit with SQL collations."});};
+GEN.bugYear=()=>{const yr=pick([2025,2026]),act=ri(100,400)*1000;
+  return bugRound({name:"a function on the column",sql:`SELECT id FROM t WHERE YEAR(created_at) = ${yr}`,ddl:["CREATE INDEX IX_t_created_at ON t (created_at);"],ctx:["Statistics are current.",`About ${fmt(act)} of the 2,000,000 rows are from ${yr}.`],
+    plan:PN("SELECT","",{kids:[PN("Index Scan","IX_t_created_at",{est:Math.round(act*.9),act,exec:1,rowsRead:N,reads:3100,cost:100,pred:`YEAR(created_at) = ${yr}`,out:"id",bad:1})]}),
+    flag:`The index on created_at is scanned end to end: 2,000,000 rows read to return ${fmt(act)}. Wrapping the column in YEAR() hides its order from the optimizer, so it can't seek a range.`,
+    fixes:[{t:`Rewrite as created_at >= '${yr}-01-01' AND created_at < '${yr+1}-01-01'`,ok:1,why:"A bare column compared with a range is sargable: the optimizer seeks straight to the first date of the year and stops at the last."},
+      {t:"Add an index on created_at",why:"IX_t_created_at already exists, and the plan is scanning it. A second copy has the same problem."},
+      {t:"UPDATE STATISTICS t",why:"The estimates are reasonable. No statistics can turn a function on the column into a seek."},
+      {t:"Add OPTION (RECOMPILE)",why:"A fresh plan sees the same YEAR() call and makes the same scan."}],
+    take:"A function wrapped around an indexed column (YEAR, CAST, ISNULL, LEFT) usually prevents a seek. Rewrite the predicate so the bare column is compared with a range of values."});};
+GEN.bugResidual=()=>{const v=ri(100,900),s=pick(STAT),read=ri(30,60)*1000,act=ri(40,300);
+  return bugRound({name:"rows read, rows returned",sql:`SELECT id, status FROM t WHERE secondary_id = ${v} AND status = '${s}'`,ddl:[ixDDL({keys:["secondary_id"],inc:["status"]})],ctx:["Statistics are current."],
+    plan:PN("SELECT","",{kids:[PN("Index Seek","IX_t_secondary_id",{est:act,act,exec:1,rowsRead:read,reads:3+Math.ceil(read/500),cost:100,seek:`secondary_id = ${v}`,pred:`status = '${s}'`,out:"id, status",bad:1})]}),
+    flag:`The seek reads ${fmt(read)} rows to return ${fmt(act)}. Only secondary_id is a seek predicate. status is checked row by row as a residual predicate, because it's an INCLUDE column, not a key column.`,
+    fixes:[{t:"Rebuild the index with key (secondary_id, status)",ok:1,why:`Both predicates become seek predicates, so the seek goes straight to the ${fmt(act)} matching rows instead of reading ${fmt(read)}.`},
+      {t:"Add status to the INCLUDE list",why:"status is already included. That's why it can be checked in the index at all, but INCLUDE columns can only be filtered, not sought."},
+      {t:"UPDATE STATISTICS t",why:"Estimated and actual rows already match. The cost is the rows read, not a misestimate."},
+      {t:"Add OPTION (RECOMPILE)",why:"A fresh plan uses the same index the same way."}],
+    take:"Compare Number of Rows Read with Actual Rows on a seek. A big gap means a residual predicate is doing the filtering, and moving that column into the key turns it into a seek predicate."});};
+GEN.bugJoinScan=()=>{const v=ri(100,900),outer=ri(20,60);
+  return bugRound({name:"a scan inside a loop",sql:`SELECT t.id, u.amount FROM t JOIN u ON u.t_id = t.id WHERE t.secondary_id = ${v}`,ddl:[ixDDL({keys:["secondary_id"],inc:[]}),"-- u has only its clustered index, PK_u on (uid)"],ctx:["u has 6,000,000 rows on about 15,600 pages.","Statistics are current."],
+    plan:PN("SELECT","",{kids:[PN("Nested Loops","Inner Join",{est:outer*3,act:outer*3,exec:1,cost:1,kids:[
+      PN("Index Seek","IX_t_secondary_id",{est:outer,act:outer,exec:1,reads:3,cost:0,seek:`secondary_id = ${v}`,out:"id"}),
+      PN("Clustered Index Scan","PK_u",{est:3,act:3,exec:outer,rowsRead:outer*UROWS,reads:outer*UPAGES,cost:99,pred:"u.t_id = t.id",out:"amount",bad:1})]})]}),
+    flag:`The inner side of the loop scans all of u once per outer row: ${outer} executions × ${fmt(UPAGES)} pages = ${fmt(outer*UPAGES)} reads, to find about 3 rows each time.`,
+    fixes:[{t:"CREATE INDEX IX_u_t_id ON u (t_id) INCLUDE (amount)",ok:1,why:`Each inner execution becomes a 3-read seek: about ${fmt(3+outer*3)} reads in total instead of ${fmt(outer*UPAGES)}.`},
+      {t:"Add OPTION (HASH JOIN)",why:`That scans u once, about ${fmt(UPAGES)} reads. Better, but an index on u.t_id makes each lookup 3 reads, about ${fmt(3+outer*3)} in total.`},
+      {t:"Add an index on t (id)",why:"t.id is already the clustered key. The problem is the inner side: nothing lets u be sought by t_id."},
+      {t:"UPDATE STATISTICS u",why:"The estimates are accurate. Without an index on t_id, there's nothing to seek."}],
+    take:"Nested loops is only cheap when the inner side is a seek. An inner scan with many executions means the join column on the inner table needs an index."});};
+function bugNodes(n,d=0,out=[]){out.push({n,d});n.kids.forEach(k=>bugNodes(k,d+1,out));return out;}
+function bugPick(i){if(S.phase!=="bflag")return;S.bsel=i;render();}
+function bugFlag(){
+  const b=S.sc.bug,nodes=bugNodes(b.plan),n=nodes[S.bsel]&&nodes[S.bsel].n;if(!n)return;
+  if(!n.bad){mistake();S.bwrong=(S.bwrong||new Set()).add(S.bsel);
+    setFB("bad",`<b class="t">Not the culprit</b>${(b.wrong&&b.wrong[n.op])||(n.op==="SELECT"?"SELECT is the root of the plan. It only returns rows.":`${n.op}${n.obj?" on "+n.obj:""} looks healthy: ${n.est!=null?`estimated ${fmt(n.est)} rows, actual ${fmt(n.act)}, `:""}${n.reads!=null?`${fmt(n.reads)} reads, `:""}${n.cost!=null?n.cost+"% of the cost":""}.`)}`);render();return;}
+  S.phase="bfix";S.wrongs=new Set();S.bh=false;setFB("ok",`<b class="t">Correct: ${n.op}${n.obj?" on "+n.obj:""}</b>${b.flag} Now choose the fix.`);render();
+}
+function bugFix(i){
+  if(S.phase!=="bfix")return;const f=S.sc.bug.fixes[i];
+  if(!f.ok){mistake();S.wrongs.add("f:"+i);setFB("bad",`<b class="t">Not the best fix</b>${f.why}`);render();return;}
+  S.phase="done";const pts=Math.max(0,100-15*S.mis-10*S.hints);G.pts+=pts;
+  G.log.push({title:S.sc.title,plan:"plan reading",r:0,w:0,mis:S.mis,hints:S.hints,pts});
+  S.dres=`<div class="sum"><div class="stats"><span>Fix <b>${f.t}</b></span><span>Mistakes <b>${S.mis}</b></span><span>Hints <b>${S.hints}</b></span><span>Points <b>${pts} / 100</b></span></div></div>`;
+  setFB("ok",`<b class="t">Correct</b>${f.why}`);render();
+}
+function bugHint(){S.hints++;S.bh=true;setFB("hint",`<b class="t">Hint</b>The highlighted ${S.phase==="bflag"?"operator":"fix"} is the answer. Hints cost 10 points.`);render();}
+function renderBug(){
+  const b=S.sc.bug,st=$("stage"),ac=$("actions"),ph=$("phase"),kb=$("keybox"),ins=$("instr");
+  $("query").innerHTML=KW(b.sql)+";";$("res-title").textContent="Result set";$("res-h").innerHTML="";$("res").innerHTML="";$("res-empty").hidden=false;
+  st.innerHTML="";ac.innerHTML="";kb.innerHTML="";
+  if(S.phase==="done"){ph.className="phase";ph.textContent=`Round ${G.round+1} complete`;ins.innerHTML=`<b>${S.sc.title}.</b> ${S.sc.take}`;st.innerHTML=S.dres;return summary(true);}
+  ph.className="phase";ph.textContent=`Round ${G.round+1} · ${S.phase==="bflag"?"find the culprit":"choose the fix"}`;
+  ins.textContent=S.phase==="bflag"?"This query is slow. Click operators to read their properties, then flag the one that's the problem.":"Which change fixes it best?";
+  kb.innerHTML=b.ctx.map(c=>`<span>${c}</span>`).join("");
+  st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Schema</span><code class="blk">${tableDDL(false)}\n${b.ddl.join("\n")}</code></div>`);
+  const nodes=bugNodes(b.plan),sel=S.bsel??-1,hintIdx=S.bh&&S.phase==="bflag"?nodes.findIndex(x=>x.n.bad):-1;
+  st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Actual execution plan</span><div class="xplan">${nodes.map(({n,d},i)=>`<button class="xnode${i===sel?" sel":""}${S.bwrong&&S.bwrong.has(i)?" wrong":""}${i===hintIdx?" hinted":""}${S.phase==="bfix"&&n.bad?" flagged":""}" data-i="${i}" style="margin-left:${d*22}px"${S.phase==="bflag"?"":" disabled"}>
+    <span class="xop">${d?"└ ":""}<b>${n.op}</b>${n.obj?` <span class="xobj">${n.obj}</span>`:""}${n.warn?' <span class="xwarn" title="Warning">⚠</span>':""}</span>
+    <span class="xstat">${n.cost!=null?`<span>cost ${n.cost}%</span>`:""}${n.act!=null?`<span>actual ${fmt(n.act*(n.exec||1))} · est ${fmt(n.est)}${n.exec>1?" per execution":""}</span>`:""}${n.exec>1?`<span>${fmt(n.exec)} executions</span>`:""}</span></button>`).join("")}</div></div>`);
+  if(sel>=0){const n=nodes[sel].n,row=(k,v)=>v==null?"":`<dt>${k}</dt><dd>${v}</dd>`;
+    st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Properties · ${n.op}${n.obj?" · "+n.obj:""}</span><dl class="kv xprops">${row("Estimated rows per execution",n.est!=null?fmt(n.est):null)}${row("Actual rows, all executions",n.act!=null?fmt(n.act*(n.exec||1)):null)}${row("Executions",n.exec!=null?fmt(n.exec):null)}${row("Number of rows read",n.rowsRead!=null?fmt(n.rowsRead):null)}${row("Logical reads",n.reads!=null?fmt(n.reads):null)}${row("Seek predicate",n.seek)}${row("Predicate",n.pred)}${row("Output list",n.out)}${row("Warning",n.warn)}</dl></div>`);}
+  if(S.phase==="bflag"){const fb=document.createElement("button");fb.className="primary";fb.textContent="Flag this operator as the problem";fb.disabled=sel<0;fb.onclick=bugFlag;ac.appendChild(fb);}
+  else{const box=optionButtons(b.fixes.map((f,i)=>[i,f.t,""]),"f:",bugFix);if(S.bh){const k=b.fixes.findIndex(f=>f.ok);box.children[k].classList.add("hinted");}st.appendChild(box);}
+  st.querySelectorAll(".xnode").forEach(x=>x.onclick=()=>bugPick(+x.dataset.i));
+  const hb=document.createElement("button");hb.textContent="Hint (−10)";hb.onclick=bugHint;ac.appendChild(hb);
+}
+
+// ---------- schema themes: each round renames the tables, columns and values ----------
+const STAT0=[...STAT],NOTES0=[...NOTES];
+const THEMES=[
+  {t:"t",id:"id",sec:"secondary_id",status:"status",date:"created_at",notes:"notes",u:"u",uid:"id",fk:"t_id",amt:"amount",stat:STAT0,nts:NOTES0},
+  {t:"orders",id:"order_id",sec:"customer_id",status:"status",date:"placed_at",notes:"comment",u:"order_lines",uid:"line_id",fk:"order_id",amt:"quantity",
+   stat:["cancelled","complete","packed","paid","pending","refunded"],nts:["call first","express","fragile","gift wrap","none","repeat customer","voucher used"]},
+  {t:"books",id:"book_id",sec:"author_id",status:"genre",date:"published_on",notes:"blurb",u:"loans",uid:"loan_id",fk:"book_id",amt:"days",
+   stat:["biography","fiction","history","poetry","science","travel"],nts:["award winner","first edition","illustrated","large print","none","signed copy","translated"]},
+  {t:"tickets",id:"ticket_id",sec:"project_id",status:"priority",date:"opened_at",notes:"summary",u:"comments",uid:"comment_id",fk:"ticket_id",amt:"likes",
+   stat:["blocked","high","low","medium","urgent","waiting"],nts:["billing","bug report","feature request","how-to","login issue","none","outage"]},
+  {t:"tracks",id:"track_id",sec:"album_id",status:"mood",date:"released_on",notes:"credits",u:"plays",uid:"play_id",fk:"track_id",amt:"seconds",
+   stat:["calm","dark","dreamy","epic","playful","upbeat"],nts:["acoustic","cover version","explicit","instrumental","live recording","none","remix"]},
+  {t:"readings",id:"reading_id",sec:"sensor_id",status:"state",date:"recorded_at",notes:"payload",u:"alerts",uid:"alert_id",fk:"reading_id",amt:"severity",
+   stat:["alarm","calibrating","idle","offline","ok","warning"],nts:["battery low","door open","firmware 2.1","manual check","none","rebooted","signal weak"]}];
+let THEME=THEMES[0];
+function useTheme(th){THEME=th;STAT.splice(0,STAT.length,...th.stat);NOTES.splice(0,NOTES.length,...th.nts);}
+const TOKRE=/(?<![\w'’@])('t'|IX_[tu]_[a-z_]+|PK_[tu]|u\.id|uid|t_id|secondary_id|created_at|status|notes|amount|id|t|u)(?![\w'’])/g;
+function splitKeys(s){const K=["secondary_id","created_at","status"],out=[];while(s){const k=K.find(x=>s.startsWith(x));if(!k){out.push(s);break;}out.push(k);s=s.slice(k.length).replace(/^_/,"");}return out;}
+function tmap(tok){const T=THEME;
+  if(tok==="'t'")return `'${T.t}'`;
+  if(tok.startsWith("IX_t_"))return "IX_"+T.t+"_"+splitKeys(tok.slice(5)).map(tmap).join("_");
+  if(tok.startsWith("IX_u_"))return "IX_"+T.u+"_"+(tok.slice(5)==="t_id"?T.fk:tok.slice(5));
+  if(tok==="PK_t")return "PK_"+T.t;if(tok==="PK_u")return "PK_"+T.u;if(tok==="u.id")return T.u+"."+T.uid;
+  return({uid:T.uid,t_id:T.fk,secondary_id:T.sec,created_at:T.date,status:T.status,notes:T.notes,amount:T.amt,id:T.id,t:T.t,u:T.u})[tok]??tok;}
+function themify(root){if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;
+  while((n=w.nextNode())){if(n.__o===undefined)n.__o=n.nodeValue;const v=THEME===THEMES[0]?n.__o:n.__o.replace(TOKRE,tmap);if(n.nodeValue!==v)n.nodeValue=v;}}
+
 // ---------- levels and progress ----------
 const LEVELS=[
- {name:"Seeks and lookups",topics:"Index seeks, key lookups, covered queries, scans, unique indexes",count:4,pool:[["eqLookup",{incP:0}],["eqCover",{incP:0}],["eqScan",{incP:0}],["unique",{incP:0}],["noIndex"],["eqZero",{incP:0}]]},
- {name:"INCLUDE and filtered indexes",topics:"INCLUDE columns, SELECT *, filtered indexes, seeks on the clustering key",count:4,pool:[["includeCov"],["includeMiss"],["includeAll"],["filteredHit"],["filteredMiss"],["pkSeek"]]},
- {name:"Ranges and composite keys",topics:"Range seeks, two-column keys, residual predicates, the leading-column rule",count:4,pool:[["rangeK1"],["compRange"],["residual"],["skipLeading"],["pkRange"]]},
- {name:"ORDER BY and TOP",topics:"Order from the index, backward reads, Sort operators, stopping early",count:4,pool:[["topLatest"],["topSort"],["rangeDescTop"],["pkTop"]]},
+ {name:"Seeks and lookups",topics:"Index seeks, key lookups, covered queries, scans, unique indexes",count:4,pool:[["eqLookup",{incP:0}],["eqCover",{incP:0}],["eqScan",{incP:0}],["unique",{incP:0}],["noIndex"],["eqZero",{incP:0}],["bugLookup"]]},
+ {name:"INCLUDE and filtered indexes",topics:"INCLUDE columns, SELECT *, filtered indexes, seeks on the clustering key",count:4,pool:[["includeCov"],["includeMiss"],["includeAll"],["filteredHit"],["filteredMiss"],["pkSeek"],["bugLookup"]]},
+ {name:"Ranges and composite keys",topics:"Range seeks, two-column keys, residual predicates, the leading-column rule",count:4,pool:[["rangeK1"],["compRange"],["residual"],["skipLeading"],["pkRange"],["bugResidual"],["bugYear"]]},
+ {name:"ORDER BY and TOP",topics:"Order from the index, backward reads, Sort operators, stopping early",count:4,pool:[["topLatest"],["topSort"],["rangeDescTop"],["pkTop"],["bugSort"]]},
  {name:"Writes",topics:"INSERT, UPDATE and DELETE across indexes, page splits, ghost records",count:4,pool:[["insert"],["updNon"],["updInc"],["updKey"],["del"]]},
  {name:"Heaps",topics:"Tables without a clustered index, RID lookups, table scans, forwarded records",count:4,pool:[["heapRid"],["heapCover"],["heapIdTrap"],["heapScan"],["heapForward"]]},
- {name:"Statistics",topics:"Reading a histogram, EQ_ROWS and AVG_RANGE_ROWS, combining two predicates",count:4,pool:[["statEq"],["statAvg"],["statTwo"],["statEq",{big:true}]]},
- {name:"Plan reuse",topics:"Parameter sniffing, stale statistics, values beyond the histogram",count:4,pool:[["sniff"],["stale"],["sniff"],["statAvg",{big:true}]]},
- {name:"Index design",topics:"Design one index for a workload of reads and writes, scored against the best possible design",count:3,pool:[["design"],["design"],["design"]]}
+ {name:"Statistics",topics:"Reading a histogram, EQ_ROWS and AVG_RANGE_ROWS, combining two predicates",count:4,pool:[["statEq"],["statAvg"],["statTwo"],["statEq",{big:true}],["bugStale"],["bugImplicit"]]},
+ {name:"Plan reuse",topics:"Parameter sniffing, stale statistics, values beyond the histogram",count:4,pool:[["sniff"],["stale"],["sniff"],["statAvg",{big:true}],["bugSniff"]]},
+ {name:"Index design",topics:"Design one index for a workload of reads and writes, scored against the best possible design",count:3,pool:[["design"],["design"],["design"]]},
+ {name:"Joins",topics:"Nested loops, merge join and hash match: when the optimizer picks each, and running them by hand",count:4,pool:[["joinNL"],["joinMerge"],["joinHash"],["joinNL",{nocover:true}],["bugJoinScan"]]}
 ];
 const STORE="storage-engine-drill-progress-v1";
 function loadProg(){try{const p=JSON.parse(localStorage.getItem(STORE)||"null");if(p&&p.unlocked)return p;}catch(e){}return{unlocked:1,best:{}};}
@@ -577,23 +987,25 @@ let PROG=loadProg();
 function mixedLevel(){const pool=LEVELS.slice(0,PROG.unlocked).flatMap((L,i)=>i===8?[["design"]]:L.pool);return{name:"Mixed practice",count:7,pool,mixed:true};}
 function makeRounds(L){const p=shuffle([...L.pool]);const out=p.slice(0,L.count);while(out.length<L.count)out.push(pick(L.pool));return shuffle(out);}
 function showLevels(){
-  $("game").hidden=true;$("levels").hidden=false;$("b-levels").hidden=true;
+  $("game").hidden=true;$("arcade").hidden=true;$("levels").hidden=false;$("b-levels").hidden=true;
   $("s-lvl").textContent="–";$("s-round").textContent="–";$("s-pts").textContent="0";$("s-mis").textContent="0";$("pips").innerHTML="";
   const el=$("levels");
-  el.innerHTML=`<div style="display:grid;gap:6px"><h2>Levels</h2><p class="muted">Each level is a short set of rounds. Score 60% or more to unlock the next one. Progress is saved in this browser.</p></div>
+  el.innerHTML=`<button class="lv arcadecard" id="b-arcade"><span class="lvn">Arcade mode</span><b>Peak Load</b><span class="lvt">Keep a server alive through five waves of live traffic. Build and drop indexes, refresh statistics and recompile plans while the latency climbs. Easiest after the statistics and plan reuse levels.</span><span class="lvs">${(()=>{try{const b=+(localStorage.getItem("storage-engine-drill-peakload-best")||0);return b?"Best score "+b.toLocaleString("en-GB"):"Not played";}catch(e){return"Not played";}})()}</span></button>
+  <div style="display:grid;gap:6px"><h2>Levels</h2><p class="muted">Each level is a short set of rounds. Score 60% or more to unlock the next one. Progress is saved in this browser.</p></div>
   <div class="lvgrid">${LEVELS.map((L,i)=>{const n=i+1,lock=n>PROG.unlocked,b=PROG.best[n];return `<button class="lv${b>=60?" pass":""}" data-l="${i}"${lock?" disabled":""}><span class="lvn">Level ${n} · ${L.count} rounds</span><b>${L.name}</b><span class="lvt">${L.topics}</span><span class="lvs">${lock?"Locked":b!=null?`Best ${b}%${b>=60?" · passed":""}`:"Not played"}</span></button>`;}).join("")}</div>
   <div class="actions"><button id="b-mixed" class="primary">Mixed practice: 7 rounds from your unlocked levels</button><button id="b-unlock">Unlock all levels</button></div>`;
   el.querySelectorAll(".lv").forEach(b=>b.onclick=()=>startLevel(+b.dataset.l));
   $("b-mixed").onclick=()=>startLevel(-1);
+  $("b-arcade").onclick=()=>aStart();
   $("b-unlock").onclick=()=>{PROG.unlocked=LEVELS.length;saveProg();showLevels();};
 }
-$("b-levels").onclick=showLevels;
+$("b-levels").onclick=()=>showLevels();
 
 // ---------- game state ----------
 let G,S;
 function startLevel(i){R=rng((Date.now()+Math.floor(Math.random()*1e6))%1000003);const L=i<0?mixedLevel():LEVELS[i];G={li:i,L,round:0,pts:0,mis:0,log:[],rounds:makeRounds(L)};$("levels").hidden=true;$("game").hidden=false;$("b-levels").hidden=false;startRound();}
 function buildScenario(spec){
-  const sc=GEN[spec[0]](spec[1]||{});if(sc.design)return sc;
+  const sc=GEN[spec[0]](spec[1]||{});if(sc.design||sc.join||sc.bug)return sc;
   const ncCap=ri(5,7),pkCap=ri(4,6),fan=3,fillN=sc.fillFull?ncCap:ri(ncCap-1,ncCap),fillP=sc.fillFull?pkCap:ri(pkCap-1,pkCap);
   sc.pk=sc.heap?mkHeap(sc.rows,pkCap,fillP):mkTree(sc.rows,r=>[r.id],fillP,pkCap,fan,500,"PK_t","ci");
   sc.ixT=sc.ix?mkTree(sc.rows.filter(r=>passFilter(sc.ix,r)).map(r=>({...r})),e=>ekey(sc.ix,e),fillN,ncCap,fan,900,ixName(sc.ix),"nc"):null;
@@ -602,9 +1014,10 @@ function buildScenario(spec){
   return sc;
 }
 function startRound(){
+  useTheme(G.round===0&&G.li===0&&!PROG.best[1]?THEMES[0]:pick(THEMES.filter(x=>x!==THEME)));
   const sc=buildScenario(G.rounds[G.round]);
-  S={sc,q:sc.q,ix:sc.ix,T:{ix:sc.ixT||null,pk:sc.pk||null},phase:sc.design?"design":sc.stats?"est":"plan",reads:{ix:0,pk:0},writes:0,vis:{ix:new Set(),pk:new Set()},mod:{ix:new Set(),pk:new Set()},path:{ix:[],pk:[]},out:[],buf:[],log:[],mis:0,hints:0,page:null,hint:null,wrongs:new Set()};
-  setFB("",sc.design?"Choose the key columns and INCLUDE list for one nonclustered index. The design is costed against every statement in the workload.":sc.stats?"Work out the optimizer's row estimate from the statistics first.":isW()?"Work out which indexes this statement has to change.":"Read the schema and the estimate, then pick the access path the optimizer would choose.");
+  S={sc,q:sc.q,ix:sc.ix,T:{ix:sc.ixT||null,pk:sc.pk||null},phase:sc.design?"design":sc.join?"jplan":sc.bug?"bflag":sc.stats?"est":"plan",reads:{ix:0,pk:0},writes:0,vis:{ix:new Set(),pk:new Set()},mod:{ix:new Set(),pk:new Set()},path:{ix:[],pk:[]},out:[],buf:[],log:[],mis:0,hints:0,page:null,hint:null,wrongs:new Set()};
+  setFB("",sc.bug?"Spot the bug. Read the actual execution plan, find the operator that's causing the problem, then pick the fix.":sc.join?"Two tables this time. Read the schema, the indexes and the estimate, then pick the physical join the optimizer would use.":sc.design?"Choose the key columns and INCLUDE list for one nonclustered index. The design is costed against every statement in the workload.":sc.stats?"Work out the optimizer's row estimate from the statistics first.":isW()?"Work out which indexes this statement has to change.":"Read the schema and the estimate, then pick the access path the optimizer would choose.");
   render();
 }
 const isW=()=>!!S.q&&S.q.kind!=="select";
@@ -941,12 +1354,14 @@ function render(){
   $("s-round").textContent=`${G.round+1} / ${G.rounds.length}`;$("s-pts").textContent=G.pts;$("s-mis").textContent=G.mis;
   $("pips").innerHTML=G.rounds.map((_,i)=>`<i class="${i<G.round?"done":i===G.round?"cur":""}"></i>`).join("");
   $("r-ix").textContent=S.reads.ix;$("r-pk").textContent=S.reads.pk;$("r-tot").textContent=S.reads.ix+S.reads.pk;$("r-wr").textContent=S.writes;
-  $("lbl-rpk").textContent=sc.heap?"Heap reads":"PK reads";
+  $("lbl-rpk").textContent=sc.heap?"Heap reads":"PK reads";$("lbl-rix").textContent="IX reads";
   $("lbl-ix").textContent=sc.design?"Nonclustered index":ixLabel(S.ix);
   $("lbl-pk").textContent=sc.design?"PK_t (clustered)":sc.heap?"t (heap) · no key order":"PK_t (clustered) · key (id)";
   mini("mini-ix","ix","nc");mini("mini-pk","pk","ci");
   $("path-ix").textContent=!S.T.ix?"":S.path.ix.length?S.path.ix.join(" → "):"not read yet";
   $("path-pk").textContent=!S.T.pk?"":S.path.pk.length?S.path.pk.join(" → "):"not read yet";
+  if(sc.join)return renderJoin();
+  if(sc.bug)return renderBug();
   if(sc.design){$("res-title").textContent="Result set";$("res-h").innerHTML="";$("res").innerHTML="";$("res-empty").hidden=false;return renderDesign();}
   if(isW()){$("res-title").textContent="Changes";$("res-h").innerHTML="<tr><th>Index</th><th>Change</th><th>Page</th></tr>";$("res").innerHTML=S.log.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("");$("res-empty").hidden=S.log.length>0;}
   else{$("res-title").textContent="Result set";$("res-h").innerHTML="<tr>"+outCols().map(c=>`<th>${c}</th>`).join("")+"</tr>";$("res").innerHTML=S.out.map(r=>`<tr>${outCols().map(c=>`<td>${r[c]}</td>`).join("")}</tr>`).join("");$("res-empty").hidden=S.out.length>0;}
@@ -1068,7 +1483,7 @@ function summary(isDesign){
 }
 function mini(id,k,cls){
   const svg=$(id),W=320,t=S.T[k];
-  if(!t){svg.setAttribute("viewBox","0 0 320 30");svg.innerHTML=`<text x="0" y="18">${S.sc.design?"Design round: nothing to walk.":"No nonclustered index on this table."}</text>`;return;}
+  if(!t){svg.setAttribute("viewBox","0 0 320 30");svg.innerHTML=`<text x="0" y="18">${S.sc.design?"Design round: nothing to walk.":S.sc.join?"Join round: the inputs are shown on the left.":S.sc.bug?"Plan round: the plan is on the left.":"No nonclustered index on this table."}</text>`;return;}
   const lv=levelsOf(t),rowH=40,H=rowH*lv.length;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);let h="";const pos=new Map();
   lv.forEach((pages,li)=>{const n=pages.length,bw=Math.min(54,(W-8)/n-4);pages.forEach((p,i)=>pos.set(p,{x:(W/n)*(i+.5)-bw/2,y:li*rowH+6,w:bw,h:rowH-16}));});
   lv.forEach(pages=>pages.forEach(p=>{if(p.kids)p.kids.forEach(c=>{const a=pos.get(p),b=pos.get(c);h+=`<line x1="${a.x+a.w/2}" y1="${a.y+a.h}" x2="${b.x+b.w/2}" y2="${b.y}"/>`;});}));
@@ -1076,6 +1491,367 @@ function mini(id,k,cls){
     h+=`<rect x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" rx="3" class="${cls}${v?" v":""}${c?" cur":""}"/><text x="${q.x+q.w/2}" y="${q.y+q.h/2+3}" text-anchor="middle">${p.pid.split(":")[1]}</text>${m?`<circle cx="${q.x+q.w-3}" cy="${q.y+3}" r="3" class="modm"/>`:""}`;}));
   svg.innerHTML=h;
 }
+
+// ---------- Peak Load: arcade mode ----------
+const AC=60000,MAXIX=3,BEST_KEY="storage-engine-drill-peakload-best",TUT_KEY="storage-engine-drill-peakload-tutorial";
+const AT={
+  lookup:{label:"Order lookup",short:"lookup",tok:"--q1",q:{kind:"select",select:["status","created_at"],where:[{col:"secondary_id",op:"=",param:"@p",sel:40/N}]}},
+  report:{label:"Dashboard report",short:"report",tok:"--q2",q:{kind:"select",select:["id"],where:[{col:"status",op:"=",param:"@s",sel:.2},{col:"created_at",op:">=",param:"@d",sel:7/365}]}},
+  latest:{label:"New product page",short:"product",tok:"--q3",q:{kind:"select",select:["*"],where:[{col:"secondary_id",op:"=",param:"@p",sel:30000/N}]}},
+  sniff:{label:"Basket check",short:"basket",tok:"--q4",q:{kind:"select",select:["id","notes"],where:[{col:"secondary_id",op:"=",param:"@p",sel:10/N}]},sn:{rare:10,hot:150000,share:.1}},
+  insert:{label:"New row",short:"INSERT",tok:"--qw",w:{kind:"insert"}},
+  upd:{label:"Status change",short:"UPDATE",tok:"--qu",w:{kind:"update",col:"status"}}
+};
+const TRAIN={name:"Training",clock:"08:30",dur:25,rates:{lookup:20,insert:10},drain:.3,floor:20};
+const WAVES=[
+  {name:"Doors open",clock:"09:00",dur:45,rogues:0,drain:.35,rates:{lookup:20,insert:10},msg:"The shop is open. Order lookups are arriving, and t has no nonclustered index yet, so every lookup scans all 20,000 leaf pages.",
+   hint:"Order lookup filters on secondary_id and reads status and created_at. Key the index on secondary_id and INCLUDE both columns.",fill:{keys:["secondary_id"],inc:["status","created_at"]},lesson:"An index on secondary_id turns a 20,000-page scan into a handful of reads per lookup."},
+  {name:"Dashboard launch",clock:"10:30",dur:45,rogues:1,drain:.55,rates:{lookup:20,insert:10,report:4},msg:"Marketing launched a live dashboard. Its report filters on status and a date range.",
+   hint:"The report uses = on status and >= on created_at. Equality column first, range column second: key (status, created_at). It only selects id, which every index carries.",fill:{keys:["status","created_at"],inc:[]},lesson:"The report needs its own index: equality column first, range column second, (status, created_at)."},
+  {name:"Bulk import",clock:"13:00",dur:45,rogues:1,drain:.75,rates:{lookup:15,insert:4000,report:1,upd:200},msg:"A supplier feed is loading 4,000 rows a second, and order statuses are changing fast. Every index you keep absorbs those writes.",
+   hint:"Look at the New row line. Each nonclustered index adds 4 reads and writes per INSERT, at 4,000 a second. Drop any index that no statement's plan uses.",lesson:"Each nonclustered index costs a descent and a write on every INSERT, and more on every UPDATE of its columns. An index nothing reads is pure overhead."},
+  {name:"New product line",clock:"15:45",dur:45,rogues:1,drain:.9,rates:{lookup:20,insert:10,report:3,latest:1},stale:true,msg:"A new product line went live after last night's statistics update. Its pages are timing out, and the plan says it expected 1 row.",
+   hint:"The plan expected 1 row because the histogram predates the new rows. Run UPDATE STATISTICS. For a lasting fix, cover SELECT *: rebuild the secondary_id index with every other column INCLUDEd. Building an index with the same key columns replaces the old one (DROP_EXISTING), so it doesn't use another slot.",fill:{keys:["secondary_id"],inc:["status","created_at","notes"]},lesson:"Stale statistics made the optimizer expect 1 row and choose lookups for 30,000. UPDATE STATISTICS fixes the estimate, and a covering index makes the estimate not matter."},
+  {name:"Flash sale",clock:"18:00",dur:45,rogues:2,drain:1,rates:{lookup:30,insert:15,report:4,latest:1.5,sniff:10},sniff:true,msg:"Flash sale. Basket checks spike. Most baskets hold a few items, but bulk buyers have huge ones, and the plan cache only keeps one plan.",
+   hint:"Basket check's cached plan suits small baskets and is ruinous for huge ones. Tick OPTION (RECOMPILE) on it, or rebuild the secondary_id index to INCLUDE notes as well, so every plan is cheap.",fill:{keys:["secondary_id"],inc:["status","created_at","notes"]},lesson:"A plan cached for a small basket also ran for huge ones. OPTION (RECOMPILE) plans each call separately, and a covering index makes every plan cheap."}
+];
+const GRACE=6;
+const ROGUES=[
+  {who:"Someone in Finance",what:"an ad-hoc report from their laptop",sql:"SELECT * FROM t ORDER BY notes",load:60000},
+  {who:"A scheduled job",what:"an index rebuild in the middle of the day",sql:"ALTER INDEX ALL ON t REBUILD",load:45000},
+  {who:"An analyst",what:"a full export with no WHERE clause",sql:"SELECT * FROM t",load:55000},
+  {who:"A test script",what:"a leading-wildcard search that can't seek",sql:"SELECT COUNT(*) FROM t WHERE notes LIKE '%fragile%'",load:50000}];
+const BADGES=[
+  {id:"clean",name:"Clean sheet",desc:"Finish the shift with no wave going over 100% load."},
+  {id:"hunter",name:"Session hunter",desc:"KILL every rogue session in a shift."},
+  {id:"minimal",name:"Minimalist",desc:"Finish the shift never holding more than two nonclustered indexes."},
+  {id:"solo",name:"No hints",desc:"Finish the shift without using a hint."},
+  {id:"zen",name:"Zen DBA",desc:"Reach a ×5 calm streak."},
+  {id:"overtime",name:"Overtime hero",desc:"Survive three overtime waves."}];
+const BADGE_KEY="storage-engine-drill-peakload-badges",SND_KEY="storage-engine-drill-peakload-sound";
+let AU=null,SOUND=(()=>{try{return localStorage.getItem(SND_KEY)!=="off";}catch(e){return true;}})(),alarmT=0;
+const RM=(()=>{try{return matchMedia("(prefers-reduced-motion: reduce)").matches;}catch(e){return false;}})();
+function tone(f,at,dur,type,vol,to){const o=AU.createOscillator(),g=AU.createGain();o.type=type||"triangle";o.frequency.setValueAtTime(f,at);if(to)o.frequency.exponentialRampToValueAtTime(to,at+dur);g.gain.setValueAtTime(vol||.07,at);g.gain.exponentialRampToValueAtTime(.0001,at+dur);o.connect(g);g.connect(AU.destination);o.start(at);o.stop(at+dur+.03);}
+function sfx(k){if(!SOUND)return;try{AU=AU||new (window.AudioContext||window.webkitAudioContext)();if(AU.state==="suspended")AU.resume();}catch(e){return;}const t=AU.currentTime+.01;
+  if(k==="up"){tone(660,t,.09);tone(990,t+.08,.14);}
+  else if(k==="down"){tone(330,t,.16,"sawtooth",.05,180);}
+  else if(k==="kill"){tone(1400,t,.28,"sawtooth",.06,90);tone(90,t+.05,.25,"square",.05);}
+  else if(k==="build"){tone(523,t,.1);tone(659,t+.08,.1);tone(784,t+.16,.18);}
+  else if(k==="pager"){tone(988,t,.08,"square",.04);tone(988,t+.14,.08,"square",.04);tone(988,t+.28,.08,"square",.04);}
+  else if(k==="alarm"){tone(196,t,.35,"sawtooth",.035);}
+  else if(k==="rogue"){tone(150,t,.4,"sawtooth",.05,110);tone(155,t,.4,"sawtooth",.04,112);}
+  else if(k==="wave"){[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.09,.22));}
+  else if(k==="lose"){[392,330,262,196].forEach((f,i)=>tone(f,t+i*.16,.3,"triangle",.07));}}
+// melody: every statement that reaches the server plays one note of a meandering tune
+const MEL_KEY="storage-engine-drill-peakload-melody";
+let MELODY=(()=>{try{return localStorage.getItem(MEL_KEY)!=="off";}catch(e){return true;}})();
+const VOICE={lookup:{lo:12,hi:20,type:"triangle"},report:{lo:16,hi:24,type:"sine"},latest:{lo:8,hi:15,type:"triangle"},sniff:{lo:13,hi:21,type:"sine"},insert:{lo:16,hi:22,type:"sine",soft:.4},upd:{lo:14,hi:20,type:"sine",soft:.55}};
+const MEL={pos:{},slot:-1,count:0,bus:null,beat:0};
+function melBus(){if(MEL.bus)return MEL.bus;const g=AU.createGain(),lp=AU.createBiquadFilter(),d=AU.createDelay(1),fb=AU.createGain(),wet=AU.createGain();
+  lp.type="lowpass";lp.frequency.value=2400;d.delayTime.value=.375;fb.gain.value=.33;wet.gain.value=.4;
+  g.connect(lp);lp.connect(AU.destination);lp.connect(d);d.connect(fb);fb.connect(d);d.connect(wet);wet.connect(AU.destination);MEL.bus=g;return g;}
+function melScale(){const ld=aDemand()/AC;return ld>1?[0,3,5,7,10]:ld>.75?[0,2,3,7,9]:[0,2,4,7,9];}
+function melPlay(midi,at,type,vol,len,detune){const o=AU.createOscillator(),g=AU.createGain(),f=440*Math.pow(2,(midi-69)/12);o.type=type;o.frequency.setValueAtTime(f,at);if(detune)o.detune.setValueAtTime(detune,at);
+  g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(vol,at+.012);g.gain.exponentialRampToValueAtTime(.0001,at+len);o.connect(g);g.connect(melBus());o.start(at);o.stop(at+len+.05);}
+function aNote(k){
+  if(!SOUND||!MELODY||!AU||AU.state!=="running")return;const v=VOICE[k.t];if(!v)return;
+  let p=MEL.pos[k.t]??Math.round((v.lo+v.hi)/2);p+=pick([-2,-1,-1,0,1,1,2]);if(p<v.lo)p=v.lo+1;if(p>v.hi)p=v.hi-1;MEL.pos[k.t]=p;
+  const heavy=k.c>=5000,deg=p-(heavy?5:0),sc=melScale(),midi=36+12*Math.floor(deg/5)+sc[((deg%5)+5)%5];
+  const grid=.125,slot=Math.ceil((AU.currentTime+.01)/grid);if(slot===MEL.slot){if(MEL.count>=2)return;MEL.count++;}else{MEL.slot=slot;MEL.count=1;}
+  const over=aDemand()/AC>1;melPlay(midi,slot*grid,heavy?"sawtooth":v.type,(heavy?.045:.05)*(v.soft||1),heavy?1:.75,over?(R()-.5)*35:0);
+}
+function aRogueBeat(dt){if(!A.rogues.length||!SOUND||!MELODY||!AU||AU.state!=="running")return;MEL.beat-=dt;if(MEL.beat>0)return;MEL.beat=.75;
+  const at=AU.currentTime+.02;melPlay(31,at,"sawtooth",.05,.5);melPlay(31,at+.18,"sawtooth",.03,.35);}
+function aFloat(text,col){A.floaters.push({text,col:col||ACOL["--ink"],life:1.8,dy:0});}
+let A=null,araf=0,alast=0,aId=0;
+const aEl=id=>document.getElementById(id);
+const Wv=()=>A.waves[A.wave];
+const SLOW=.3,aTS=()=>A.speed*(A.slow&&A.running?SLOW:1);
+function aNew(tut){A={tut:tut?{step:0}:null,waves:tut?[TRAIN]:WAVES,wave:0,t:(tut?TRAIN:WAVES[0]).dur,running:false,between:true,started:false,speed:1,ixs:[],statsFresh:true,recompile:{},sniffHot:false,backlog:0,lat:.004,pat:100,score:0,jobs:[],tokens:[],parts:[],acc:{},statsCd:0,timeouts:0,peaks:[0,0,0,0,0],over:false,dirty:true,fan:0,toastT:0,grace:GRACE,hints:0,hurt:0,slow:false,mult:1,calmT:0,maxMult:1,rogues:[],rogueTimes:[],spawned:0,kills:0,maxIx:0,floaters:[],confetti:[],overtime:0,rid:60};}
+const aProd=(a,f)=>a.reduce((x,p)=>x*f(p),1);
+function aOptions(q,selOf){
+  const opts=[{key:"scan",plan:"Clustered Index Scan",cost:20000}];
+  A.ixs.forEach(ix=>{if(ix.building)return;
+    const cols=ixCols(ix),cov=refCols(q).every(c=>cols.includes(c)),b=dParts(ix,q.where),w=dWidth(ix);
+    if(b.seek.length){const seekRows=N*aProd(b.seek,selOf),sr=aProd(b.res,selOf);opts.push({key:"s"+ix.id,plan:`Seek ${ixName(ix)}${cov?"":" + Key Lookup"}`,cost:2+Math.max(1,Math.ceil(seekRows*w/8096))+(cov?0:3*Math.ceil(seekRows*sr))});}
+    else if(cov)opts.push({key:"i"+ix.id,plan:`Scan ${ixName(ix)}`,cost:Math.ceil(N*w/8096)});});
+  return opts;
+}
+const amin=o=>o.reduce((a,b)=>b.cost<a.cost?b:a);
+function aCost(t){
+  const d=AT[t];
+  if(d.w){let c=4;A.ixs.forEach(ix=>{if(d.w.kind==="insert")c+=4;else if(ix.keys.includes(d.w.col))c+=8;else if(ix.inc.includes(d.w.col))c+=4;});
+    const touched=A.ixs.filter(ix=>d.w.kind==="insert"||ix.keys.includes(d.w.col)||ix.inc.includes(d.w.col)).length;
+    return{plan:touched?`PK_t + ${touched} index${touched>1?"es":""}`:"PK_t only",cost:c};}
+  const q=d.q,rc=A.recompile[t]?100:0;
+  if(t==="latest"){const act=q.where[0].sel,est=A.statsFresh?act:1/N,ch=amin(aOptions(q,()=>est)),c=aOptions(q,()=>act).find(o=>o.key===ch.key).cost;
+    return{plan:ch.plan,cost:c+rc,note:A.statsFresh?"":"expects 1 row (stale statistics)"};}
+  if(t==="sniff"){const s=d.sn,rare=aOptions(q,()=>s.rare/N),hot=aOptions(q,()=>s.hot/N);
+    if(rc)return{plan:"planned per call",cost:(1-s.share)*amin(rare).cost+s.share*amin(hot).cost+rc,note:"OPTION (RECOMPILE)"};
+    const ch=amin(A.sniffHot?hot:rare);
+    return{plan:ch.plan,cost:(1-s.share)*rare.find(o=>o.key===ch.key).cost+s.share*hot.find(o=>o.key===ch.key).cost,note:`cached plan, compiled for a ${A.sniffHot?"huge":"small"} basket`};}
+  const o=amin(aOptions(q,p=>p.sel));return{plan:o.plan,cost:o.cost+rc};
+}
+const aRates=()=>Wv().rates;
+function aDemand(){let d=0;for(const t in aRates())d+=aRates()[t]*aCost(t).cost;A.jobs.forEach(j=>{d+=j.rate;});A.rogues.forEach(r=>{d+=r.load;});return d;}
+function aInvalidate(why){A.dirty=true;if(Wv().sniff&&!A.recompile.sniff){const was=A.sniffHot;A.sniffHot=R()<.3;if(A.sniffHot&&!was)aToast(`${why} cleared the plan cache. The basket check recompiled for a huge basket, so every call now gets its plan.`);}}
+function aToast(m){const e=aEl("a-toast");e.textContent=m;e.hidden=false;A.toastT=8;}
+function aTick(dt){
+  if(!A.running||A.over)return;
+  dt*=aTS();A.t-=dt;A.statsCd=Math.max(0,A.statsCd-dt);A.grace=Math.max(0,A.grace-dt);
+  A.ixs.forEach(ix=>{if(ix.building){ix.prog+=dt/3;if(ix.prog>=1){ix.building=false;sfx("build");aFloat(`${ixName(ix)} ready`,ACOL["--q2"]);if(ix.replaces)A.ixs=A.ixs.filter(x=>x.id!==ix.replaces);aInvalidate(`Building ${ixName(ix)}`);aTutCheck();}}});
+  A.jobs.forEach(j=>{j.left-=j.rate*dt;});A.jobs=A.jobs.filter(j=>j.left>0);
+  const D=aDemand();A.peaks[A.wave]=Math.max(A.peaks[A.wave],D/AC);
+  A.backlog=Math.max(0,A.backlog+(D-AC)*dt);
+  if(A.backlog>3*AC){const ex=A.backlog-3*AC,avg=D/Math.max(1,Object.values(aRates()).reduce((a,b)=>a+b,0));A.timeouts+=ex/Math.max(1,avg);A.backlog=3*AC;}
+  A.lat=.004+A.backlog/AC;
+  const f=Wv().drain;
+  if(A.lat>1)A.hurt=Math.min(10,A.hurt+dt);else A.hurt=Math.max(0,A.hurt-2*dt);
+  const ramp=Math.min(1,A.hurt/8);
+  if(A.grace<=0){if(A.lat>2)A.pat-=10*f*ramp*dt;else if(A.lat>1)A.pat-=4*f*ramp*dt;}
+  if(A.lat<.5)A.pat=Math.min(100,A.pat+1.5*dt);
+  if(Wv().floor)A.pat=Math.max(Wv().floor,A.pat);
+  const served=Object.values(aRates()).reduce((a,b)=>a+b,0);if(!A.tut)A.score+=served*dt*(A.lat<.1?.03:A.lat<.5?.02:A.lat<2?.01:0)*A.mult;
+  A.maxIx=Math.max(A.maxIx,A.ixs.filter(x=>!x.replaces).length);
+  if(!A.tut){const ld=D/AC;
+    if(ld<.75){A.calmT+=dt;if(A.calmT>=5){A.calmT=0;if(A.mult<5){A.mult++;A.maxMult=Math.max(A.maxMult,A.mult);aFloat(`×${A.mult} calm streak`,ACOL["--ok"]);sfx("up");}}}
+    else if(ld>1){if(A.mult>1){aFloat("streak lost",ACOL["--bad"]);sfx("down");}A.mult=1;A.calmT=0;}else A.calmT=Math.max(0,A.calmT-dt);
+    const el=Wv().dur-A.t;while(A.rogueTimes.length&&el>=A.rogueTimes[0]){A.rogueTimes.shift();aRogue();}
+    A.rogues.forEach(r=>{r.p+=dt/r.span;});const done=A.rogues.filter(r=>r.p>=1);
+    if(done.length){A.rogues=A.rogues.filter(r=>r.p<1);aToast(`spid ${done[0].spid} finished on its own after hogging the server the whole way.`);aRogueList();}
+    aRogueBeat(dt);
+    if(A.lat>2){alarmT-=dt;if(alarmT<=0){sfx("alarm");alarmT=1.6;}}else alarmT=0;}
+  if(A.toastT>0){A.toastT-=dt;if(A.toastT<=0)aEl("a-toast").hidden=true;}
+  if(A.tut&&A.tut.step===4&&A.t<=Wv().dur-6)aTutGo(5);
+  if(A.pat<=0){A.pat=0;A.over=true;A.running=false;A.rogues=[];aRogueList();sfx("lose");aEnd(!!A.overtime);return;}
+  if(A.t<=0){A.running=false;A.between=true;A.rogues=[];aRogueList();
+    if(A.tut){aTutGo(6);return;}
+    if(A.peaks[A.wave]<=1)aConfetti();sfx("wave");
+    if(A.overtime){A.overtime++;A.waves.push(otWave(A.overtime));A.wave++;aWaveCard();return;}
+    if(A.wave===A.waves.length-1){A.over=true;aEnd(true);}else{A.wave++;aWaveCard();}}
+}
+function aRogue(){const k=pick(ROGUES),spid=++A.rid;A.spawned++;
+  A.rogues.push({...k,spid,p:0,span:18,y:.2+R()*.6,ph:0});sfx("rogue");
+  aToast(`${k.who} started ${k.what}: ${k.sql}. That's ${fmt(k.load)} reads a second until it finishes. Click spid ${spid} in the traffic lane to KILL it.`);aRogueList();}
+function aKill(spid){const r=A.rogues.find(x=>x.spid===spid);if(!r||!A.running)return;A.rogues=A.rogues.filter(x=>x!==r);A.kills++;
+  const pts=250*A.mult;A.score+=pts;sfx("kill");aFloat(`KILL ${spid} · +${fmt(pts)}`,ACOL["--q2"]);A.killFx={y:r.y,x:r.p,life:.6};
+  aToast(`KILL ${spid}. The session is rolled back and its ${fmt(r.load)} reads a second are gone.`);aRogueList();}
+function aRogueList(){const e=aEl("a-rogues");if(!e)return;e.innerHTML=A.rogues.map(r=>`<button class="killbtn" data-spid="${r.spid}">KILL ${r.spid}</button>`).join("");e.querySelectorAll("[data-spid]").forEach(b=>b.onclick=()=>aKill(+b.dataset.spid));}
+function aConfetti(){if(RM)return;const cv=aEl("a-lane"),w=cv.clientWidth;for(let i=0;i<70;i++)A.confetti.push({x:R()*w,y:-10-R()*60,vx:(R()-.5)*60,vy:60+R()*120,rot:R()*6,vr:(R()-.5)*10,col:ACOL[pick(["--q1","--q2","--q3","--q4","--ok"])],life:3});}
+function otWave(k){const f=Math.pow(1.15,k),base=WAVES[4].rates,rates={};for(const t in base)rates[t]=Math.round(base[t]*f*10)/10;
+  const ev=pick(["stale","surge","rogues","sniff"]);let msg;
+  if(ev==="surge"){rates.insert=Math.round(2500*f);rates.upd=Math.round(150*f);msg="Another supplier feed has kicked off. Thousands of inserts a second, and every index pays for each one.";}
+  else if(ev==="stale")msg="A late batch of new products went live. The histogram doesn't know about them yet.";
+  else if(ev==="rogues")msg="Month-end. Everyone with database access is running their own queries.";
+  else msg="Traffic is climbing again, and the plan cache is about to be tested.";
+  return{name:`Overtime ${k}`,clock:"after hours",dur:30,drain:1,rates,stale:ev==="stale",sniff:true,rogues:ev==="rogues"?3:1,msg:`${msg} Traffic is ${Math.round((f-1)*100)}% above the flash sale peak.`,
+    hint:ev==="surge"?"Count your indexes against the INSERT rate. Drop anything the workload doesn't use.":ev==="stale"?"Statistics are stale again. UPDATE STATISTICS, or rely on a covering index.":ev==="rogues"?"Three rogue sessions are coming. KILL them as soon as they appear.":"If Basket check's plan flips, RECOMPILE or a covering index protects you."};}
+// ---------- canvas ----------
+let ACOL={};
+function aColors(){const cs=getComputedStyle(document.documentElement);["--q1","--q2","--q3","--q4","--qw","--qu","--ink","--muted","--line","--surface","--ok","--bad","--hint","--bg"].forEach(k=>{ACOL[k]=cs.getPropertyValue(k).trim()||"#888";});}
+function aSpawn(dt,w,h){
+  for(const t in aRates()){const r=aRates()[t],vr=Math.max(.4,Math.min(5,1.3*Math.log10(r+1)));A.acc[t]=(A.acc[t]||0)+vr*dt*aTS();
+    while(A.acc[t]>=1){A.acc[t]--;const c=aCost(t).cost;A.tokens.push({t,x:-20,y:22+R()*(h-44),r:Math.min(24,5+3.2*Math.log10(c+1)),c,ph:R()*6});}}
+}
+function aDraw(dt){
+  const cv=aEl("a-lane");if(!cv)return;const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  const ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  if(A.running&&A.lat>2&&!RM){const m=Math.min(4,A.lat);ctx.translate((R()-.5)*m,(R()-.5)*m);}
+  const sw=Math.min(96,w*.2),sx=w-sw-8,load=aDemand()/AC;
+  ctx.strokeStyle=ACOL["--line"];ctx.setLineDash([4,6]);ctx.lineWidth=1;for(let y=30;y<h;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(sx-6,y);ctx.stroke();}ctx.setLineDash([]);
+  if(A.running){aSpawn(dt,w,h);
+    const base=sx/2.4,jam=1/(1+A.lat*2.5);
+    A.tokens.forEach(k=>{const near=k.x>sx-110;k.x+=base*dt*aTS()*(near?Math.max(.08,jam):1);k.ph+=dt*6;
+      if(k.x+k.r>=sx){k.dead=true;aNote(k);for(let i=0;i<3;i++)A.parts.push({x:sx,y:k.y,vx:-20-R()*40,vy:(R()-.5)*60,life:.4,col:ACOL[AT[k.t].tok]});}});
+    A.tokens=A.tokens.filter(k=>!k.dead);if(A.tokens.length>220)A.tokens.splice(0,A.tokens.length-220);
+    if(A.lat>1.5&&R()<.5)A.parts.push({x:sx+sw*.3+R()*sw*.4,y:h/2-50,vx:(R()-.5)*14,vy:-30-R()*25,life:1.6,col:ACOL["--muted"],smoke:true});
+  }else if(!A.tokens.length&&A.between){const d0=aDemand();for(const t in aRates()){for(let i=0;i<3;i++){const c=aCost(t).cost;A.tokens.push({t,x:30+R()*(sx-90),y:22+R()*(h-44),r:Math.min(24,5+3.2*Math.log10(c+1)),c,ph:R()*6});}}void d0;}
+  A.tokens.forEach(k=>{if(!A.running){k.c=aCost(k.t).cost;k.r=Math.min(24,5+3.2*Math.log10(k.c+1));}
+    ctx.beginPath();ctx.arc(k.x,k.y,k.r,0,7);ctx.fillStyle=ACOL[AT[k.t].tok];ctx.globalAlpha=.9;ctx.fill();ctx.globalAlpha=1;
+    if(k.c>=5000){ctx.lineWidth=2+Math.sin(k.ph+(A.running?0:performance.now()/250))*1.2;ctx.strokeStyle=ACOL["--bad"];ctx.stroke();}
+    if(k.r>=13){ctx.fillStyle="#fff";ctx.font="600 10px JetBrains Mono, monospace";ctx.textAlign="center";ctx.fillText(k.c>=1000?Math.round(k.c/1000)+"k":String(Math.round(k.c)),k.x,k.y+3.5);}});
+  A.parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;ctx.globalAlpha=Math.max(0,Math.min(1,p.life*(p.smoke?.5:2)));ctx.beginPath();ctx.arc(p.x,p.y,p.smoke?6+(1.6-p.life)*8:2.5,0,7);ctx.fillStyle=p.col;ctx.fill();});
+  ctx.globalAlpha=1;A.parts=A.parts.filter(p=>p.life>0);
+  A.rogues.forEach(r=>{r.ph+=dt*5;const x=20+r.p*(sx-80),y=r.y*h,rr=26+Math.sin(r.ph)*3;
+    ctx.beginPath();ctx.arc(x,y,rr+6,0,7);ctx.fillStyle=ACOL["--bad"];ctx.globalAlpha=.18;ctx.fill();ctx.globalAlpha=1;
+    ctx.beginPath();ctx.arc(x,y,rr,0,7);ctx.fillStyle=ACOL["--bad"];ctx.fill();ctx.lineWidth=2;ctx.strokeStyle=ACOL["--surface"];ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle="#fff";ctx.textAlign="center";ctx.font="700 11px JetBrains Mono, monospace";ctx.fillText("KILL",x,y-1);ctx.font="500 9px JetBrains Mono, monospace";ctx.fillText("spid "+r.spid,x,y+11);r.sx=x;r.sy=y;r.rr=rr;});
+  if(A.killFx){const k=A.killFx;k.life-=dt;const x=20+k.x*(sx-80),y=k.y*h;ctx.beginPath();ctx.arc(x,y,30+(.6-k.life)*90,0,7);ctx.strokeStyle=ACOL["--q2"];ctx.lineWidth=3;ctx.globalAlpha=Math.max(0,k.life/.6);ctx.stroke();ctx.globalAlpha=1;if(k.life<=0)A.killFx=null;}
+  const sy=h/2-48,sh=96,state=load>1?ACOL["--bad"]:load>.75?ACOL["--hint"]:ACOL["--ok"];
+  ctx.fillStyle=ACOL["--surface"];ctx.strokeStyle=state;ctx.lineWidth=2.5;ctx.beginPath();ctx.roundRect(sx,sy,sw,sh,8);ctx.fill();ctx.stroke();
+  A.fan+=dt*aTS()*(A.running?Math.min(4,load)*14:0);const fx=sx+sw/2,fy=sy+38;
+  ctx.save();ctx.translate(fx,fy);ctx.rotate(A.fan);ctx.fillStyle=state;for(let i=0;i<3;i++){ctx.rotate(2.094);ctx.beginPath();ctx.ellipse(0,-9,4,9,0,0,7);ctx.fill();}ctx.restore();
+  ctx.fillStyle=ACOL["--ink"];ctx.font="600 10px JetBrains Mono, monospace";ctx.textAlign="center";ctx.fillText("server",fx,sy+70);
+  ctx.fillStyle=ACOL["--muted"];ctx.fillText(Math.round(load*100)+"% load",fx,sy+84);
+  if(A.slow&&A.running){ctx.fillStyle=ACOL["--q2"];ctx.font="700 12px JetBrains Mono, monospace";ctx.textAlign="left";ctx.fillText(`PLANNING · time ×${SLOW}`,12,18);}
+  A.floaters.forEach((f,i)=>{f.life-=dt;f.dy+=dt*26;ctx.globalAlpha=Math.max(0,Math.min(1,f.life));ctx.fillStyle=f.col;ctx.font="700 13px Bricolage Grotesque, sans-serif";ctx.textAlign="right";ctx.fillText(f.text,sx-12,sy-8-f.dy-i*2);});
+  ctx.globalAlpha=1;A.floaters=A.floaters.filter(f=>f.life>0);
+  A.confetti.forEach(c=>{c.x+=c.vx*dt;c.y+=c.vy*dt;c.rot+=c.vr*dt;c.life-=dt;ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.rot);ctx.fillStyle=c.col;ctx.globalAlpha=Math.max(0,Math.min(1,c.life));ctx.fillRect(-4,-2,8,4);ctx.restore();});
+  ctx.globalAlpha=1;A.confetti=A.confetti.filter(c=>c.life>0&&c.y<h+20);
+}
+// ---------- panels ----------
+const aPct=x=>Math.round(x*100);
+function aHud(){
+  const D=aDemand(),ld=D/AC,wv=Wv();
+  aEl("a-wave").textContent=A.tut?"Practice":`${A.wave+1} / ${A.waves.length}`;aEl("a-wname").textContent=wv.name;aEl("a-time").textContent=Math.max(0,Math.ceil(A.t));
+  const lb=aEl("a-load");lb.style.width=Math.min(100,ld*100)+"%";lb.className=ld>1?"bad":ld>.75?"warn":"";
+  let top=null;for(const t in aRates()){const s=aRates()[t]*aCost(t).cost/AC;if(!top||s>top.s)top={t,s};}
+  const rg=A.rogues.reduce((x,r)=>x+r.load,0)/AC;if(rg>(top?top.s:0))top={t:null,s:rg};
+  aEl("a-loadtxt").textContent=`${fmt(D)} of ${fmt(AC)} reads/s`+(ld>.75&&top?` · biggest: ${top.t?AT[top.t].label:"rogue sessions"} (${aPct(top.s)}%)`:"");
+  aEl("a-lanewrap").classList.toggle("slowmo",!!(A.slow&&A.running));
+  aEl("a-lat").textContent=A.lat<1?Math.round(A.lat*1000)+" ms":A.lat.toFixed(1)+" s";aEl("a-lat").className=A.lat>2?"bad":A.lat>.5?"warn":"";
+  const pb=aEl("a-pat");pb.style.width=A.pat+"%";pb.className=A.pat<30?"bad":A.pat<60?"warn":"";
+  aEl("a-patnote").textContent=A.running&&A.grace>0?`grace period: ${Math.ceil(A.grace)} s`:A.lat>1?(A.hurt<8?`draining, ${aPct(Math.min(1,A.hurt/8))}% speed and rising`:"draining at full speed"):"";
+  aEl("a-score").textContent=A.tut?"–":fmt(A.score);
+  aEl("a-mult").textContent=A.tut?"–":`×${A.mult}`;aEl("a-mult").className=A.mult>=4?"good":"";aEl("a-multbar").style.width=(A.mult>=5?100:A.calmT/5*100)+"%";
+  aEl("a-sound").textContent=SOUND?"Sound on":"Sound off";aEl("a-melody").textContent=MELODY?"Melody on":"Melody off";aEl("a-melody").disabled=!SOUND;
+  aEl("a-pause").textContent=A.running?"Pause":"Resume";aEl("a-pause").disabled=A.over||!A.started||A.between;
+  aEl("a-hint").disabled=!!A.tut||A.over;
+  const sb=aEl("a-stats");if(sb){sb.disabled=A.statsCd>0||A.over;sb.textContent=A.statsCd>0?`UPDATE STATISTICS t (ready in ${Math.ceil(A.statsCd)} s)`:"UPDATE STATISTICS t";}
+  aEl("a-statsstate").textContent=A.statsFresh?"Statistics are up to date.":"Statistics are stale: rows inserted since the last update aren't in the histogram.";
+  A.ixs.forEach(ix=>{const e=aEl("a-prog-"+ix.id);if(e)e.textContent=ix.building?`building ${aPct(ix.prog)}%`:"ready";});
+}
+function aPanels(){
+  A.dirty=false;const rates=aRates();
+  aEl("a-wl").innerHTML=`<thead><tr><th>Statement</th><th>Per second</th><th>Plan</th><th>Reads each</th><th>Share of capacity</th></tr></thead><tbody>${Object.keys(rates).map(t=>{const d=AT[t],c=aCost(t),share=rates[t]*c.cost/AC;
+    return `<tr><td><span class="sw" style="background:var(${d.tok})"></span><b>${d.label}</b><code>${d.q?sqlText(d.q):wText(d.w)}</code>${d.q?`<label class="rc"><input type="checkbox" data-rc="${t}"${A.recompile[t]?" checked":""}> OPTION (RECOMPILE)</label>`:""}</td><td>${fmt(rates[t])}</td><td>${c.plan}${c.note?`<span class="pn">${c.note}</span>`:""}</td><td>${fmt(c.cost)}</td><td><div class="share"><i class="${share>.5?"bad":share>.2?"warn":""}" style="width:${Math.min(100,share*100)}%"></i></div><span class="pn">${share<.001?"<0.1":n1(share*100)}%</span></td></tr>`;}).join("")}</tbody>`;
+  aEl("a-wl").querySelectorAll("[data-rc]").forEach(cb=>cb.onchange=()=>{A.recompile[cb.dataset.rc]=cb.checked;A.dirty=true;});
+  aEl("a-slots").textContent=`${A.ixs.length} of ${MAXIX}`;
+  aEl("a-ixlist").innerHTML=A.ixs.length?A.ixs.map(ix=>`<div class="ixcard"><code>${ixDDL(ix)}</code><span class="pn">${fmt(Math.ceil(N*dWidth(ix)/8096))} leaf pages · <span id="a-prog-${ix.id}">${ix.building?`building ${aPct(ix.prog)}%`:"ready"}</span></span><button data-drop="${ix.id}">Drop</button></div>`).join(""):`<p class="pn">No nonclustered indexes. Every read has to scan PK_t.</p>`;
+  aEl("a-ixlist").querySelectorAll("[data-drop]").forEach(b=>b.onclick=()=>{const ix=A.ixs.find(x=>x.id===+b.dataset.drop);A.ixs=A.ixs.filter(x=>x!==ix);aToast(`Dropped ${ixName(ix)}.`);aInvalidate(`Dropping ${ixName(ix)}`);aPanels();});
+  aEl("a-build").disabled=A.over;
+}
+function aRead(){
+  const ks=["a-k1","a-k2","a-k3"].map(i=>aEl(i).value).filter(Boolean);
+  if(new Set(ks).size!==ks.length)return{err:"Each key column can appear only once."};
+  if(NONKEY.some(c=>aEl("a-i-"+c).checked&&ks.includes(c)))return{err:"A column can't be both a key column and an INCLUDE column."};
+  const ix={keys:ks,unique:false,inc:NONKEY.filter(c=>aEl("a-i-"+c).checked)};
+  const same=A?A.ixs.filter(x=>ixName(x)===ixName(ix)):[];
+  if(same.some(x=>x.building))return{err:`${ixName(ix)} is already being built. Wait for it to finish.`};
+  return{ix,replaces:same[0]||null};
+}
+const aDDL=r=>r.replaces?ixDDL(r.ix).replace(/;$/," WITH (DROP_EXISTING = ON);"):ixDDL(r.ix);
+function aPreview(){const r=aRead();aEl("a-ddl").textContent=r.err?"-- "+r.err:aDDL(r)+(r.replaces?"\n-- replaces the existing index with the same name":"");}
+function aFill(f){["a-k1","a-k2","a-k3"].forEach((id,i)=>{aEl(id).value=f.keys[i]||"";});NONKEY.forEach(c=>{aEl("a-i-"+c).checked=f.inc.includes(c);});aPreview();
+  const b=aEl("a-builder");b.classList.remove("coach-hl");void b.offsetWidth;b.classList.add("coach-hl");setTimeout(()=>{if(!(A.tut&&A.tut.step===2))b.classList.remove("coach-hl");},2500);}
+function aBuild(){
+  const r=aRead();if(r.err){aToast(r.err);return;}
+  if(!r.replaces&&A.ixs.length>=MAXIX){aToast("Three nonclustered indexes is the limit for this shift. Drop one first, or rebuild an existing one by keeping its key columns.");return;}
+  const ix={...r.ix,id:++aId,building:true,prog:0,replaces:r.replaces?r.replaces.id:null},pages=Math.ceil(N*dWidth(ix)/8096);
+  if(A.between){ix.building=false;if(r.replaces)A.ixs=A.ixs.map(x=>x===r.replaces?ix:x);else A.ixs.push(ix);
+    aToast(r.replaces?`Rebuilt ${ixName(ix)} with DROP_EXISTING while the clock was stopped.`:`Built ${ixName(ix)} while the clock was stopped.`);aInvalidate(`Building ${ixName(ix)}`);aPanels();aTutCheck();return;}
+  A.ixs.push(ix);A.jobs.push({rate:(20000+pages)/3,left:20000+pages});
+  aToast(`${r.replaces?"Rebuilding":"Building"} ${ixName(ix)}: a full scan of PK_t plus ${fmt(pages)} page writes, spread over 3 seconds.${r.replaces?" The old version keeps serving until the new one is ready.":""}`);aPanels();
+}
+function aStats(){if(A.statsCd>0)return;A.statsCd=15;if(!A.between)A.jobs.push({rate:10000,left:20000});const was=A.statsFresh;A.statsFresh=true;
+  aToast(was?"Statistics refreshed. They were already current, so nothing changed except the 20,000-read sampling cost.":"Statistics refreshed. The histogram now covers the new rows, and plans that depended on it recompile.");aInvalidate("UPDATE STATISTICS");}
+function aCard(html,btns){const c=aEl("a-card");c.innerHTML=html+`<div class="actions">${btns.map((b,i)=>`<button data-i="${i}"${i===0?' class="primary"':""}>${b[0]}</button>`).join("")}</div>`;c.hidden=false;
+  c.querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>btns[+b.dataset.i][1]());}
+function aRun(){aEl("a-card").hidden=true;A.between=false;A.started=true;A.running=true;A.grace=GRACE;}
+function aWaveCard(){
+  const wv=Wv(),prev=A.wave?A.waves[A.wave-1].rates:{},added=Object.keys(wv.rates).filter(t=>!(t in prev)),changed=Object.keys(wv.rates).filter(t=>t in prev&&prev[t]!==wv.rates[t]);
+  if(wv.stale)A.statsFresh=false;if(wv.sniff&&!A.overtime)A.sniffHot=false;A.t=wv.dur;A.dirty=true;A.between=true;A.tokens=[];
+  A.rogueTimes=Array.from({length:wv.rogues||0},()=>8+R()*(wv.dur-20)).sort((x,y)=>x-y);sfx("pager");
+  aCard(`<span class="label">${wv.clock} · Pager · ${A.overtime?"overtime":`wave ${A.wave+1} of ${A.waves.length}`}</span><h3>${wv.name}</h3><p>${wv.msg}</p>
+    ${wv.rogues?`<p class="pn">Expect ${wv.rogues} rogue session${wv.rogues>1?"s":""} this wave. Click them to KILL them.</p>`:""}
+    <ul>${added.map(t=>`<li>New: <b>${AT[t].label}</b>, ${fmt(wv.rates[t])} per second</li>`).join("")}${changed.map(t=>`<li>${AT[t].label}: ${fmt(prev[t])} → ${fmt(wv.rates[t])} per second</li>`).join("")}</ul>
+    <p class="pn">Mid-wave, time slows to ${Math.round(SLOW*100)}% while your pointer is over the panels below. The clock is stopped now, so builds finish instantly. Check the workload table below, fix what you can, then start the wave. The first ${GRACE} seconds are a grace period.</p>
+    <div class="hintbox" id="a-hintbox" hidden><b>Hint</b> ${wv.hint}</div>`,
+    [[`Start wave ${A.wave+1}`,aRun],["Show a hint",()=>{aEl("a-hintbox").hidden=false;A.hints++;}],...(wv.fill?[["Fill in the builder for me",()=>{aEl("a-hintbox").hidden=false;aFill(wv.fill);aEl("a-builder").scrollIntoView({block:"nearest",behavior:"smooth"});}]]:[])]);
+  aPanels();
+}
+function aEnd(win){
+  let best=0;try{best=+(localStorage.getItem(BEST_KEY)||0);}catch(e){}
+  const sc=Math.round(A.score),nb=win&&sc>best;if(nb){try{localStorage.setItem(BEST_KEY,String(sc));}catch(e){}}
+  const stars=win?(A.overtime?3:A.pat>=70?3:A.pat>=40?2:1):0;
+  let have=[];try{have=JSON.parse(localStorage.getItem(BADGE_KEY)||"[]");}catch(e){}
+  const shiftDone=win,earned=[];
+  if(shiftDone&&A.peaks.slice(0,5).every(p=>p<=1))earned.push("clean");
+  if(A.spawned>0&&A.kills===A.spawned&&shiftDone)earned.push("hunter");
+  if(shiftDone&&A.maxIx<=2)earned.push("minimal");
+  if(shiftDone&&!A.hints)earned.push("solo");
+  if(A.maxMult>=5)earned.push("zen");
+  if(A.overtime>=4)earned.push("overtime");
+  const fresh=earned.filter(b=>!have.includes(b));have=[...new Set([...have,...earned])];try{localStorage.setItem(BADGE_KEY,JSON.stringify(have));}catch(e){}
+  if(win&&!A.overtime)sfx("wave");
+  const title=A.overtime?`Overtime ended in ${A.waves[A.wave].name}`:win?"Shift complete":`Outage in wave ${A.wave+1}`;
+  aCard(`<span class="label">${title}</span><h3>${win?"★".repeat(stars)+"☆".repeat(3-stars)+(A.overtime?` You lasted ${A.overtime-1} overtime wave${A.overtime===2?"":"s"}`:" You kept the server up"):"Customers gave up waiting"}</h3>
+    <p>Score <b>${fmt(sc)}</b>${win?(nb?" · new best":best?` · best ${fmt(best)}`:""):""} · patience left <b>${Math.round(A.pat)}%</b> · best streak <b>×${A.maxMult}</b> · rogue sessions killed <b>${A.kills} of ${A.spawned}</b> · requests timed out <b>${fmt(A.timeouts)}</b></p>
+    <div class="badges">${BADGES.map(b=>`<span class="badge${have.includes(b.id)?" got":""}${fresh.includes(b.id)?" new":""}" title="${b.desc}"><b>${b.name}</b><small>${fresh.includes(b.id)?"New! ":""}${b.desc}</small></span>`).join("")}</div>
+    <div class="tbl"><table class="wl"><thead><tr><th>Wave</th><th>Peak load</th><th>What it was testing</th></tr></thead><tbody>${WAVES.map((w,i)=>`<tr><td>${i+1}. ${w.name}</td><td>${i<=A.wave?aPct(A.peaks[i]||0)+"%":"–"}</td><td>${w.lesson}</td></tr>`).join("")}</tbody></table></div>`,
+    [...(win&&!A.overtime?[["Keep going: overtime",()=>{A.over=false;A.overtime=1;A.waves=[...A.waves,otWave(1)];A.wave++;aWaveCard();}]]:[]),["Play again",()=>aBegin(false)],["Back to levels",aQuit]]);
+}
+// ---------- tutorial ----------
+const TUT=[
+  {el:"a-lane",text:"Each dot is a statement on its way to the server. The bigger the dot, the more pages it reads, and the number inside is reads per call. Red rings mark anything over 5,000. The clock is stopped while you learn.",next:"Next"},
+  {el:"a-wl",text:"The workload table is your diagnostic. Order lookup has no index it can use, so every call scans all 20,000 leaf pages of PK_t. At 20 calls a second that's 667% of the server's capacity. The bar on the right shows it.",next:"Next"},
+  {el:"a-builder",text:"Fix it by building an index keyed on secondary_id, the column the lookup filters on. The lookup also reads status and created_at, so INCLUDE them as well and the index covers the query. Set up the builder and press Build index.",fill:{keys:["secondary_id"],inc:["status","created_at"]}},
+  {el:"a-wl",text:()=>{const c=aCost("lookup");return `Order lookup now runs as ${c.plan} at ${fmt(c.cost)} read${c.cost===1?"":"s"} a call, and the server's load is ${aPct(aDemand()/AC)}%. ${c.plan.includes("Lookup")?"It still does key lookups because the index doesn't INCLUDE everything the query reads. That's fine for now, but covering it would be cheaper.":"No lookups: the index covers the query."}`;},next:"Next"},
+  {el:"a-hud",text:`Latency, customer patience and score live up here. Patience only drains while latency is over 1 second, and every wave opens with a ${GRACE}-second grace period. Training can't end in an outage. Start the clock and watch the server.`,next:"Start the clock",run:true,textRunning:"The clock is running. Load is low and latency stays in single-digit milliseconds, so patience holds steady."},
+  {el:"a-ixlist",text:"Now break it on purpose: drop the index and watch the dots swell, latency climb and the server smoke. Then rebuild it. Mid-wave, a build takes 3 seconds and costs a full scan, so the fix hurts before it helps.",next:"Got it",dismiss:true},
+  {el:null,end:true}
+];
+function aTutGo(s){A.tut.step=s;aCoach();}
+function aTutCheck(){if(A&&A.tut&&A.tut.step===2&&A.ixs.some(ix=>!ix.building&&ix.keys[0]==="secondary_id"))aTutGo(3);}
+function aCoach(){
+  document.querySelectorAll(".coach-hl").forEach(e=>e.classList.remove("coach-hl"));
+  const box=aEl("a-coach");if(!A||!A.tut){box.hidden=true;return;}
+  const st=TUT[A.tut.step];
+  if(st.end){box.hidden=true;try{localStorage.setItem(TUT_KEY,"1");}catch(e){}
+    aCard(`<span class="label">Training complete</span><h3>That's the whole loop</h3><p>Find the statement with the biggest share of capacity, work out why its plan is expensive, and fix it. The real shift has five waves, each 45 seconds long, and each one breaks something new. Every pager message has a hint button if you get stuck.</p>`,[["Start the shift",()=>aBegin(false)],["Repeat the tutorial",()=>aBegin(true)],["Back to levels",aQuit]]);return;}
+  if(st.dismiss&&A.tut.dismissed){box.hidden=true;return;}
+  const running=st.run&&A.running,txt=running?st.textRunning:typeof st.text==="function"?st.text():st.text;
+  box.hidden=false;
+  box.innerHTML=`<span class="label">Tutorial · step ${A.tut.step+1} of ${TUT.length-1}</span><p>${txt}</p><div class="actions">${st.next&&!running?`<button class="primary" id="a-cnext">${st.next}</button>`:""}${st.fill?`<button id="a-cfill">Fill it in for me</button>`:""}<button id="a-cskip">Skip the tutorial</button></div>`;
+  if(st.el){const t=aEl(st.el);t.classList.add("coach-hl");t.scrollIntoView({block:"nearest",behavior:"smooth"});}
+  if(st.next&&!running)aEl("a-cnext").onclick=()=>{if(st.run){aRun();aCoach();return;}if(st.dismiss){A.tut.dismissed=true;aCoach();return;}aTutGo(A.tut.step+1);};
+  if(st.fill)aEl("a-cfill").onclick=()=>aFill(st.fill);
+  aEl("a-cskip").onclick=()=>{try{localStorage.setItem(TUT_KEY,"1");}catch(e){}aBegin(false);};
+}
+// ---------- flow ----------
+function aLoop(ts){const dt=Math.min(.1,(ts-(alast||ts))/1000);alast=ts;aTick(dt);aDraw(dt);aHud();if(A.dirty)aPanels();araf=requestAnimationFrame(aLoop);}
+function aBegin(tut){
+  aNew(tut);aRogueList();aEl("a-toast").hidden=true;aEl("a-card").hidden=true;aEl("a-speed").textContent="Speed ×1";
+  if(tut){A.between=true;aPanels();aTutGo(0);}else{aCoach();aWaveCard();}
+}
+function aStart(){
+  cancelAnimationFrame(araf);aNew(false);aColors();
+  aEl("levels").hidden=true;aEl("game").hidden=true;aEl("arcade").hidden=false;aEl("b-levels").hidden=true;aEl("a-toast").hidden=true;aEl("a-coach").hidden=true;
+  let done=false;try{done=!!localStorage.getItem(TUT_KEY);}catch(e){}
+  const tutBtn=["Play the tutorial (about 2 minutes)",()=>aBegin(true)],shiftBtn=["Start the shift",()=>aBegin(false)];
+  aCard(`<span class="label">Arcade mode</span><h3>Peak Load</h3><p>You're the DBA on call for table <code>t</code>. The server can do <b>60,000 page reads a second</b>. Traffic arrives in five waves of 45 seconds, and each wave brings a new problem. When demand passes capacity, requests queue, latency climbs and customer patience drains. Let it run out and the shift ends in an outage.</p>
+    <ul><li>Build up to three nonclustered indexes, and drop the ones that don't pay their way. Building with an existing index's key columns rebuilds it in place.</li><li>The workload table shows every statement's plan and its share of capacity. Fix the biggest share first.</li><li>When the pager goes off, use your DBA tools: UPDATE STATISTICS and OPTION (RECOMPILE).</li><li>The clock stops between waves, and each wave starts with a ${GRACE}-second grace period.</li><li>While your pointer is over the workload or index panels, time slows to ${Math.round(SLOW*100)}% so you can plan. Patience drains slowly at first and builds to full speed after 8 seconds of overload.</li><li>Keep load under 75% to build a calm streak, up to ×5 points. Going over 100% resets it.</li><li>Rogue sessions will appear in the traffic lane. Click them to KILL them before they hog the server.</li><li>Every statement that reaches the server plays a note. A healthy server hums in a bright major key; expensive statements drop an octave into a buzzier tone, and an overloaded server slides into a minor key with a wobble.</li></ul>
+    <p class="pn">Badges earned: ${(()=>{try{return JSON.parse(localStorage.getItem(BADGE_KEY)||"[]").length;}catch(e){return 0;}})()} of ${BADGES.length}. Sound is ${SOUND?"on":"off"}; toggle it under the traffic lane.</p>`,
+    done?[shiftBtn,tutBtn,["Back to levels",aQuit]]:[tutBtn,shiftBtn,["Back to levels",aQuit]]);
+  aPanels();alast=0;araf=requestAnimationFrame(aLoop);
+}
+function aQuit(){cancelAnimationFrame(araf);if(A){A.running=false;}document.querySelectorAll(".coach-hl").forEach(e=>e.classList.remove("coach-hl"));aEl("a-coach").hidden=true;aEl("arcade").hidden=true;showLevels();}
+(function aInit(){
+  const K=["secondary_id","status","created_at"],opt=(v,s)=>`<option value="${v}"${s?" selected":""}>${v||"—"}</option>`;
+  aEl("a-builder").innerHTML=`<div class="brow"><span class="label">Key columns, in order</span><div class="bsel"><select id="a-k1" aria-label="Key column 1">${K.map((c,i)=>opt(c,i===0)).join("")}</select><select id="a-k2" aria-label="Key column 2">${opt("",true)}${K.map(c=>opt(c)).join("")}</select><select id="a-k3" aria-label="Key column 3">${opt("",true)}${K.map(c=>opt(c)).join("")}</select></div></div>
+    <div class="brow"><span class="label">INCLUDE</span><div class="bsel">${NONKEY.map(c=>`<label><input type="checkbox" id="a-i-${c}"> ${c}</label>`).join("")}</div></div>
+    <code class="blk" id="a-ddl"></code><div class="actions"><button class="primary" id="a-build">Build index</button></div>`;
+  aEl("a-builder").querySelectorAll("select,input").forEach(e=>e.addEventListener("change",aPreview));aPreview();
+  aEl("a-build").onclick=aBuild;aEl("a-stats").onclick=aStats;
+  aEl("a-pause").onclick=()=>{if(!A||A.over||!A.started||A.between)return;A.running=!A.running;};
+  aEl("a-speed").onclick=()=>{A.speed=A.speed===1?2:1;aEl("a-speed").textContent=`Speed ×${A.speed}`;};
+  aEl("a-hint").onclick=()=>{if(!A||A.tut)return;A.hints++;aToast("Hint: "+Wv().hint);};
+  aEl("a-quit").onclick=aQuit;
+  const agrid=document.querySelector(".agrid");let hov=false,foc=false;const upd=()=>{if(A)A.slow=hov||foc;};
+  agrid.addEventListener("pointerenter",()=>{hov=true;upd();});agrid.addEventListener("pointerleave",()=>{hov=false;upd();});
+  agrid.addEventListener("focusin",()=>{foc=true;upd();});agrid.addEventListener("focusout",e=>{if(!agrid.contains(e.relatedTarget)){foc=false;upd();}});
+  aEl("a-melody").onclick=()=>{MELODY=!MELODY;try{localStorage.setItem(MEL_KEY,MELODY?"on":"off");}catch(e){}};
+  aEl("a-sound").onclick=()=>{SOUND=!SOUND;try{localStorage.setItem(SND_KEY,SOUND?"on":"off");}catch(e){}if(SOUND)sfx("up");};
+  const cv=aEl("a-lane"),hit=e=>{const b=cv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;return A?A.rogues.find(r=>r.sx!=null&&Math.hypot(r.sx-x,r.sy-y)<=r.rr+8):null;};
+  cv.addEventListener("pointerdown",e=>{const r=hit(e);if(r)aKill(r.spid);});
+  cv.addEventListener("pointermove",e=>{cv.style.cursor=hit(e)?"crosshair":"default";});
+  document.addEventListener("keydown",e=>{if(aEl("arcade").hidden||e.target.closest("input,select,button"))return;if(e.code==="Space"){e.preventDefault();aEl("a-pause").click();}});
+  try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",aColors);}catch(e){}
+  new MutationObserver(aColors).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+})();
+
+{const r0=render;render=function(){r0.apply(this,arguments);themify($("game"));};const f0=setFB;setFB=function(c,m){f0(c,m);themify($("fb"));};const s0=showLevels;showLevels=function(){useTheme(THEMES[0]);s0.apply(this,arguments);themify($("game"));};}
 showLevels();
 })();
 </script>
