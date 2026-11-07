@@ -22,6 +22,8 @@ Self-contained interactive pages about how SQL Server stores and reads B+ tree i
 9. Index design (one index for a workload, scored against the best possible design)
 10. Joins (nested loops, merge join, hash match)
 
+Several levels also deal **Spot the bug** rounds: read an actual execution plan, flag the operator causing the problem, and choose the fix. The eight bugs are a key lookup storm, stale statistics, parameter sniffing, a spilling Sort, an implicit conversion, a function on an indexed column, a heavy residual predicate, and a scan inside a nested loop.
+
 **Peak Load** is a real-time arcade mode: keep a server under 60,000 reads a second through five waves of traffic by building and dropping indexes, refreshing statistics, adding OPTION (RECOMPILE) and killing rogue sessions. It has a tutorial, streaks, badges, an overtime mode and a generative melody driven by the statements reaching the server.
 
 Scenarios are generated randomly each time, and each round uses one of six schemas (the original `t`/`u`, orders, books, tickets, tracks or sensor readings) with the same table shapes under different names. Level progress, Peak Load scores, badges and sound settings are stored in the browser's `localStorage`.

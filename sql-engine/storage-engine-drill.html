@@ -203,6 +203,18 @@ select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-off
 .bucket{border:1px dashed var(--line);border-radius:8px;padding:8px;display:grid;gap:4px;align-content:start;min-height:70px}
 .bucket.open{border:2px solid var(--q2);background:color-mix(in srgb,var(--q2) 6%,var(--surface))}
 .bucket .slot{border:1px solid var(--line);border-radius:5px;padding:5px 8px;grid-template-columns:1fr}
+.xplan{display:grid;gap:4px;border:1px solid var(--line);border-radius:8px;padding:8px;overflow-x:auto}
+.xnode{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 14px;text-align:left;font:500 .86rem var(--f-mono);padding:7px 10px;width:auto;min-width:0}
+.xnode:disabled{cursor:default;opacity:1}
+.xnode.sel{border-color:var(--q2);background:color-mix(in srgb,var(--q2) 10%,var(--surface))}
+.xnode.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,var(--surface))}
+.xnode.flagged{border-color:var(--bad);border-width:2px}
+.xop b{font-weight:600}.xobj{color:var(--muted)}.xwarn{color:var(--hint);font-weight:700}
+.xstat{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.76rem;color:var(--muted)}
+.xprops{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:5px 16px;margin:0;font-size:.86rem;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.xprops dt{color:var(--muted)}
+.xprops dd{margin:0;font-family:var(--f-mono);white-space:normal;overflow-wrap:anywhere}
+@media (max-width:560px){.xprops{grid-template-columns:1fr}.xprops dd{margin-bottom:4px}}
 .coach{border:2px solid var(--q2);background:color-mix(in srgb,var(--q2) 8%,var(--surface));border-radius:10px;padding:12px 16px;display:grid;gap:6px}
 .coach p{color:var(--ink);font-size:.95rem}
 .coach-hl{outline:3px solid var(--q2);outline-offset:4px;border-radius:8px;animation:coachpulse 1.4s ease-in-out infinite}
@@ -790,6 +802,131 @@ function renderJoin(){
 }
 const t2b=r=>`bucket ${r.id%BUCKETS}`;
 
+// ---------- spot the bug: read an actual plan, flag the culprit, choose the fix ----------
+const PN=(op,obj,o={})=>({op,obj,kids:[],...o});
+const KW=s=>s.replace(/\b(SELECT|FROM|WHERE|AND|ORDER BY|JOIN|ON|TOP|DESC|ASC|OPTION)\b/g,'<span class="kw">$1</span>');
+function bugRound(o){return{bug:o,q:{kind:"bug"},title:"Spot the bug: "+o.name,take:o.take};}
+GEN.bugLookup=()=>{const v=ri(100,900),act=ri(800,4000),est=Math.round(act*(.85+R()*.3)),calls=ri(200,900),cols=pick([["status","notes"],["created_at","notes"],["status","created_at"]]),cl=cols.join(", ");
+  return bugRound({name:"lookup storm",sql:`SELECT id, ${cl} FROM t WHERE secondary_id = ${v}`,ddl:[ixDDL({keys:["secondary_id"],inc:[]})],ctx:[`This query runs ${fmt(calls)} times a minute.`,"Statistics are current."],
+    plan:PN("SELECT","",{kids:[PN("Nested Loops","Inner Join",{est,act,exec:1,cost:2,kids:[
+      PN("Index Seek","IX_t_secondary_id",{est,act,exec:1,reads:3+Math.ceil(act/500),cost:4,seek:`secondary_id = ${v}`,out:"id, secondary_id"}),
+      PN("Key Lookup","PK_t",{est:1,act:1,exec:act,reads:3*act,cost:94,seek:"id = IX_t_secondary_id.id",out:cl,bad:1})]})]}),
+    flag:`The Key Lookup runs once for every row the seek returns: ${fmt(act)} executions at 3 reads each, ${fmt(3*act)} reads and 94% of the cost.`,
+    fixes:[{t:`Rebuild IX_t_secondary_id with INCLUDE (${cl})`,ok:1,why:`The lookup only fetches ${cl}. With them in the leaf entry the seek covers the query and the lookup disappears: about ${fmt(3+Math.ceil(act/200))} reads a call instead of ${fmt(3*act+3)}.`},
+      {t:"Add a nonclustered index on id",why:"id is already the clustered key, and the lookup is already a seek on PK_t. Another index on id doesn't remove the lookup."},
+      {t:"UPDATE STATISTICS t",why:`The estimate (${fmt(est)}) is already close to the actual (${fmt(act)}). The plan is the right shape for the data; the cost comes from the columns the index doesn't hold.`},
+      {t:"Add OPTION (RECOMPILE)",why:"The estimate is accurate, so the plan isn't stale or sniffed. Recompiling produces the same lookups."}],
+    take:"A Key Lookup with thousands of executions is the classic sign of an index that almost covers a query. The fix is usually to INCLUDE the columns listed in the lookup's output list."});};
+GEN.bugStale=()=>{const v=ri(100,900),act=ri(20,60)*1000,mods=act+ri(1000,9000);
+  return bugRound({name:"an estimate of 1 row",sql:`SELECT * FROM t WHERE secondary_id = ${v}`,ddl:[ixDDL({keys:["secondary_id"],inc:[]})],ctx:[`Statistics on IX_t_secondary_id were last updated 9 days ago. ${fmt(mods)} rows have been modified since.`,"Compatibility level 110 (legacy cardinality estimator).",`${v} is a new secondary_id value added this week.`],
+    plan:PN("SELECT","",{kids:[PN("Nested Loops","Inner Join",{est:1,act,exec:1,cost:1,kids:[
+      PN("Index Seek","IX_t_secondary_id",{est:1,act,exec:1,reads:3+Math.ceil(act/500),cost:1,seek:`secondary_id = ${v}`,out:"id",bad:1}),
+      PN("Key Lookup","PK_t",{est:1,act:1,exec:act,reads:3*act,cost:98,seek:"id = IX_t_secondary_id.id",out:"secondary_id, status, created_at, notes"})]})]}),
+    flag:`This is where the estimate breaks: 1 row estimated, ${fmt(act)} actual. Everything after it, including ${fmt(act)} lookups, follows from that wrong estimate.`,
+    wrong:{"Key Lookup":`The Key Lookup is where the reads are, but it's a symptom. Its ${fmt(act)} executions come from the seek's ${fmt(act)} rows, which the optimizer expected to be 1. Look for where estimated and actual rows first diverge.`},
+    fixes:[{t:"UPDATE STATISTICS t",ok:1,why:`The histogram predates the new rows, so the legacy estimator assumes 1 row for ${v}. With fresh statistics it knows about ${fmt(act)} rows and chooses a scan.`},
+      {t:"Add OPTION (RECOMPILE)",why:"Recompiling uses the same stale histogram, so it still estimates 1 row and builds the same plan."},
+      {t:"Add an index on created_at",why:"The query doesn't filter on created_at. The problem is the row estimate for secondary_id."},
+      {t:"Add OPTION (MAXDOP 1)",why:"Parallelism isn't involved. The plan is serial and wrong because of the estimate."}],
+    take:"When a plan goes wrong, find the first operator whose actual rows differ wildly from its estimate. The expensive operators downstream are usually symptoms."});};
+GEN.bugSniff=()=>{const a=ri(100,500),b=ri(600,999),est=ri(8,40),act=ri(80,200)*1000;
+  return bugRound({name:"one plan, two values",sql:"SELECT id, status FROM t WHERE secondary_id = @p",ddl:[ixDDL({keys:["secondary_id"],inc:[]})],ctx:["Statistics on IX_t_secondary_id were updated 2 hours ago.",`Parameter list: @p compiled value = ${a}, runtime value = ${b}.`,`The histogram's EQ_ROWS for ${b} is ${fmt(act)}.`],
+    plan:PN("SELECT","",{kids:[PN("Nested Loops","Inner Join",{est,act,exec:1,cost:1,kids:[
+      PN("Index Seek","IX_t_secondary_id",{est,act,exec:1,reads:3+Math.ceil(act/500),cost:1,seek:"secondary_id = @p",out:"id",bad:1}),
+      PN("Key Lookup","PK_t",{est:1,act:1,exec:act,reads:3*act,cost:98,seek:"id = IX_t_secondary_id.id",out:"status"})]})]}),
+    flag:`The seek estimated ${est} rows and got ${fmt(act)}. The statistics are fresh, so the estimate isn't stale: it was made for @p = ${a}, the value the plan was compiled with.`,
+    wrong:{"Key Lookup":`The lookups are the expensive part, but they follow from the seek returning ${fmt(act)} rows when the plan expected ${est}. Find where estimated and actual rows first diverge.`},
+    fixes:[{t:"Add OPTION (RECOMPILE)",ok:1,why:`Each call gets a plan for its own value. For @p = ${b} the optimizer sees ${fmt(act)} rows and chooses a scan; for small values it keeps the seek.`},
+      {t:"UPDATE STATISTICS t",why:`Statistics are already current and know ${b} has ${fmt(act)} rows. The problem is that the cached plan was compiled for @p = ${a}.`},
+      {t:"Add an index on created_at",why:"The query doesn't touch created_at."},
+      {t:"Add OPTION (MAXDOP 1)",why:"Parallelism isn't the problem. The plan shape was chosen for a different parameter value."}],
+    take:"Compiled and runtime parameter values that differ, with an estimate that matches the compiled value, mean parameter sniffing. Fresh statistics won't help, because the plan isn't being recompiled."});};
+GEN.bugSort=()=>{const v=ri(100,900),act=ri(300,500)*1000,est=Math.round(act*(.9+R()*.15));
+  return bugRound({name:"a Sort that spills",sql:`SELECT id, created_at FROM t WHERE secondary_id = ${v} ORDER BY created_at`,ddl:[ixDDL({keys:["secondary_id"],inc:["created_at"]})],ctx:["Statistics are current."],
+    plan:PN("SELECT","",{kids:[PN("Sort","ORDER BY created_at ASC",{est,act,exec:1,cost:81,warn:"Operator used tempdb to spill data during execution with spill level 1",bad:1,kids:[
+      PN("Index Seek","IX_t_secondary_id",{est,act,exec:1,reads:3+Math.ceil(act/600),cost:19,seek:`secondary_id = ${v}`,out:"id, created_at"})]})]}),
+    flag:`The Sort has to order ${fmt(act)} rows, needs a memory grant to do it, and spilled to tempdb when the grant wasn't enough. It's 81% of the cost.`,
+    fixes:[{t:"Rebuild the index with key (secondary_id, created_at)",ok:1,why:"With secondary_id fixed by '=', the entries come out already sorted by created_at. The Sort, its memory grant and its spill all disappear."},
+      {t:"UPDATE STATISTICS t",why:`The estimate (${fmt(est)}) is already close to the actual (${fmt(act)}). The Sort was expected; sorting that many rows is the cost.`},
+      {t:"Add OPTION (RECOMPILE)",why:"The estimate is accurate, so a fresh plan has the same Sort."},
+      {t:"Add OPTION (MAXDOP 1)",why:"A serial Sort still needs the same memory and still spills."}],
+    take:"A Sort over many rows costs memory and can spill to tempdb. If the ORDER BY column can follow the equality columns in the index key, the index supplies the order and the Sort goes away."});};
+GEN.bugImplicit=()=>{const s=pick(STAT),act=ri(30,90)*1000;
+  return bugRound({name:"a scan that should be a seek",sql:"SELECT id FROM t WHERE status = @s",ddl:["CREATE INDEX IX_t_status ON t (status);"],ctx:["status is varchar(20). The application sends @s as nvarchar(20).","Database collation: SQL_Latin1_General_CP1_CI_AS.",`@s = N'${s}'`],
+    plan:PN("SELECT","",{kids:[PN("Index Scan","IX_t_status",{est:act,act,exec:1,reads:4900,cost:100,pred:"CONVERT_IMPLICIT(nvarchar(20),[t].[status],0) = @s",warn:"Type conversion in expression (CONVERT_IMPLICIT(nvarchar(20),[t].[status],0)) may affect \"SeekPlan\" in query plan choice",out:"id",bad:1})]}),
+    flag:"IX_t_status is keyed on status, yet the plan scans all of it. The warning says why: the column is converted to nvarchar before every comparison, so the index order can't be used to seek.",
+    fixes:[{t:"Declare @s as varchar(20) to match the column",ok:1,why:"With matching types there's no conversion on the column, so the optimizer can seek IX_t_status directly to the matching rows."},
+      {t:"Add an index on status",why:"IX_t_status already exists, and the plan is using it. It can't seek because of the conversion applied to the column."},
+      {t:"UPDATE STATISTICS t",why:"The estimate matches the actual rows. The problem is the data type mismatch, not the statistics."},
+      {t:"Add OPTION (RECOMPILE)",why:"A fresh plan sees the same nvarchar parameter and the same conversion."}],
+    take:"CONVERT_IMPLICIT on a column in a predicate stops a seek. Match parameter types to column types; varchar columns compared with nvarchar parameters are the usual culprit with SQL collations."});};
+GEN.bugYear=()=>{const yr=pick([2025,2026]),act=ri(100,400)*1000;
+  return bugRound({name:"a function on the column",sql:`SELECT id FROM t WHERE YEAR(created_at) = ${yr}`,ddl:["CREATE INDEX IX_t_created_at ON t (created_at);"],ctx:["Statistics are current.",`About ${fmt(act)} of the 2,000,000 rows are from ${yr}.`],
+    plan:PN("SELECT","",{kids:[PN("Index Scan","IX_t_created_at",{est:Math.round(act*.9),act,exec:1,rowsRead:N,reads:3100,cost:100,pred:`YEAR(created_at) = ${yr}`,out:"id",bad:1})]}),
+    flag:`The index on created_at is scanned end to end: 2,000,000 rows read to return ${fmt(act)}. Wrapping the column in YEAR() hides its order from the optimizer, so it can't seek a range.`,
+    fixes:[{t:`Rewrite as created_at >= '${yr}-01-01' AND created_at < '${yr+1}-01-01'`,ok:1,why:"A bare column compared with a range is sargable: the optimizer seeks straight to the first date of the year and stops at the last."},
+      {t:"Add an index on created_at",why:"IX_t_created_at already exists, and the plan is scanning it. A second copy has the same problem."},
+      {t:"UPDATE STATISTICS t",why:"The estimates are reasonable. No statistics can turn a function on the column into a seek."},
+      {t:"Add OPTION (RECOMPILE)",why:"A fresh plan sees the same YEAR() call and makes the same scan."}],
+    take:"A function wrapped around an indexed column (YEAR, CAST, ISNULL, LEFT) usually prevents a seek. Rewrite the predicate so the bare column is compared with a range of values."});};
+GEN.bugResidual=()=>{const v=ri(100,900),s=pick(STAT),read=ri(30,60)*1000,act=ri(40,300);
+  return bugRound({name:"rows read, rows returned",sql:`SELECT id, status FROM t WHERE secondary_id = ${v} AND status = '${s}'`,ddl:[ixDDL({keys:["secondary_id"],inc:["status"]})],ctx:["Statistics are current."],
+    plan:PN("SELECT","",{kids:[PN("Index Seek","IX_t_secondary_id",{est:act,act,exec:1,rowsRead:read,reads:3+Math.ceil(read/500),cost:100,seek:`secondary_id = ${v}`,pred:`status = '${s}'`,out:"id, status",bad:1})]}),
+    flag:`The seek reads ${fmt(read)} rows to return ${fmt(act)}. Only secondary_id is a seek predicate. status is checked row by row as a residual predicate, because it's an INCLUDE column, not a key column.`,
+    fixes:[{t:"Rebuild the index with key (secondary_id, status)",ok:1,why:`Both predicates become seek predicates, so the seek goes straight to the ${fmt(act)} matching rows instead of reading ${fmt(read)}.`},
+      {t:"Add status to the INCLUDE list",why:"status is already included. That's why it can be checked in the index at all, but INCLUDE columns can only be filtered, not sought."},
+      {t:"UPDATE STATISTICS t",why:"Estimated and actual rows already match. The cost is the rows read, not a misestimate."},
+      {t:"Add OPTION (RECOMPILE)",why:"A fresh plan uses the same index the same way."}],
+    take:"Compare Number of Rows Read with Actual Rows on a seek. A big gap means a residual predicate is doing the filtering, and moving that column into the key turns it into a seek predicate."});};
+GEN.bugJoinScan=()=>{const v=ri(100,900),outer=ri(20,60);
+  return bugRound({name:"a scan inside a loop",sql:`SELECT t.id, u.amount FROM t JOIN u ON u.t_id = t.id WHERE t.secondary_id = ${v}`,ddl:[ixDDL({keys:["secondary_id"],inc:[]}),"-- u has only its clustered index, PK_u on (uid)"],ctx:["u has 6,000,000 rows on about 15,600 pages.","Statistics are current."],
+    plan:PN("SELECT","",{kids:[PN("Nested Loops","Inner Join",{est:outer*3,act:outer*3,exec:1,cost:1,kids:[
+      PN("Index Seek","IX_t_secondary_id",{est:outer,act:outer,exec:1,reads:3,cost:0,seek:`secondary_id = ${v}`,out:"id"}),
+      PN("Clustered Index Scan","PK_u",{est:3,act:3,exec:outer,rowsRead:outer*UROWS,reads:outer*UPAGES,cost:99,pred:"u.t_id = t.id",out:"amount",bad:1})]})]}),
+    flag:`The inner side of the loop scans all of u once per outer row: ${outer} executions × ${fmt(UPAGES)} pages = ${fmt(outer*UPAGES)} reads, to find about 3 rows each time.`,
+    fixes:[{t:"CREATE INDEX IX_u_t_id ON u (t_id) INCLUDE (amount)",ok:1,why:`Each inner execution becomes a 3-read seek: about ${fmt(3+outer*3)} reads in total instead of ${fmt(outer*UPAGES)}.`},
+      {t:"Add OPTION (HASH JOIN)",why:`That scans u once, about ${fmt(UPAGES)} reads. Better, but an index on u.t_id makes each lookup 3 reads, about ${fmt(3+outer*3)} in total.`},
+      {t:"Add an index on t (id)",why:"t.id is already the clustered key. The problem is the inner side: nothing lets u be sought by t_id."},
+      {t:"UPDATE STATISTICS u",why:"The estimates are accurate. Without an index on t_id, there's nothing to seek."}],
+    take:"Nested loops is only cheap when the inner side is a seek. An inner scan with many executions means the join column on the inner table needs an index."});};
+function bugNodes(n,d=0,out=[]){out.push({n,d});n.kids.forEach(k=>bugNodes(k,d+1,out));return out;}
+function bugPick(i){if(S.phase!=="bflag")return;S.bsel=i;render();}
+function bugFlag(){
+  const b=S.sc.bug,nodes=bugNodes(b.plan),n=nodes[S.bsel]&&nodes[S.bsel].n;if(!n)return;
+  if(!n.bad){mistake();S.bwrong=(S.bwrong||new Set()).add(S.bsel);
+    setFB("bad",`<b class="t">Not the culprit</b>${(b.wrong&&b.wrong[n.op])||(n.op==="SELECT"?"SELECT is the root of the plan. It only returns rows.":`${n.op}${n.obj?" on "+n.obj:""} looks healthy: ${n.est!=null?`estimated ${fmt(n.est)} rows, actual ${fmt(n.act)}, `:""}${n.reads!=null?`${fmt(n.reads)} reads, `:""}${n.cost!=null?n.cost+"% of the cost":""}.`)}`);render();return;}
+  S.phase="bfix";S.wrongs=new Set();S.bh=false;setFB("ok",`<b class="t">Correct: ${n.op}${n.obj?" on "+n.obj:""}</b>${b.flag} Now choose the fix.`);render();
+}
+function bugFix(i){
+  if(S.phase!=="bfix")return;const f=S.sc.bug.fixes[i];
+  if(!f.ok){mistake();S.wrongs.add("f:"+i);setFB("bad",`<b class="t">Not the best fix</b>${f.why}`);render();return;}
+  S.phase="done";const pts=Math.max(0,100-15*S.mis-10*S.hints);G.pts+=pts;
+  G.log.push({title:S.sc.title,plan:"plan reading",r:0,w:0,mis:S.mis,hints:S.hints,pts});
+  S.dres=`<div class="sum"><div class="stats"><span>Fix <b>${f.t}</b></span><span>Mistakes <b>${S.mis}</b></span><span>Hints <b>${S.hints}</b></span><span>Points <b>${pts} / 100</b></span></div></div>`;
+  setFB("ok",`<b class="t">Correct</b>${f.why}`);render();
+}
+function bugHint(){S.hints++;S.bh=true;setFB("hint",`<b class="t">Hint</b>The highlighted ${S.phase==="bflag"?"operator":"fix"} is the answer. Hints cost 10 points.`);render();}
+function renderBug(){
+  const b=S.sc.bug,st=$("stage"),ac=$("actions"),ph=$("phase"),kb=$("keybox"),ins=$("instr");
+  $("query").innerHTML=KW(b.sql)+";";$("res-title").textContent="Result set";$("res-h").innerHTML="";$("res").innerHTML="";$("res-empty").hidden=false;
+  st.innerHTML="";ac.innerHTML="";kb.innerHTML="";
+  if(S.phase==="done"){ph.className="phase";ph.textContent=`Round ${G.round+1} complete`;ins.innerHTML=`<b>${S.sc.title}.</b> ${S.sc.take}`;st.innerHTML=S.dres;return summary(true);}
+  ph.className="phase";ph.textContent=`Round ${G.round+1} · ${S.phase==="bflag"?"find the culprit":"choose the fix"}`;
+  ins.textContent=S.phase==="bflag"?"This query is slow. Click operators to read their properties, then flag the one that's the problem.":"Which change fixes it best?";
+  kb.innerHTML=b.ctx.map(c=>`<span>${c}</span>`).join("");
+  st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Schema</span><code class="blk">${tableDDL(false)}\n${b.ddl.join("\n")}</code></div>`);
+  const nodes=bugNodes(b.plan),sel=S.bsel??-1,hintIdx=S.bh&&S.phase==="bflag"?nodes.findIndex(x=>x.n.bad):-1;
+  st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Actual execution plan</span><div class="xplan">${nodes.map(({n,d},i)=>`<button class="xnode${i===sel?" sel":""}${S.bwrong&&S.bwrong.has(i)?" wrong":""}${i===hintIdx?" hinted":""}${S.phase==="bfix"&&n.bad?" flagged":""}" data-i="${i}" style="margin-left:${d*22}px"${S.phase==="bflag"?"":" disabled"}>
+    <span class="xop">${d?"└ ":""}<b>${n.op}</b>${n.obj?` <span class="xobj">${n.obj}</span>`:""}${n.warn?' <span class="xwarn" title="Warning">⚠</span>':""}</span>
+    <span class="xstat">${n.cost!=null?`<span>cost ${n.cost}%</span>`:""}${n.act!=null?`<span>actual ${fmt(n.act*(n.exec||1))} · est ${fmt(n.est)}${n.exec>1?" per execution":""}</span>`:""}${n.exec>1?`<span>${fmt(n.exec)} executions</span>`:""}</span></button>`).join("")}</div></div>`);
+  if(sel>=0){const n=nodes[sel].n,row=(k,v)=>v==null?"":`<dt>${k}</dt><dd>${v}</dd>`;
+    st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Properties · ${n.op}${n.obj?" · "+n.obj:""}</span><dl class="kv xprops">${row("Estimated rows per execution",n.est!=null?fmt(n.est):null)}${row("Actual rows, all executions",n.act!=null?fmt(n.act*(n.exec||1)):null)}${row("Executions",n.exec!=null?fmt(n.exec):null)}${row("Number of rows read",n.rowsRead!=null?fmt(n.rowsRead):null)}${row("Logical reads",n.reads!=null?fmt(n.reads):null)}${row("Seek predicate",n.seek)}${row("Predicate",n.pred)}${row("Output list",n.out)}${row("Warning",n.warn)}</dl></div>`);}
+  if(S.phase==="bflag"){const fb=document.createElement("button");fb.className="primary";fb.textContent="Flag this operator as the problem";fb.disabled=sel<0;fb.onclick=bugFlag;ac.appendChild(fb);}
+  else{const box=optionButtons(b.fixes.map((f,i)=>[i,f.t,""]),"f:",bugFix);if(S.bh){const k=b.fixes.findIndex(f=>f.ok);box.children[k].classList.add("hinted");}st.appendChild(box);}
+  st.querySelectorAll(".xnode").forEach(x=>x.onclick=()=>bugPick(+x.dataset.i));
+  const hb=document.createElement("button");hb.textContent="Hint (−10)";hb.onclick=bugHint;ac.appendChild(hb);
+}
+
 // ---------- schema themes: each round renames the tables, columns and values ----------
 const STAT0=[...STAT],NOTES0=[...NOTES];
 const THEMES=[
@@ -819,16 +956,16 @@ function themify(root){if(!root)return;const w=document.createTreeWalker(root,No
 
 // ---------- levels and progress ----------
 const LEVELS=[
- {name:"Seeks and lookups",topics:"Index seeks, key lookups, covered queries, scans, unique indexes",count:4,pool:[["eqLookup",{incP:0}],["eqCover",{incP:0}],["eqScan",{incP:0}],["unique",{incP:0}],["noIndex"],["eqZero",{incP:0}]]},
- {name:"INCLUDE and filtered indexes",topics:"INCLUDE columns, SELECT *, filtered indexes, seeks on the clustering key",count:4,pool:[["includeCov"],["includeMiss"],["includeAll"],["filteredHit"],["filteredMiss"],["pkSeek"]]},
- {name:"Ranges and composite keys",topics:"Range seeks, two-column keys, residual predicates, the leading-column rule",count:4,pool:[["rangeK1"],["compRange"],["residual"],["skipLeading"],["pkRange"]]},
- {name:"ORDER BY and TOP",topics:"Order from the index, backward reads, Sort operators, stopping early",count:4,pool:[["topLatest"],["topSort"],["rangeDescTop"],["pkTop"]]},
+ {name:"Seeks and lookups",topics:"Index seeks, key lookups, covered queries, scans, unique indexes",count:4,pool:[["eqLookup",{incP:0}],["eqCover",{incP:0}],["eqScan",{incP:0}],["unique",{incP:0}],["noIndex"],["eqZero",{incP:0}],["bugLookup"]]},
+ {name:"INCLUDE and filtered indexes",topics:"INCLUDE columns, SELECT *, filtered indexes, seeks on the clustering key",count:4,pool:[["includeCov"],["includeMiss"],["includeAll"],["filteredHit"],["filteredMiss"],["pkSeek"],["bugLookup"]]},
+ {name:"Ranges and composite keys",topics:"Range seeks, two-column keys, residual predicates, the leading-column rule",count:4,pool:[["rangeK1"],["compRange"],["residual"],["skipLeading"],["pkRange"],["bugResidual"],["bugYear"]]},
+ {name:"ORDER BY and TOP",topics:"Order from the index, backward reads, Sort operators, stopping early",count:4,pool:[["topLatest"],["topSort"],["rangeDescTop"],["pkTop"],["bugSort"]]},
  {name:"Writes",topics:"INSERT, UPDATE and DELETE across indexes, page splits, ghost records",count:4,pool:[["insert"],["updNon"],["updInc"],["updKey"],["del"]]},
  {name:"Heaps",topics:"Tables without a clustered index, RID lookups, table scans, forwarded records",count:4,pool:[["heapRid"],["heapCover"],["heapIdTrap"],["heapScan"],["heapForward"]]},
- {name:"Statistics",topics:"Reading a histogram, EQ_ROWS and AVG_RANGE_ROWS, combining two predicates",count:4,pool:[["statEq"],["statAvg"],["statTwo"],["statEq",{big:true}]]},
- {name:"Plan reuse",topics:"Parameter sniffing, stale statistics, values beyond the histogram",count:4,pool:[["sniff"],["stale"],["sniff"],["statAvg",{big:true}]]},
+ {name:"Statistics",topics:"Reading a histogram, EQ_ROWS and AVG_RANGE_ROWS, combining two predicates",count:4,pool:[["statEq"],["statAvg"],["statTwo"],["statEq",{big:true}],["bugStale"],["bugImplicit"]]},
+ {name:"Plan reuse",topics:"Parameter sniffing, stale statistics, values beyond the histogram",count:4,pool:[["sniff"],["stale"],["sniff"],["statAvg",{big:true}],["bugSniff"]]},
  {name:"Index design",topics:"Design one index for a workload of reads and writes, scored against the best possible design",count:3,pool:[["design"],["design"],["design"]]},
- {name:"Joins",topics:"Nested loops, merge join and hash match: when the optimizer picks each, and running them by hand",count:4,pool:[["joinNL"],["joinMerge"],["joinHash"],["joinNL",{nocover:true}]]}
+ {name:"Joins",topics:"Nested loops, merge join and hash match: when the optimizer picks each, and running them by hand",count:4,pool:[["joinNL"],["joinMerge"],["joinHash"],["joinNL",{nocover:true}],["bugJoinScan"]]}
 ];
 const STORE="storage-engine-drill-progress-v1";
 function loadProg(){try{const p=JSON.parse(localStorage.getItem(STORE)||"null");if(p&&p.unlocked)return p;}catch(e){}return{unlocked:1,best:{}};}
@@ -855,7 +992,7 @@ $("b-levels").onclick=()=>showLevels();
 let G,S;
 function startLevel(i){R=rng((Date.now()+Math.floor(Math.random()*1e6))%1000003);const L=i<0?mixedLevel():LEVELS[i];G={li:i,L,round:0,pts:0,mis:0,log:[],rounds:makeRounds(L)};$("levels").hidden=true;$("game").hidden=false;$("b-levels").hidden=false;startRound();}
 function buildScenario(spec){
-  const sc=GEN[spec[0]](spec[1]||{});if(sc.design||sc.join)return sc;
+  const sc=GEN[spec[0]](spec[1]||{});if(sc.design||sc.join||sc.bug)return sc;
   const ncCap=ri(5,7),pkCap=ri(4,6),fan=3,fillN=sc.fillFull?ncCap:ri(ncCap-1,ncCap),fillP=sc.fillFull?pkCap:ri(pkCap-1,pkCap);
   sc.pk=sc.heap?mkHeap(sc.rows,pkCap,fillP):mkTree(sc.rows,r=>[r.id],fillP,pkCap,fan,500,"PK_t","ci");
   sc.ixT=sc.ix?mkTree(sc.rows.filter(r=>passFilter(sc.ix,r)).map(r=>({...r})),e=>ekey(sc.ix,e),fillN,ncCap,fan,900,ixName(sc.ix),"nc"):null;
@@ -866,8 +1003,8 @@ function buildScenario(spec){
 function startRound(){
   useTheme(G.round===0&&G.li===0&&!PROG.best[1]?THEMES[0]:pick(THEMES.filter(x=>x!==THEME)));
   const sc=buildScenario(G.rounds[G.round]);
-  S={sc,q:sc.q,ix:sc.ix,T:{ix:sc.ixT||null,pk:sc.pk||null},phase:sc.design?"design":sc.join?"jplan":sc.stats?"est":"plan",reads:{ix:0,pk:0},writes:0,vis:{ix:new Set(),pk:new Set()},mod:{ix:new Set(),pk:new Set()},path:{ix:[],pk:[]},out:[],buf:[],log:[],mis:0,hints:0,page:null,hint:null,wrongs:new Set()};
-  setFB("",sc.join?"Two tables this time. Read the schema, the indexes and the estimate, then pick the physical join the optimizer would use.":sc.design?"Choose the key columns and INCLUDE list for one nonclustered index. The design is costed against every statement in the workload.":sc.stats?"Work out the optimizer's row estimate from the statistics first.":isW()?"Work out which indexes this statement has to change.":"Read the schema and the estimate, then pick the access path the optimizer would choose.");
+  S={sc,q:sc.q,ix:sc.ix,T:{ix:sc.ixT||null,pk:sc.pk||null},phase:sc.design?"design":sc.join?"jplan":sc.bug?"bflag":sc.stats?"est":"plan",reads:{ix:0,pk:0},writes:0,vis:{ix:new Set(),pk:new Set()},mod:{ix:new Set(),pk:new Set()},path:{ix:[],pk:[]},out:[],buf:[],log:[],mis:0,hints:0,page:null,hint:null,wrongs:new Set()};
+  setFB("",sc.bug?"Spot the bug. Read the actual execution plan, find the operator that's causing the problem, then pick the fix.":sc.join?"Two tables this time. Read the schema, the indexes and the estimate, then pick the physical join the optimizer would use.":sc.design?"Choose the key columns and INCLUDE list for one nonclustered index. The design is costed against every statement in the workload.":sc.stats?"Work out the optimizer's row estimate from the statistics first.":isW()?"Work out which indexes this statement has to change.":"Read the schema and the estimate, then pick the access path the optimizer would choose.");
   render();
 }
 const isW=()=>!!S.q&&S.q.kind!=="select";
@@ -1211,6 +1348,7 @@ function render(){
   $("path-ix").textContent=!S.T.ix?"":S.path.ix.length?S.path.ix.join(" → "):"not read yet";
   $("path-pk").textContent=!S.T.pk?"":S.path.pk.length?S.path.pk.join(" → "):"not read yet";
   if(sc.join)return renderJoin();
+  if(sc.bug)return renderBug();
   if(sc.design){$("res-title").textContent="Result set";$("res-h").innerHTML="";$("res").innerHTML="";$("res-empty").hidden=false;return renderDesign();}
   if(isW()){$("res-title").textContent="Changes";$("res-h").innerHTML="<tr><th>Index</th><th>Change</th><th>Page</th></tr>";$("res").innerHTML=S.log.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("");$("res-empty").hidden=S.log.length>0;}
   else{$("res-title").textContent="Result set";$("res-h").innerHTML="<tr>"+outCols().map(c=>`<th>${c}</th>`).join("")+"</tr>";$("res").innerHTML=S.out.map(r=>`<tr>${outCols().map(c=>`<td>${r[c]}</td>`).join("")}</tr>`).join("");$("res-empty").hidden=S.out.length>0;}
@@ -1332,7 +1470,7 @@ function summary(isDesign){
 }
 function mini(id,k,cls){
   const svg=$(id),W=320,t=S.T[k];
-  if(!t){svg.setAttribute("viewBox","0 0 320 30");svg.innerHTML=`<text x="0" y="18">${S.sc.design?"Design round: nothing to walk.":S.sc.join?"Join round: the inputs are shown on the left.":"No nonclustered index on this table."}</text>`;return;}
+  if(!t){svg.setAttribute("viewBox","0 0 320 30");svg.innerHTML=`<text x="0" y="18">${S.sc.design?"Design round: nothing to walk.":S.sc.join?"Join round: the inputs are shown on the left.":S.sc.bug?"Plan round: the plan is on the left.":"No nonclustered index on this table."}</text>`;return;}
   const lv=levelsOf(t),rowH=40,H=rowH*lv.length;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);let h="";const pos=new Map();
   lv.forEach((pages,li)=>{const n=pages.length,bw=Math.min(54,(W-8)/n-4);pages.forEach((p,i)=>pos.set(p,{x:(W/n)*(i+.5)-bw/2,y:li*rowH+6,w:bw,h:rowH-16}));});
   lv.forEach(pages=>pages.forEach(p=>{if(p.kids)p.kids.forEach(c=>{const a=pos.get(p),b=pos.get(c);h+=`<line x1="${a.x+a.w/2}" y1="${a.y+a.h}" x2="${b.x+b.w/2}" y2="${b.y}"/>`;});}));
