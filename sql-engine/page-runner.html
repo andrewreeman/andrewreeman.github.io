@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Page Runner</title>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one column. Header, HUD strip, a 16:9 canvas where each B+ tree page is a room, then the message line beside a minimap of the tree. */
+:root{
+  --bg:#10202c; --panel:#182f3d; --panel2:#1f3a4a; --ink:#e6eef2; --muted:#8fa6b3; --line:#2f4d5f;
+  --amber:#f2b33d; --pk:#23465c; --ix:#1f4a45; --teal:#5fd3c2; --bad:#ff8a7a; --ok:#9be39b; --lore:#e9d9a8;
+  --f-px:"Silkscreen","Courier New",monospace;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:15px/1.5 var(--f-body)}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 40px;display:grid;gap:12px}
+.px{font-family:var(--f-px);letter-spacing:.02em}
+.eyebrow{font-family:var(--f-px);font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+header.top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:10px}
+h1{font-family:var(--f-px);font-weight:700;font-size:clamp(1.6rem,4.5vw,2.4rem);line-height:1;margin:4px 0 0;color:var(--amber);text-wrap:balance}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+button{font:600 .82rem/1 var(--f-body);color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:8px 11px;cursor:pointer}
+button:hover{border-color:var(--amber)}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+button.primary{background:var(--amber);color:#1a1405;border-color:var(--amber)}
+button[disabled]{opacity:.45;cursor:not-allowed}
+.hud{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:grid;gap:6px}
+.hud .row1{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+#hLvl{font-size:.95rem;color:var(--amber)}
+code,#hSql{font-family:var(--f-mono);font-size:.86rem;color:var(--ink);background:var(--bg);padding:2px 6px;border-radius:3px;overflow-wrap:anywhere}
+#hObj{margin:0;color:var(--muted);font-size:.9rem;max-width:80ch}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.8rem;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:3px 8px;font-variant-numeric:tabular-nums}
+.chip b{color:var(--ink);font-family:var(--f-mono);font-weight:600}
+.chip.warn b{color:var(--bad)}
+.stage{position:relative;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--pk)}
+#cv{display:block;width:100%;aspect-ratio:16/9;max-width:100%;image-rendering:pixelated;touch-action:none}
+.below{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:12px}
+@media (max-width:680px){.below{grid-template-columns:minmax(0,1fr)}}
+.msgcol{display:grid;gap:8px;align-content:start;min-width:0}
+.msg{background:var(--panel);border:1px solid var(--line);border-left-width:4px;border-radius:4px;padding:9px 12px;font-size:.9rem;min-height:3.2em}
+.msg.tip{border-left-color:var(--teal)}
+.msg.warn{border-left-color:var(--amber)}
+.msg.bad{border-left-color:var(--bad)}
+.msg.ok{border-left-color:var(--ok)}
+.msg.lore{border-left-color:var(--lore);background:#2a2a1f}
+.msg .lt{font-family:var(--f-px);font-size:.72rem;color:var(--lore);display:block;margin-bottom:2px;letter-spacing:.06em}
+.insp{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);min-height:1.5em;overflow-wrap:anywhere}
+.mapcol{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0;display:grid;gap:4px}
+#mini{display:block;width:100%;height:130px}
+.touch{display:none;gap:8px;justify-content:space-between;flex-wrap:wrap;user-select:none;-webkit-user-select:none}
+.touch .grp{display:flex;gap:6px}
+.touch button{min-width:52px;min-height:48px;font-size:1.05rem;touch-action:none}
+@media (pointer:coarse),(hover:none){.touch{display:flex}}
+details.keys{color:var(--muted);font-size:.86rem}
+details.keys summary{cursor:pointer;font-family:var(--f-px);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 16px;margin-top:8px}
+kbd{font-family:var(--f-mono);font-size:.78rem;background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;padding:0 5px;color:var(--ink)}
+.screen{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px clamp(14px,3vw,24px);display:grid;gap:16px}
+.screen h2{font-family:var(--f-px);font-size:1.2rem;margin:0;color:var(--amber);font-weight:400}
+.lvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.lv{display:grid;gap:4px;text-align:left;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:5px;line-height:1.35}
+.lv .n{font-family:var(--f-px);font-size:.72rem;color:var(--muted)}
+.lv .t{font-family:var(--f-px);font-size:.95rem;color:var(--ink);font-weight:400}
+.lv .d{font-weight:400;color:var(--muted);font-size:.82rem}
+.lv .s{color:var(--amber);font-size:.95rem;letter-spacing:.1em}
+.codex{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.codex li{font-size:.86rem;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:7px 10px;max-width:85ch}
+.codex li b{font-family:var(--f-px);font-weight:400;color:var(--lore);font-size:.75rem;margin-right:6px}
+.codex li.lock{opacity:.6}
+.done-stars{font-size:2.2rem;letter-spacing:.15em;color:var(--amber);line-height:1}
+.done-stars .off{color:var(--line)}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.stat span{display:block;font-size:.74rem;color:var(--muted)}
+.stat b{font-family:var(--f-mono);font-size:1.15rem;font-variant-numeric:tabular-nums}
+#dNote{margin:0;color:var(--muted);max-width:70ch}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><span class="eyebrow">A B+ tree platformer</span><h1>Page Runner</h1></div>
+    <div class="btns">
+      <button id="bLevels" type="button">Levels</button>
+      <button id="bHint" type="button">Hint (H)</button>
+      <button id="bRestart" type="button">New data (R)</button>
+      <button id="bMute" type="button">Sound on</button>
+    </div>
+  </header>
+
+  <section id="game" class="wrap" style="padding:0;gap:12px">
+    <div class="hud">
+      <div class="row1"><span id="hLvl" class="px">Level 1</span><code id="hSql"></code></div>
+      <p id="hObj"></p>
+      <div class="chips">
+        <span class="chip">Reads <b id="hReads">0</b><span id="hPar"></span></span>
+        <span class="chip">Rows <b id="hRows">none</b></span>
+        <span class="chip" id="cMis">Mistakes <b id="hMis">0</b></span>
+        <span class="chip">Scrolls <b id="hLore">0/8</b></span>
+      </div>
+    </div>
+    <div class="stage"><canvas id="cv" aria-label="Game view: the current index page as a room"></canvas></div>
+    <div class="touch" id="touch">
+      <div class="grp"><button data-k="left" type="button" aria-label="Left">◀</button><button data-k="right" type="button" aria-label="Right">▶</button></div>
+      <div class="grp"><button data-k="up" type="button" aria-label="Jump or climb">▲</button><button data-k="down" type="button" aria-label="Trapdoor">▼</button><button data-k="take" type="button">E</button><button data-k="stop" type="button" aria-label="Stop scan">⏎</button></div>
+    </div>
+    <div class="below">
+      <div class="msgcol"><div id="msg" class="msg tip"></div><div id="insp" class="insp"></div></div>
+      <div class="mapcol"><span class="eyebrow">Pages read this run</span><canvas id="mini"></canvas></div>
+    </div>
+    <details class="keys" open>
+      <summary>Controls</summary>
+      <div class="kgrid">
+        <span><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> move</span>
+        <span><kbd>Space</kbd> <kbd>Z</kbd> <kbd>W</kbd> jump (hold for height)</span>
+        <span><kbd>↑</kbd> climb the ladder to the parent page</span>
+        <span><kbd>↓</kbd> on a pedestal: drop to that child page</span>
+        <span><kbd>E</kbd> take a row, start a lookup, insert</span>
+        <span><kbd>Enter</kbd> stop the scan</span>
+        <span><kbd>H</kbd> hint arrow (caps stars at 2)</span>
+        <span><kbd>R</kbd> new data · <kbd>Esc</kbd> levels · <kbd>M</kbd> sound</span>
+      </div>
+    </details>
+  </section>
+
+  <section id="scMenu" class="screen" hidden>
+    <h2>Levels</h2>
+    <div class="lvgrid" id="lvGrid"></div>
+    <div class="btns"><button id="bUnlock" type="button">Unlock all levels</button></div>
+    <div><span class="eyebrow">Codex: scrolls found</span></div>
+    <ul class="codex" id="codex"></ul>
+  </section>
+
+  <section id="scDone" class="screen" hidden>
+    <h2 id="dTitle">Query complete</h2>
+    <div class="done-stars" id="dStars"></div>
+    <div class="stats" id="dStats"></div>
+    <p id="dNote"></p>
+    <div class="btns"><button class="primary" id="bNext" type="button">Next level</button><button id="bAgain" type="button">Replay with new data</button><button id="bMenu" type="button">Levels</button></div>
+  </section>
+</div>
+
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C={};["bg","panel","panel2","ink","muted","line","amber","pk","ix","teal","bad","ok","lore"].forEach(k=>C[k]=cssv("--"+k));
+const W=640,H=360,FLOOR=328,CEIL=38,DOOR_TOP=FLOOR-62,STEP=1/120;
+const G=1800,JUMP=-560,SPEED=170;
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const RM=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- progress ---------- */
+const SKEY="page-runner-v1";
+let PROG={stars:{},best:{},lore:[],mute:false,unlock:false};
+try{const s=JSON.parse(localStorage.getItem(SKEY)||"null");if(s)PROG=Object.assign(PROG,s);}catch(e){}
+const save=()=>{try{localStorage.setItem(SKEY,JSON.stringify(PROG))}catch(e){}};
+
+const LORE=[
+ ["The page","Every page is 8,192 bytes. The first 96 bytes are the page header: page ID, index level, m_prevPage, m_nextPage, slot count and free space."],
+ ["The slot array","The slot array grows backwards from the end of the page. Each 2-byte slot holds one row's offset, in key order, so the rows themselves can sit anywhere in the page body."],
+ ["Separators","A non-leaf row is a key plus a child page number. The key is the lowest key in that child. The first row on the leftmost page of each level stores no key at all: it means minus infinity."],
+ ["Sideways","Every level of the tree is a doubly linked list. A range scan walks the leaf level through m_nextPage and never climbs back up to the parent."],
+ ["Page numbers","Pointers are page numbers written file:page. 1:347 is page 347 of file 1, which starts at byte 347 × 8,192 of the data file."],
+ ["Splits","When a row has to go on a full page, the engine allocates a new page, moves about half the rows across, relinks the leaf chain around it and adds a row for it to the parent."],
+ ["Lookups","A key lookup is a full descent of the clustered index for each row. Three matches on a nonclustered index cost three more root-to-leaf trips."],
+ ["Fill factor","Fill factor leaves free space on leaf pages when an index is built or rebuilt, so later inserts land without splitting. The engine doesn't maintain it afterwards."]
+];
+
+/* ---------- trees ---------- */
+const NAMES=["Ash","Birch","Cedar","Elm","Fir","Hazel","Larch","Maple","Oak","Pine","Rowan","Yew","Alder","Holly","Willow","Aspen"];
+function idGen(){const pool=shuffle([...Array(860)].map((_,i)=>i+120));let i=0;return()=>"1:"+pool[i++];}
+function mkRows(n,gmin=1,gmax=4){let id=rnd(1,6);const r=[];for(let i=0;i<n;i++){r.push({id,sv:rnd(1,9),name:pick(NAMES)});id+=rnd(gmin,gmax);}return r;}
+function sizesFor(n,cap){const s=[];while(n>0){s.push(Math.min(cap,n));n-=cap;}return s;}
+function groups(n,fan){const g=Math.ceil(n/fan),b=Math.floor(n/g),r=n%g;return[...Array(g)].map((_,i)=>b+(i<r?1:0));}
+function link(arr){arr.forEach((p,i)=>{p.prev=i?arr[i-1].id:null;p.next=i<arr.length-1?arr[i+1].id:null;});}
+function mkTree(T,name,kind,ents,sizes,fan,gid){
+  const leaves=[];let i=0;
+  for(const s of sizes){leaves.push({id:gid(),tree:name,kind,level:0,rows:ents.slice(i,i+s),kids:null,prev:null,next:null,parent:null});i+=s;}
+  link(leaves);let lvl=leaves,level=0;const all=[...leaves];
+  while(lvl.length>1){level++;const ups=[];let j=0;
+    for(const g of groups(lvl.length,fan)){const p={id:gid(),tree:name,kind,level,rows:null,kids:[],prev:null,next:null,parent:null};
+      for(let q=0;q<g;q++){const c=lvl[j++];c.parent=p.id;p.kids.push({pid:c.id,lo:null});}ups.push(p);}
+    link(ups);all.push(...ups);lvl=ups;}
+  all.forEach(p=>T[p.id]=p);
+  const tree={name,kind,root:lvl[0].id,height:level+1,fmt:kind==="nc"?(k=>Math.floor(k/1000)+"·"+(k%1000)):(k=>String(k))};
+  fixKeys(T,tree);return tree;
+}
+function minKey(T,p){return p.level===0?p.rows[0].k:minKey(T,T[p.kids[0].pid]);}
+function fixKeys(T,tree){
+  const walk=(p,lo,hi)=>{p.lo=lo;p.hi=hi;if(p.level===0)return;
+    p.kids.forEach((c,i)=>{c.lo=(i===0&&!p.prev)?null:minKey(T,T[c.pid]);});
+    p.kids.forEach((c,i)=>{const clo=i===0?lo:c.lo,chi=i<p.kids.length-1?p.kids[i+1].lo:hi;walk(T[c.pid],clo,chi);});};
+  walk(T[tree.root],-Infinity,Infinity);
+}
+const inRange=(p,k)=>k>=p.lo&&k<p.hi;
+function pathTo(T,tree,k){const out=[];let p=T[tree.root];for(;;){out.push(p.id);if(p.level===0)return out;let c=p.kids[0];for(const x of p.kids)if(x.lo===null||x.lo<=k)c=x;p=T[c.pid];}}
+function leafOf(T,tree,k){const pth=pathTo(T,tree,k);return T[pth[pth.length-1]];}
+function leavesOf(T,tree){let p=T[tree.root];while(p.level>0)p=T[p.kids[0].pid];const out=[];while(p){out.push(p);p=p.next?T[p.next]:null;}return out;}
+function pagesOf(T,tree){return Object.values(T).filter(p=>p.tree===tree.name);}
+function rangeText(tree,p){const f=tree.fmt;if(p.lo===-Infinity&&p.hi===Infinity)return"every key";if(p.lo===-Infinity)return"keys below "+f(p.hi);if(p.hi===Infinity)return"keys from "+f(p.lo)+" up";return"keys from "+f(p.lo)+" up to "+f(p.hi);}
+function bonusPage(T,tree,avoid){
+  const leaves=leavesOf(T,tree);const near=[];
+  leaves.forEach(l=>{if(avoid.has(l.id)){[l.prev,l.next].forEach(n=>{if(n&&!avoid.has(n))near.push(n);});}});
+  if(near.length)return pick(near);
+  const rest=pagesOf(T,tree).filter(p=>!avoid.has(p.id)&&p.id!==tree.root);return rest.length?pick(rest).id:null;
+}
+
+/* ---------- levels ---------- */
+function base(T,trees,start){return{T,trees,start,reads:0,mistakes:0,hintUsed:false,showHint:false,taken:[],visited:new Set(),scrolls:{},done:false,tut:{}};}
+function addScroll(L,pid,lore){if(pid)L.scrolls[pid]={lore,got:false};}
+
+function genL1(){
+  const gid=idGen(),T={};const n=rnd(20,27);const rows=mkRows(n);
+  const pk=mkTree(T,"PK_t","pk",rows.map(r=>({k:r.id,row:r})),sizesFor(n,4),3,gid);
+  const leaves=leavesOf(T,pk);const N=pick(leaves[rnd(1,leaves.length-1)].rows).k;
+  const L=base(T,{pk},pk.root);const path=pathTo(T,pk,N);
+  Object.assign(L,{sql:`SELECT * FROM t WHERE id = ${N};`,par:pk.height,
+    obj:()=>`Find the row with id ${N}. On each pedestal, read the key and drop through the trapdoor whose range holds ${N}. At the leaf, press E beside the row.`,
+    target:()=>L.done?null:{tree:pk,key:N,act:"take"},
+    take(g){if(g.k===N){takeRow(g);finish();}else mistake(`id ${g.k} isn't ${N}. Rows on a leaf are in key order, so ${N} sits ${N<g.k?"to the left":"to the right"} of it.`);},
+    tutor(p){
+      if(p.level===pk.height-1&&!L.tut.root){L.tut.root=1;return`This room is the root page of PK_t. Each pedestal is one row of the page: the lowest key in a child page and that child's page number. Stand on the last pedestal whose key is ≤ ${N} and press ↓.`;}
+      if(p.level>0&&p.level<pk.height-1&&!L.tut.mid){L.tut.mid=1;return"Same rule one level down. The ladder on the left climbs back to the parent page. Every room you enter costs one logical read.";}
+      if(p.level===0&&!L.tut.leaf){L.tut.leaf=1;return`Leaf level. The gems are the rows of the table, in key order. Stand beside id ${N} and press E. The side doors are m_prevPage and m_nextPage.`;}
+    }});
+  addScroll(L,bonusPage(T,pk,new Set(path)),0);return L;
+}
+function genL2(){
+  const gid=idGen(),T={};const n=rnd(24,30);const rows=mkRows(n);
+  const pk=mkTree(T,"PK_t","pk",rows.map(r=>({k:r.id,row:r})),sizesFor(n,4),3,gid);
+  const leaves=leavesOf(T,pk);const i=rnd(1,leaves.length-3);const la=leaves[i],lb=leaves[i+1];
+  let A=la.rows[rnd(1,la.rows.length-1)].k;const endLast=Math.random()<.45;
+  const B=lb.rows[endLast?lb.rows.length-1:rnd(0,lb.rows.length-2)].k;
+  const allK=rows.map(r=>r.id);if(Math.random()<.5&&!allK.includes(A-1))A-=1;
+  const want=allK.filter(k=>k>=A&&k<=B);const beyond=allK.find(k=>k>B)??allK[allK.length-1];
+  const sawIn=l=>l.rows.some(r=>r.k>B)||!l.next;
+  let leaf=leafOf(T,pk,A),par=pk.height;const avoid=new Set(pathTo(T,pk,A));
+  while(!sawIn(leaf)){leaf=T[leaf.next];par++;avoid.add(leaf.id);}
+  const L=base(T,{pk},pk.root);
+  Object.assign(L,{sql:`SELECT * FROM t WHERE id BETWEEN ${A} AND ${B};`,par,saw:false,want,
+    obj:()=>`Collect every id from ${A} to ${B}. Seek to ${A}, then walk right through m_nextPage. Press Enter to stop, but only once you've read a key above ${B} or reached the end of the chain.`,
+    target:()=>{if(L.done)return null;const nx=want.find(k=>!L.taken.includes(k));if(nx!=null)return{tree:pk,key:nx,act:"take"};if(!L.saw)return{tree:pk,key:beyond,act:"see"};return{act:"enter"};},
+    take(g){if(L.taken.includes(g.k))return say("Already in the result.","tip");if(g.k>=A&&g.k<=B){takeRow(g);if(L.taken.length===want.length&&!L.saw)say(`That's ${want.length} rows. The engine can't know there are no more until it reads a key above ${B}.`,"tip");}else mistake(`id ${g.k} is outside BETWEEN ${A} AND ${B}. A residual check would discard it.`);},
+    onEnter(p){if(p.level===0&&sawIn(p)&&L.taken.length>0)L.saw=true;},
+    enter(){const miss=want.filter(k=>!L.taken.includes(k));
+      if(miss.length)return mistake(`Stopped too early: ${miss.join(", ")} ${miss.length>1?"are":"is"} still missing.`);
+      if(!L.saw)return mistake(`The scan can't stop yet. It hasn't read a key above ${B}, so the next page could still hold matches.`);finish();},
+    tutor(p){if(p.level===0&&!L.tut.leaf){L.tut.leaf=1;return`Take each id in range with E, then keep walking right through the m_nextPage door. A range scan never climbs back to the parent.`;}}});
+  addScroll(L,bonusPage(T,pk,avoid),3);return L;
+}
+function genL3(){
+  const gid=idGen(),T={};const n=rnd(18,24);const rows=mkRows(n);const V=rnd(2,8),m=rnd(2,3);
+  rows.forEach(r=>{if(r.sv===V)r.sv=V+(Math.random()<.5?-1:1);});
+  shuffle([...rows.keys()]).slice(0,m).forEach(i=>rows[i].sv=V);
+  const pk=mkTree(T,"PK_t","pk",rows.map(r=>({k:r.id,row:r})),sizesFor(n,4),3,gid);
+  const ncE=rows.map(r=>({k:r.sv*1000+r.id,row:r})).sort((a,b)=>a.k-b.k);
+  const nc=mkTree(T,"IX_t_secondary_id","nc",ncE,sizesFor(n,5),3,gid);
+  const matches=ncE.filter(e=>Math.floor(e.k/1000)===V).map(e=>e.k);const thr=V*1000+999;
+  const beyond=(ncE.find(e=>e.k>thr)||ncE[ncE.length-1]).k;
+  const sawIn=l=>l.rows.some(r=>r.k>thr)||!l.next;
+  const avoid=new Set(pathTo(T,nc,matches[0]));let leaf=leafOf(T,nc,matches[0]),par=nc.height;
+  while(!sawIn(leaf)){leaf=T[leaf.next];par++;avoid.add(leaf.id);}
+  matches.forEach(k=>pathTo(T,pk,k%1000).forEach(x=>avoid.add(x)));par+=m*pk.height;
+  const L=base(T,{nc,pk},nc.root);const looked=new Set();
+  Object.assign(L,{sql:`SELECT * FROM t WHERE secondary_id = ${V};`,par,saw:false,look:null,
+    obj:()=>L.look?`Key lookup for id ${L.look.id}: descend PK_t to the row and press E. You return to the index leaf afterwards.`:`Seek IX_t_secondary_id to secondary_id ${V}. Each matching entry is a portal: press E to run a key lookup into PK_t. Press Enter after you've read an entry above ${V}.`,
+    target:()=>{if(L.done)return null;if(L.look)return{tree:pk,key:L.look.id,act:"take"};const nx=matches.find(k=>!looked.has(k));if(nx!=null)return{tree:nc,key:nx,act:"lookup"};if(!L.saw)return{tree:nc,key:beyond,act:"see"};return{act:"enter"};},
+    take(g,p){
+      if(p.tree===nc.name){const sv=Math.floor(g.k/1000),id=g.k%1000;
+        if(sv!==V)return mistake(`This entry has secondary_id ${sv}, not ${V}.`);
+        if(looked.has(g.k))return say(`id ${id} is already in the result.`,"tip");
+        looked.add(g.k);g.done=true;L.look={id,ret:p.id,x:P.x,y:P.y};sfx.portal();
+        say(`Key lookup: the entry's row locator is id ${id}. Now descend PK_t from its root to fetch the rest of the row.`,"tip");
+        go(pk.root,"lookup");return;}
+      if(!L.look)return;
+      if(g.k!==L.look.id)return mistake(`This lookup is for id ${L.look.id}, not ${g.k}.`);
+      takeRow(g);const r=L.look;L.look=null;
+      say(`id ${g.k} joined the result. Back on the index leaf: the seek kept its place, so returning costs no read.`,"ok");
+      go(r.ret,"return",r);},
+    onEnter(p){if(p.tree===nc.name&&p.level===0&&sawIn(p)&&looked.size>0)L.saw=true;},
+    enter(){if(L.look)return mistake("Finish the key lookup first.");
+      const miss=matches.filter(k=>!looked.has(k));if(miss.length)return mistake(`Stopped too early: ${miss.length} matching ${miss.length>1?"entries are":"entry is"} still unread.`);
+      if(!L.saw)return mistake(`The seek can't stop yet. It hasn't read an entry above secondary_id ${V}, so the next index page could hold more.`);finish();},
+    tutor(p){
+      if(p.tree===nc.name&&p.level>0&&!L.tut.root){L.tut.root=1;return`Teal rooms are IX_t_secondary_id. Its keys are (secondary_id · id) pairs: the id is the row locator, added because the index isn't unique. Descend to ${V}.`;}
+      if(p.tree===nc.name&&p.level===0&&!L.tut.leaf){L.tut.leaf=1;return`Index leaf. Entries hold only secondary_id and id, so SELECT * needs the rest of each row. Press E on a ${V}·… entry to start a key lookup.`;}
+      if(p.tree===pk.name&&!L.tut.pk){L.tut.pk=1;return`PK_t root. A key lookup is a full descent by id, exactly like level 1. Every lookup pays this tree's height in reads.`;}
+    }});
+  addScroll(L,bonusPage(T,pk,avoid)||bonusPage(T,nc,avoid),6);return L;
+}
+function genL4(){
+  const gid=idGen(),T={};const n=rnd(4,6)*4+rnd(1,2);const rows=mkRows(n);
+  const pk=mkTree(T,"PK_t","pk",rows.map(r=>({k:r.id,row:r})),sizesFor(n,4),3,gid);
+  const keys=rows.map(r=>r.id);const top=keys.slice(-3).reverse();
+  const L=base(T,{pk},pk.root);const avoid=new Set(pathTo(T,pk,top[0]));avoid.add(leafOf(T,pk,top[2]).id);
+  Object.assign(L,{sql:"SELECT TOP (3) * FROM t ORDER BY id DESC;",par:pk.height+1,
+    obj:()=>`Return the three highest ids, highest first. A backward scan starts at the right edge of the tree and walks the leaf chain through m_prevPage.`,
+    target:()=>L.done?null:{tree:pk,key:top[L.taken.length],act:"take"},
+    take(g){if(L.taken.includes(g.k))return say("Already returned.","tip");const want=top[L.taken.length];
+      if(g.k===want){takeRow(g);if(L.taken.length===3){say("TOP (3) satisfied. The scan stops the moment the third row arrives: no more pages are read.","ok");finish();}}
+      else if(top.includes(g.k))mistake(`ORDER BY id DESC returns ${want} before ${g.k}. A backward scan reads each page from its last slot to its first.`);
+      else mistake(`id ${g.k} isn't in the top three. Higher ids exist to the right.`);},
+    tutor(p){if(p.level===pk.height-1&&!L.tut.root){L.tut.root=1;return"Backward scan: the highest keys live under the rightmost pedestal at every level.";}
+      if(p.level===0&&!p.next&&!L.tut.leaf){L.tut.leaf=1;return`This is the last leaf, and it holds only ${p.rows.length} row${p.rows.length>1?"s":""}. Take them highest first, then use the m_prevPage door on the left.`;}}});
+  addScroll(L,bonusPage(T,pk,avoid),4);return L;
+}
+function genL5(){
+  const gid=idGen(),T={};const m=rnd(5,7),n=m*4;const rows=mkRows(n,2,4);
+  const pk=mkTree(T,"PK_t","pk",rows.map(r=>({k:r.id,row:r})),sizesFor(n,4),3,gid);
+  const leaves=leavesOf(T,pk);let K=null,leaf;
+  for(let tries=0;K===null&&tries<50;tries++){leaf=leaves[rnd(1,leaves.length-2)];const r=leaf.rows;const t=rnd(0,2);const gap=r[t+1].k-r[t].k;if(gap>1)K=r[t].k+1+rnd(0,gap-2);}
+  const row={id:K,sv:rnd(1,9),name:pick(NAMES)};const avoid=new Set(pathTo(T,pk,K));if(leaf.next)avoid.add(leaf.next);
+  const L=base(T,{pk},pk.root);
+  Object.assign(L,{sql:`INSERT INTO t (id, secondary_id, name) VALUES (${K}, ${row.sv}, '${row.name}');`,par:pk.height+1,split:false,newId:null,
+    obj:()=>L.split?`Page split done. Walk through the m_nextPage door to see the new page ${L.newId}.`:`Carry id ${K} down to the leaf where it belongs and press E to insert it. Every leaf is full.`,
+    target:()=>{if(L.done)return null;if(!L.split)return{tree:pk,key:K,act:"insert"};return{tree:pk,key:L.newFirst,act:"see"};},
+    take(){L.insert();},
+    insert(){if(L.split)return say("Already inserted.","tip");const p=cur;
+      if(p.level>0)return say("Rows are inserted on leaf pages. Keep descending.","tip");
+      if(!inRange(p,K))return mistake(`id ${K} doesn't belong on ${p.id}: this page holds ${rangeText(pk,p)}.`);
+      splitPage(L,pk,p,{k:K,row,fresh:true},gid);},
+    onEnter(p){if(L.split&&p.id===L.newId){say(`Page ${p.id} is the new page. It holds the upper half of the old page's rows, and its m_prevPage points back at ${p.prev}.`,"ok");finish();}},
+    tutor(p){if(p.level===0&&!L.split&&inRange(p,K)&&!L.tut.leaf){L.tut.leaf=1;return`This page is full: 4 of 4 rows in this miniature. Press E to insert ${K} and watch the page split.`;}}});
+  addScroll(L,bonusPage(T,pk,avoid),5);return L;
+}
+function genL6(){
+  const gid=idGen(),T={};const n=64;const rows=mkRows(n);
+  const pk=mkTree(T,"PK_t","pk",rows.map(r=>({k:r.id,row:r})),sizesFor(n,4),3,gid);
+  const L=base(T,{pk},pk.root);const ps=shuffle(pagesOf(T,pk).filter(p=>p.id!==pk.root)).slice(0,8);
+  ps.forEach((p,i)=>addScroll(L,p.id,i));
+  Object.assign(L,{sql:"-- The archive: PK_t, four levels, 16 leaf pages",par:null,
+    obj:()=>`Explore a four-level tree and find all 8 scrolls. There's no par here, but every room you enter still costs a read.`,
+    target:()=>null,take(g){say(`Slot ${g.i}: id ${g.k}. Nothing to collect here; the scrolls are what you're after.`,"tip");},
+    onScroll(){if(Object.values(L.scrolls).every(s=>s.got)){say("All eight scrolls found. The archive is complete.","ok");finish();}}});
+  return L;
+}
+function splitPage(L,tree,leaf,ent,gid){
+  const T=L.T;const all=[...leaf.rows,ent].sort((a,b)=>a.k-b.k);const half=Math.ceil(all.length/2);
+  leaf.rows=all.slice(0,half);
+  const np={id:gid(),tree:leaf.tree,kind:leaf.kind,level:0,rows:all.slice(half),kids:null,prev:leaf.id,next:leaf.next,parent:leaf.parent};
+  if(leaf.next){T[leaf.next].prev=np.id;delete T[leaf.next].geo;}leaf.next=np.id;T[np.id]=np;
+  const par=T[leaf.parent];const idx=par.kids.findIndex(c=>c.pid===leaf.id);par.kids.splice(idx+1,0,{pid:np.id,lo:null});
+  fixKeys(T,tree);delete leaf.geo;delete par.geo;
+  L.split=true;L.newId=np.id;L.newFirst=np.rows[0].k;
+  room=geo(leaf);P.y=FLOOR-P.h;P.vy=0;sfx.split();shake=.35;
+  const where=leaf.rows.some(r=>r.fresh)?leaf.id:np.id;
+  say(`Page split. ${leaf.id} kept ${leaf.rows.length} rows, new page ${np.id} took ${np.rows.length}, and id ${ent.k} landed on ${where}. The parent ${par.id} gained a row: ≥ ${np.rows[0].k} → ${np.id}. All three pages are now dirty and logged.`,"warn");
+  hud();
+}
+
+const LV=[
+ {name:"Find the row",d:"Clustered index seek. Read the pedestals and drop to the right child.",gen:genL1},
+ {name:"Range walk",d:"BETWEEN: seek to the start, then walk the leaf chain sideways.",gen:genL2},
+ {name:"Key lookup",d:"Seek a nonclustered index, then descend the clustered index for each match.",gen:genL3},
+ {name:"Backwards",d:"TOP (3) ORDER BY id DESC: a backward scan through m_prevPage.",gen:genL4},
+ {name:"Page split",d:"Carry an insert to a full leaf and split it.",gen:genL5},
+ {name:"The archive",d:"A four-level tree. Explore it and find eight scrolls.",gen:genL6}
+];
+
+/* ---------- audio ---------- */
+let AC=null;
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}if(AC.state==="suspended")AC.resume();return AC;}
+function tone(f,d,type,v,f2,delay=0){if(PROG.mute)return;const a=ac();if(!a)return;const t=a.currentTime+delay;const o=a.createOscillator(),g=a.createGain();o.type=type||"square";o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(v||.04,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(a.destination);o.start(t);o.stop(t+d+.03);}
+const sfx={
+ jump:()=>tone(300,.11,"square",.025,480),
+ take:()=>{tone(660,.08,"square",.035);tone(990,.14,"square",.035,null,.07);},
+ read:()=>tone(1200,.03,"square",.02),
+ drop:()=>tone(420,.22,"triangle",.06,140),
+ up:()=>tone(170,.2,"triangle",.06,400),
+ door:()=>tone(240,.14,"triangle",.06,200),
+ bad:()=>tone(150,.28,"sawtooth",.035,90),
+ portal:()=>{[520,660,780,1040].forEach((f,i)=>tone(f,.1,"triangle",.04,null,i*.05));},
+ split:()=>{tone(90,.4,"sawtooth",.05,50);tone(880,.2,"square",.03,440,.15);},
+ scroll:()=>{[523,659,784,1047].forEach((f,i)=>tone(f,.16,"triangle",.045,null,i*.08));},
+ win:()=>{[392,523,659,784,1047].forEach((f,i)=>tone(f,.18,"square",.03,null,i*.09));}
+};
+
+/* ---------- state ---------- */
+let L=null,LI=0,cur=null,room=null,running=false,fade=null,shake=0,tclock=0;
+const P={x:0,y:0,w:12,h:18,vx:0,vy:0,ground:false,coy:0,buf:0,face:1,drop:0,walk:0};
+const held={left:false,right:false,jump:false};const queue=[];
+
+function say(text,kind="tip",title){const m=$("msg");m.className="msg "+kind;m.textContent="";if(title){const s=document.createElement("span");s.className="lt";s.textContent=title;m.appendChild(s);}m.appendChild(document.createTextNode(text));}
+function mistake(text){L.mistakes++;sfx.bad();shake=.2;say(text,"bad");hud();}
+function takeRow(g){L.taken.push(g.k);g.done=true;sfx.take();hud();}
+
+function startLevel(i){
+  LI=i;L=LV[i].gen();L.idx=i;room=null;cur=null;
+  showScreen("game");running=true;
+  say(LV[i].d,"tip");enterPage(L.start,"start");
+}
+function go(pid,how,extra){if(fade)return;fade={t:0,dur:RM?.08:.28,swap:false,fn:()=>enterPage(pid,how,extra)};}
+function enterPage(pid,how,extra){
+  const prevId=cur?cur.id:null;cur=L.T[pid];room=geo(cur);
+  if(how!=="return"){L.reads++;sfx.read();}
+  L.visited.add(pid);
+  P.vx=0;P.vy=0;P.drop=0;
+  if(how==="up"){const pd=room.peds.find(q=>q.pid===prevId);if(pd){P.x=pd.x+pd.w/2-P.w/2;P.y=pd.y-P.h;}else{P.x=60;P.y=FLOOR-P.h;}}
+  else if(how==="next"){P.x=20;P.y=FLOOR-P.h;}
+  else if(how==="prev"){P.x=W-20-P.w;P.y=FLOOR-P.h;}
+  else if(how==="return"){P.x=extra.x;P.y=extra.y;}
+  else{P.x=W/2-P.w/2;P.y=CEIL+6;}
+  L.onEnter&&L.onEnter(cur,how);
+  const t=L.target&&L.target();const tr=t&&t.tree;
+  let note=L.tutor&&L.tutor(cur);
+  if(how==="drop"&&tr&&tr.name===cur.tree&&t.key!=null&&!inRange(cur,t.key)){
+    note=`Wrong turn. ${cur.id} holds ${rangeText(tr,cur)}, so ${tr.fmt(t.key)} can't be under it. Climb the ladder back to ${cur.parent}.`;say(note,"warn");}
+  else if(note)say(note,"tip");
+  hud();
+}
+
+/* ---------- room geometry ---------- */
+function geo(p){
+  if(p.geo)return p.geo;
+  const g={solids:[],oneway:[],peds:[],gems:[],ladder:null,scroll:null};
+  g.solids.push({x:0,y:FLOOR,w:W,h:H-FLOOR},{x:0,y:0,w:W,h:CEIL});
+  g.solids.push({x:0,y:CEIL,w:16,h:(p.prev?DOOR_TOP:FLOOR)-CEIL});
+  g.solids.push({x:W-16,y:CEIL,w:16,h:(p.next?DOOR_TOP:FLOOR)-CEIL});
+  if(p.parent)g.ladder={x:24,y:CEIL,w:20,h:FLOOR-CEIL};
+  const x0=p.parent?62:44,x1=W-44;
+  if(p.level>0){const n=p.kids.length,slot=(x1-x0)/n,pw=Math.min(88,slot-20);
+    p.kids.forEach((c,i)=>{const h=pick([34,50,66]);const r={x:Math.round(x0+slot*i+(slot-pw)/2),y:FLOOR-h,w:Math.round(pw),h,i,pid:c.pid};g.peds.push(r);g.solids.push(r);});}
+  else{const n=p.rows.length,slot=(x1-x0)/Math.max(n,1);
+    p.rows.forEach((r,i)=>{const cx=Math.round(x0+slot*(i+.5));const off=pick([0,0,40,70]);if(off)g.oneway.push({x:cx-26,y:FLOOR-off,w:52,h:6});g.gems.push({x:cx,y:FLOOR-off-12,k:r.k,row:r.row,i,fresh:r.fresh});});}
+  const sc=L.scrolls[p.id];
+  if(sc){if(p.level>0){const pd=pick(g.peds);g.scroll={x:pd.x+pd.w/2,y:pd.y-16};}
+    else{const a=g.gems[0],b=g.gems[1];g.scroll={x:b?(a.x+b.x)/2:Math.min(a.x+70,W-40),y:FLOOR-50};}}
+  p.geo=g;return g;
+}
+
+/* ---------- physics ---------- */
+const ov=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+function onLadder(){return room.ladder&&ov(P,room.ladder);}
+function standingPed(){if(!P.ground)return null;const cx=P.x+P.w/2;return room.peds.find(d=>Math.abs(P.y+P.h-d.y)<1.5&&cx>=d.x&&cx<=d.x+d.w)||null;}
+function nearGem(){const cx=P.x+P.w/2,cy=P.y+P.h/2;let best=null,bd=1e9;for(const g of room.gems){const dx=Math.abs(g.x-cx),dy=Math.abs(g.y-cy);if(dx<20&&dy<30&&dx<bd){bd=dx;best=g;}}return best;}
+function update(dt){
+  tclock+=dt;if(shake>0)shake=Math.max(0,shake-dt);
+  if(fade){fade.t+=dt;if(!fade.swap&&fade.t>=fade.dur/2){fade.swap=true;fade.fn();}if(fade.t>=fade.dur)fade=null;return;}
+  if(!running||L.doneShown)return;
+  while(queue.length){const a=queue.shift();act(a);if(fade)return;}
+  const ax=(held.right?1:0)-(held.left?1:0);P.vx=ax*SPEED;if(ax){P.face=ax;P.walk+=dt;}else P.walk=0;
+  P.coy=P.ground?.09:Math.max(0,P.coy-dt);P.buf=Math.max(0,P.buf-dt);P.drop=Math.max(0,P.drop-dt);
+  if(P.buf>0&&P.coy>0){P.vy=JUMP;P.buf=0;P.coy=0;P.ground=false;sfx.jump();}
+  if(!held.jump&&P.vy<-230)P.vy=-230;
+  P.vy=Math.min(P.vy+G*dt,720);
+  P.x+=P.vx*dt;
+  for(const s of room.solids)if(ov(P,s)){if(P.vx>0)P.x=s.x-P.w;else if(P.vx<0)P.x=s.x+s.w;}
+  const pb=P.y+P.h;P.y+=P.vy*dt;P.ground=false;
+  for(const s of room.solids)if(ov(P,s)){if(P.vy>0){P.y=s.y-P.h;P.vy=0;P.ground=true;}else if(P.vy<0){P.y=s.y+s.h;P.vy=0;}}
+  if(P.vy>=0&&!P.drop)for(const o of room.oneway){if(pb<=o.y+.5&&P.y+P.h>=o.y&&P.x<o.x+o.w&&P.x+P.w>o.x){P.y=o.y-P.h;P.vy=0;P.ground=true;}}
+  if(P.x+P.w/2<3&&cur.prev){sfx.door();go(cur.prev,"prev");return;}
+  if(P.x+P.w/2>W-3&&cur.next){sfx.door();go(cur.next,"next");return;}
+  if(room.scroll){const sc=L.scrolls[cur.id];if(sc&&!sc.got&&Math.abs(P.x+P.w/2-room.scroll.x)<16&&Math.abs(P.y+P.h/2-room.scroll.y)<18){
+    sc.got=true;sfx.scroll();if(!PROG.lore.includes(sc.lore)){PROG.lore.push(sc.lore);save();}
+    say(LORE[sc.lore][1],"lore","Scroll "+(sc.lore+1)+": "+LORE[sc.lore][0]);hud();L.onScroll&&L.onScroll();}}
+  inspect();
+}
+function act(a){
+  if(a==="jumpPress"){P.buf=.12;return;}
+  if(a==="up"){if(onLadder()){sfx.up();go(cur.parent,"up");}else P.buf=.12;return;}
+  if(a==="down"){const pd=standingPed();if(pd){sfx.drop();go(pd.pid,"drop");return;}
+    if(P.ground&&room.oneway.some(o=>Math.abs(P.y+P.h-o.y)<1.5))P.drop=.25;return;}
+  if(a==="take"){if(L.done)return;if(L.insert&&cur.level===0)return L.insert();const g=nearGem();
+    if(!g)return say(cur.level>0?"There are no rows to take on a non-leaf page. Stand on a pedestal and press ↓ to read that child page.":"Stand beside a row's gem and press E.","tip");
+    if(g.done&&!L.look&&cur.tree!=="IX_t_secondary_id")return say("Already taken.","tip");L.take(g,cur);return;}
+  if(a==="stop"){if(L.done)return;if(L.enter)L.enter();else say("This query has no scan to stop. It finishes on its own when its goal is met.","tip");return;}
+}
+
+/* ---------- finish ---------- */
+function finish(){
+  if(L.done)return;L.done=true;sfx.win();
+  let stars=3;
+  if(L.par!=null){if(L.reads>L.par||L.mistakes>0)stars=2;if(L.reads>L.par+3||L.mistakes>2)stars=1;if(L.hintUsed)stars=Math.min(stars,2);}
+  L.stars=stars;
+  if((PROG.stars[LI]||0)<stars)PROG.stars[LI]=stars;
+  if(PROG.best[LI]==null||L.reads<PROG.best[LI])PROG.best[LI]=L.reads;
+  save();
+  setTimeout(()=>{if(L&&L.done){L.doneShown=true;showDone();}},RM?300:1300);
+}
+function showDone(){
+  running=false;
+  $("dTitle").textContent=`Level ${LI+1} complete: ${LV[LI].name}`;
+  $("dStars").innerHTML=[0,1,2].map(i=>`<span class="${i<L.stars?"":"off"}">★</span>`).join("");
+  const st=[["Logical reads",L.reads],["Par",L.par==null?"none":L.par],["Mistakes",L.mistakes],["Best reads",PROG.best[LI]],["Hint",L.hintUsed?"used":"not used"],["Scrolls",PROG.lore.length+" of 8"]];
+  $("dStats").innerHTML=st.map(([a,b])=>`<div class="stat"><span>${a}</span><b>${b}</b></div>`).join("");
+  let note;
+  if(L.par==null)note=`You read ${L.reads} pages to find all eight scrolls. A real index this size would hold around 60 rows per leaf, not 4, so the same four levels would cover about 700,000 rows.`;
+  else if(L.reads<=L.par&&!L.mistakes)note=`Exactly the pages the storage engine would read. ${L.hintUsed?"The hint capped this run at two stars.":""}`;
+  else note=`The engine needs ${L.par} reads for this statement. ${L.reads>L.par?`You used ${L.reads-L.par} more: every wrong turn, climb and detour is another page read.`:""} ${L.mistakes?`Mistakes cost a star.`:""}`;
+  $("dNote").textContent=note.trim();
+  $("bNext").hidden=LI>=LV.length-1;
+  showScreen("done");$("bNext").hidden||$("bNext").focus();
+}
+
+/* ---------- hints ---------- */
+function hintTarget(){
+  const t=L.target&&L.target();if(!t)return null;
+  if(t.act==="enter")return{x:P.x+P.w/2,y:P.y-22,dir:"down",label:"ENTER"};
+  const tr=t.tree;if(!tr||tr.name!==cur.tree)return null;const k=t.key;
+  if(!inRange(cur,k)){
+    if(cur.next&&k>=cur.hi&&inRange(L.T[cur.next],k))return{x:W-30,y:FLOOR-40,dir:"right"};
+    if(cur.prev&&k<cur.lo&&inRange(L.T[cur.prev],k))return{x:30,y:FLOOR-40,dir:"left"};
+    if(room.ladder)return{x:34,y:FLOOR-80,dir:"up"};return null;}
+  if(cur.level>0){let c=cur.kids[0];for(const x of cur.kids)if(x.lo===null||x.lo<=k)c=x;const pd=room.peds.find(q=>q.pid===c.pid);return{x:pd.x+pd.w/2,y:pd.y-30,dir:"down",label:"↓"};}
+  if(t.act==="insert"){const gs=room.gems;let x=gs[0].x-30;for(const g of gs)if(g.k<k)x=g.x+28;return{x,y:FLOOR-40,dir:"down",label:"E"};}
+  const g=room.gems.find(q=>q.k===k);if(g)return{x:g.x,y:g.y-36,dir:"down",label:"E"};
+  if(t.act==="see"&&cur.next)return{x:W-30,y:FLOOR-40,dir:"right"};
+  return null;
+}
+
+/* ---------- drawing ---------- */
+const cv=$("cv"),ctx=cv.getContext("2d");let scale=1,fsm=1;
+function resize(){const r=cv.getBoundingClientRect();if(!r.width)return;const dpr=Math.min(3,window.devicePixelRatio||1);cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.width*9/16*dpr);scale=cv.width/W;fsm=Math.min(1.45,Math.max(1,.95/(r.width/W)));drawMini();}
+const font=(px,fam,b)=>`${b?"700 ":""}${Math.round(px*fsm*10)/10}px ${fam}`;
+const FPX='"Silkscreen","Courier New",monospace',FMO='"IBM Plex Mono",ui-monospace,Consolas,monospace';
+function rr(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h);}
+function draw(){
+  ctx.setTransform(scale,0,0,scale,0,0);
+  if(!L||!cur||!room){rr(0,0,W,H,C.bg);return;}
+  ctx.save();
+  if(shake>0&&!RM){ctx.translate((Math.random()-.5)*6*shake,(Math.random()-.5)*6*shake);}
+  const isNC=cur.kind==="nc";const tree=Object.values(L.trees).find(t=>t.name===cur.tree);
+  const roomC=isNC?C.ix:C.pk;
+  rr(-10,-10,W+20,H+20,roomC);
+  // graph-paper grid
+  ctx.strokeStyle="rgba(230,238,242,.05)";ctx.lineWidth=1;ctx.beginPath();
+  for(let x=0;x<=W;x+=16){ctx.moveTo(x+.5,CEIL);ctx.lineTo(x+.5,FLOOR);}for(let y=CEIL;y<=FLOOR;y+=16){ctx.moveTo(0,y+.5);ctx.lineTo(W,y+.5);}ctx.stroke();
+  // header band
+  rr(0,0,W,CEIL,C.bg);rr(0,CEIL-2,W,2,C.amber);
+  ctx.textBaseline="alphabetic";ctx.textAlign="left";ctx.fillStyle=C.amber;ctx.font=font(8,FPX);
+  const lvlTxt=cur.level===0?"LEAF":cur.parent?"NON-LEAF":"ROOT";
+  ctx.fillText(`PAGE ${cur.id}  ·  ${cur.tree}  ·  LEVEL ${cur.level}  ·  ${lvlTxt}`,10,15);
+  ctx.fillStyle=C.muted;ctx.font=font(8,FMO);
+  const slots=cur.level===0?cur.rows.length:cur.kids.length;
+  ctx.fillText(`m_prevPage ${cur.prev||"NULL"}   m_nextPage ${cur.next||"NULL"}   m_slotCnt ${slots}   header 96 B`,10,29);
+  ctx.textAlign="right";ctx.fillStyle=C.muted;ctx.font=font(7,FPX);ctx.fillText(rangeText(tree,cur).toUpperCase(),W-10,15);
+  // floor: the page body, with the slot array at the far end
+  rr(0,FLOOR,W,H-FLOOR,C.bg);rr(0,FLOOR,W,2,C.line);
+  ctx.textAlign="left";ctx.fillStyle=C.muted;ctx.font=font(7,FMO);ctx.fillText("offset 96 → rows",20,FLOOR+20);
+  for(let i=0;i<slots;i++)rr(W-26-i*9,FLOOR+9,7,8,C.amber);
+  ctx.textAlign="right";ctx.fillText("slot array ← 8,192",W-30-slots*9,FLOOR+17);
+  // walls and doors
+  const wallC=C.bg;
+  rr(0,CEIL,16,(cur.prev?DOOR_TOP:FLOOR)-CEIL,wallC);rr(W-16,CEIL,16,(cur.next?DOOR_TOP:FLOOR)-CEIL,wallC);
+  ctx.font=font(7,FPX);
+  if(cur.prev){rr(0,DOOR_TOP-3,16,3,C.amber);ctx.textAlign="left";ctx.fillStyle=C.amber;ctx.fillText("◀ "+cur.prev,room.ladder?50:20,DOOR_TOP-8);}
+  if(cur.next){rr(W-16,DOOR_TOP-3,16,3,C.amber);ctx.textAlign="right";ctx.fillStyle=C.amber;ctx.fillText(cur.next+" ▶",W-20,DOOR_TOP-8);}
+  // ladder
+  if(room.ladder){const l=room.ladder;ctx.strokeStyle=C.muted;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(l.x+2,l.y);ctx.lineTo(l.x+2,FLOOR);ctx.moveTo(l.x+l.w-2,l.y);ctx.lineTo(l.x+l.w-2,FLOOR);
+    for(let y=FLOOR-10;y>l.y;y-=14){ctx.moveTo(l.x+2,y);ctx.lineTo(l.x+l.w-2,y);}ctx.stroke();
+    ctx.save();ctx.translate(l.x+l.w+9,CEIL+8);ctx.rotate(Math.PI/2);ctx.textAlign="left";ctx.fillStyle=C.muted;ctx.font=font(7,FPX);ctx.fillText("↑ PARENT "+cur.parent,0,0);ctx.restore();}
+  // pedestals
+  for(const pd of room.peds){const c=cur.kids[pd.i];
+    rr(pd.x,pd.y,pd.w,pd.h,C.panel2);rr(pd.x,pd.y,pd.w,3,C.amber);
+    ctx.strokeStyle=C.line;ctx.lineWidth=1;ctx.strokeRect(pd.x+.5,pd.y+.5,pd.w-1,pd.h-1);
+    ctx.fillStyle=C.bg;ctx.fillRect(pd.x+pd.w/2-10,pd.y+1,20,2);
+    ctx.textAlign="center";ctx.fillStyle=C.ink;ctx.font=font(10,FMO,true);
+    ctx.fillText(c.lo===null?"−∞":"≥ "+tree.fmt(c.lo),pd.x+pd.w/2,pd.y+16);
+    if(pd.h>40){ctx.fillStyle=C.muted;ctx.font=font(8,FMO);ctx.fillText("→ "+c.pid,pd.x+pd.w/2,pd.y+29);}
+    else{ctx.fillStyle=C.muted;ctx.font=font(8,FMO);ctx.fillText("→ "+c.pid,pd.x+pd.w/2,pd.y-6);}
+    if(L.visited.has(c.pid)){rr(pd.x+pd.w-7,pd.y+pd.h-7,4,4,C.teal);}}
+  // one-way platforms
+  for(const o of room.oneway){rr(o.x,o.y,o.w,3,C.muted);ctx.fillStyle="rgba(143,166,179,.25)";for(let x=o.x+4;x<o.x+o.w;x+=8)ctx.fillRect(x,o.y+3,2,3);}
+  // gems
+  for(const g of room.gems){const done=g.done||L.taken.includes(g.k)&&!isNC;const col=isNC?C.teal:(g.fresh?C.ok:C.amber);
+    const bob=RM?0:Math.sin(tclock*2.5+g.i)*1.5;const y=g.y+bob;
+    ctx.beginPath();ctx.moveTo(g.x,y-7);ctx.lineTo(g.x+6,y);ctx.lineTo(g.x,y+7);ctx.lineTo(g.x-6,y);ctx.closePath();
+    if(done){ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();}else{ctx.fillStyle=col;ctx.fill();ctx.fillStyle="rgba(255,255,255,.5)";ctx.fillRect(g.x-2,y-3,2,2);}
+    ctx.textAlign="center";ctx.fillStyle=done?C.muted:C.ink;ctx.font=font(10,FMO,true);ctx.fillText(tree.fmt(g.k),g.x,y-13);
+    ctx.fillStyle=C.muted;ctx.font=font(7,FPX);ctx.fillText("SLOT "+g.i,g.x,g.y+(g.y>FLOOR-20?28:24));}
+  // scroll
+  const sc=L.scrolls[cur.id];
+  if(room.scroll&&sc&&!sc.got){const s=room.scroll;const by=RM?0:Math.sin(tclock*3)*2;
+    ctx.fillStyle="rgba(233,217,168,.18)";ctx.beginPath();ctx.arc(s.x,s.y+by,12,0,7);ctx.fill();
+    rr(s.x-6,s.y-5+by,12,10,C.lore);rr(s.x-8,s.y-6+by,2,12,"#b49a5a");rr(s.x+6,s.y-6+by,2,12,"#b49a5a");rr(s.x-3,s.y-2+by,6,1,"#7a6a3e");rr(s.x-3,s.y+1+by,5,1,"#7a6a3e");}
+  // player
+  drawPlayer();
+  // hint arrow
+  if(L.showHint&&!L.done){const h=hintTarget();if(h)drawArrow(h);}
+  ctx.restore();
+  if(fade){const a=fade.t<fade.dur/2?fade.t/(fade.dur/2):1-(fade.t-fade.dur/2)/(fade.dur/2);ctx.fillStyle=`rgba(16,32,44,${Math.max(0,Math.min(1,a))})`;ctx.fillRect(0,0,W,H);}
+}
+function drawPlayer(){
+  const x=Math.round(P.x),y=Math.round(P.y);const step=P.ground&&P.walk>0?Math.floor(P.walk*10)%2:0;
+  rr(x+1,y+3,10,11,C.ink);rr(x+2,y,8,4,C.ink);
+  const vx=P.face>0?x+5:x+1;rr(vx,y+4,6,3,C.amber);
+  rr(x+2,y+14,3,4-(step?1:0),C.ink);rr(x+7,y+14,3,4-(step?0:1),C.ink);
+  rr(x+5,y-3,2,3,C.muted);rr(x+4,y-4,4,1,C.amber);
+}
+function drawArrow(h){
+  const b=RM?0:Math.sin(tclock*6)*3;ctx.fillStyle=C.amber;ctx.beginPath();
+  if(h.dir==="down"){ctx.moveTo(h.x-7,h.y-8+b);ctx.lineTo(h.x+7,h.y-8+b);ctx.lineTo(h.x,h.y+b);}
+  else if(h.dir==="up"){ctx.moveTo(h.x-7,h.y+8+b);ctx.lineTo(h.x+7,h.y+8+b);ctx.lineTo(h.x,h.y+b);}
+  else if(h.dir==="right"){ctx.moveTo(h.x-8+b,h.y-7);ctx.lineTo(h.x-8+b,h.y+7);ctx.lineTo(h.x+b,h.y);}
+  else{ctx.moveTo(h.x+8+b,h.y-7);ctx.lineTo(h.x+8+b,h.y+7);ctx.lineTo(h.x+b,h.y);}
+  ctx.closePath();ctx.fill();
+  if(h.label){ctx.textAlign="center";ctx.font=font(8,FPX);ctx.fillText(h.label,h.x,h.y-12+b);}
+}
+
+/* ---------- minimap ---------- */
+const mini=$("mini"),mctx=mini.getContext("2d");
+function drawMini(){
+  const r=mini.getBoundingClientRect();if(!r.width||!L)return;const dpr=Math.min(3,window.devicePixelRatio||1);
+  mini.width=Math.round(r.width*dpr);mini.height=Math.round(130*dpr);const m=mctx;m.setTransform(dpr,0,0,dpr,0,0);m.clearRect(0,0,r.width,130);
+  const trees=Object.values(L.trees);const gw=r.width/trees.length;
+  trees.forEach((tr,ti)=>{
+    const leaves=leavesOf(L.T,tr);const ox=ti*gw;const lw=Math.max(4,Math.min(16,gw/leaves.length-3));
+    const X={};leaves.forEach((l,i)=>X[l.id]=ox+(i+.5)*gw/leaves.length);
+    const px=p=>X[p.id]!=null?X[p.id]:(X[p.id]=p.kids.reduce((s,c)=>s+px(L.T[c.pid]),0)/p.kids.length);
+    const pages=pagesOf(L.T,tr);const Y=p=>18+(tr.height-1-p.level)*((130-34)/Math.max(1,tr.height-1));
+    m.strokeStyle=C.line;m.lineWidth=1;m.beginPath();
+    pages.forEach(p=>{if(p.kids)p.kids.forEach(c=>{const q=L.T[c.pid];m.moveTo(px(p),Y(p)+4);m.lineTo(px(q),Y(q)-4);});});m.stroke();
+    const col=tr.kind==="nc"?C.teal:"#6fa3c4";
+    pages.forEach(p=>{const x=px(p),y=Y(p);const w=p.level===0?lw:Math.max(lw,10);
+      if(L.visited.has(p.id)){m.fillStyle=col;m.fillRect(x-w/2,y-4,w,8);}else{m.strokeStyle=C.line;m.strokeRect(x-w/2+.5,y-3.5,w-1,7);}
+      if(cur&&cur.id===p.id){m.strokeStyle=C.amber;m.lineWidth=2;m.strokeRect(x-w/2-2,y-6,w+4,12);m.lineWidth=1;}
+      const s=L.scrolls[p.id];if(s&&L.visited.has(p.id)){m.fillStyle=s.got?C.muted:C.lore;m.fillRect(x+w/2+1,y-6,3,3);}});
+    m.fillStyle=C.muted;m.font="10px "+FMO;m.textAlign="left";m.fillText(tr.name,ox+2,9);
+  });
+}
+
+/* ---------- HUD ---------- */
+let lastInsp="";
+function inspect(){
+  let s="";const g=nearGem();const tree=Object.values(L.trees).find(t=>t.name===cur.tree);
+  if(g){s=cur.kind==="nc"?`slot ${g.i} · secondary_id ${Math.floor(g.k/1000)} · id ${g.k%1000} (row locator)`:`slot ${g.i} · id ${g.row.id} · secondary_id ${g.row.sv} · name '${g.row.name}'${g.fresh?" · just inserted":""}`;}
+  else{const pd=standingPed();if(pd){const c=cur.kids[pd.i];s=`row ${pd.i} · key ${c.lo===null?"−∞ (no key stored)":"≥ "+tree.fmt(c.lo)} · child page ${c.pid} · press ↓ to read it`;}
+    else if(onLadder())s=`ladder · ↑ climbs to parent page ${cur.parent}`;
+    else if(cur.prev&&P.x<40)s=`m_prevPage → ${cur.prev}`;else if(cur.next&&P.x>W-56)s=`m_nextPage → ${cur.next}`;}
+  if(s!==lastInsp){$("insp").textContent=s;lastInsp=s;}
+}
+function hud(){
+  if(!L)return;
+  $("hLvl").textContent=`Level ${LI+1} · ${LV[LI].name}`;$("hSql").textContent=L.sql;$("hObj").textContent=L.obj();
+  $("hReads").textContent=L.reads;$("hPar").textContent=L.par==null?"":` / par ${L.par}`;
+  $("hRows").textContent=L.taken.length?L.taken.join(", "):"none";$("hMis").textContent=L.mistakes;$("cMis").classList.toggle("warn",L.mistakes>0);
+  $("hLore").textContent=PROG.lore.length+"/8";$("bHint").textContent=L.showHint?"Hide hint (H)":"Hint (H)";
+  drawMini();
+}
+
+/* ---------- screens ---------- */
+function showScreen(which){
+  $("game").hidden=which!=="game";$("scMenu").hidden=which!=="menu";$("scDone").hidden=which!=="done";
+  if(which!=="game")running=false;if(which==="game")requestAnimationFrame(resize);
+}
+function showMenu(){
+  if(L&&!L.done)running=false;
+  const g=$("lvGrid");g.innerHTML="";
+  LV.forEach((lv,i)=>{const open=PROG.unlock||i===0||PROG.stars[i-1]>0;const st=PROG.stars[i]||0;
+    const b=document.createElement("button");b.type="button";b.className="lv";b.disabled=!open;
+    b.innerHTML=`<span class="n">LEVEL ${i+1}${open?"":" · LOCKED"}</span><span class="t"></span><span class="d"></span><span class="s">${"★".repeat(st)}${"☆".repeat(3-st)}</span>`;
+    b.querySelector(".t").textContent=lv.name;b.querySelector(".d").textContent=lv.d;b.onclick=()=>startLevel(i);g.appendChild(b);});
+  const cx=$("codex");cx.innerHTML="";
+  LORE.forEach((l,i)=>{const li=document.createElement("li");const got=PROG.lore.includes(i);li.className=got?"":"lock";
+    const b=document.createElement("b");b.textContent=`${i+1}. ${got?l[0]:"Not found"}`;li.appendChild(b);
+    const where={0:1,3:2,6:3,4:4,5:5}[i];
+    li.appendChild(document.createTextNode(got?l[1]:where?`Hidden off the main path in level ${where}, and in the archive.`:"Hidden in the archive."));cx.appendChild(li);});
+  $("bUnlock").hidden=PROG.unlock;
+  showScreen("menu");
+}
+
+/* ---------- input ---------- */
+const KMAP={ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",Space:"jump",KeyZ:"jump",KeyW:"jump",ArrowUp:"up",ArrowDown:"down",KeyS:"down",KeyE:"take",KeyX:"take",Enter:"stop",NumpadEnter:"stop",KeyH:"hint",KeyR:"restart",Escape:"menu",KeyM:"mute"};
+function press(k){
+  ac();
+  if(k==="left"||k==="right"){held[k]=true;return;}
+  if(k==="jump"){held.jump=true;queue.push("jumpPress");return;}
+  if(k==="up"){held.jump=true;queue.push("up");return;}
+  if(k==="hint"){if(!L||L.done)return;L.showHint=!L.showHint;if(L.showHint&&!L.hintUsed){L.hintUsed=true;say(L.target()?"Hint on. The amber arrow shows the next move. This run is capped at two stars.":"No hints in the archive. Use the minimap: teal-filled boxes are pages you've read.","tip");}hud();return;}
+  if(k==="restart"){startLevel(LI);return;}
+  if(k==="menu"){showMenu();return;}
+  if(k==="mute"){toggleMute();return;}
+  queue.push(k);
+}
+function release(k){if(k==="left"||k==="right")held[k]=false;if(k==="jump"||k==="up")held.jump=false;}
+window.addEventListener("keydown",e=>{
+  if($("game").hidden){if(e.code==="Escape")showMenu();return;}
+  const k=KMAP[e.code];if(!k)return;
+  if(e.target&&e.target.tagName==="BUTTON"&&(e.code==="Enter"||e.code==="Space"))return;
+  e.preventDefault();if(e.repeat&&k!=="left"&&k!=="right")return;press(k);});
+window.addEventListener("keyup",e=>{const k=KMAP[e.code];if(k)release(k);});
+window.addEventListener("blur",()=>{held.left=held.right=held.jump=false;});
+document.querySelectorAll("#touch button").forEach(b=>{const k=b.dataset.k;
+  b.addEventListener("pointerdown",e=>{e.preventDefault();b.setPointerCapture&&b.setPointerCapture(e.pointerId);press(k);});
+  ["pointerup","pointercancel","pointerleave"].forEach(ev=>b.addEventListener(ev,()=>release(k)));});
+function toggleMute(){PROG.mute=!PROG.mute;save();$("bMute").textContent=PROG.mute?"Sound off":"Sound on";}
+$("bMute").textContent=PROG.mute?"Sound off":"Sound on";
+$("bMute").onclick=e=>{toggleMute();e.currentTarget.blur();};
+$("bHint").onclick=e=>{press("hint");e.currentTarget.blur();};
+$("bRestart").onclick=e=>{startLevel(LI);e.currentTarget.blur();};
+$("bLevels").onclick=e=>{showMenu();e.currentTarget.blur();};
+$("bUnlock").onclick=()=>{PROG.unlock=true;save();showMenu();};
+$("bNext").onclick=()=>startLevel(Math.min(LI+1,LV.length-1));
+$("bAgain").onclick=()=>startLevel(LI);
+$("bMenu").onclick=()=>showMenu();
+
+/* ---------- loop ---------- */
+let last=performance.now(),acc=0;
+function frame(t){const dt=Math.min(.05,(t-last)/1000);last=t;acc+=dt;while(acc>=STEP){update(STEP);acc-=STEP;}draw();requestAnimationFrame(frame);}
+if(window.ResizeObserver)new ResizeObserver(resize).observe(cv);window.addEventListener("resize",resize);
+window.__PR={get L(){return L},get cur(){return cur},get room(){return room},P,held,queue,hintTarget,startLevel,act,standingPed,nearGem,enterPage,get fade(){return fade}};
+if(document.fonts&&document.fonts.load){Promise.all([document.fonts.load("8px Silkscreen"),document.fonts.load("10px 'IBM Plex Mono'")]).catch(()=>{});}
+let first=0;for(let i=0;i<LV.length;i++){if(PROG.stars[i]>0)first=Math.min(i+1,LV.length-1);}
+startLevel(first);
+requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame);});
+})();
+</script>
+</body>
+</html>

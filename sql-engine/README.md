@@ -4,10 +4,11 @@ Self-contained interactive pages about how SQL Server stores and reads B+ tree i
 
 | File | What it is |
 |---|---|
-| `index.html` | Landing page linking the three pages |
+| `index.html` | Landing page linking the four pages |
 | `inside-an-8kb-page.html` | To-scale byte map of a clustered leaf page and a nonclustered leaf page, with inserts, deletes, compaction, page splits and record anatomy |
 | `key-lookup-walkthrough.html` | Step-through of `SELECT * FROM t WHERE secondary_id = 4` as an Index Seek plus Key Lookup, with a cost model for the scan tipping point |
 | `storage-engine-drill.html` | Ten-level game where you execute statements by hand, plus the Peak Load arcade mode |
+| `page-runner.html` | 2D platformer where each room is one index page, scored in logical reads |
 
 ## Storage Engine Drill levels
 
@@ -29,3 +30,16 @@ Several levels also deal **Spot the bug** rounds: read an actual execution plan,
 Scenarios are generated randomly each time, and each round uses one of six schemas (the original `t`/`u`, orders, books, tickets, tracks or sensor readings) with the same table shapes under different names. Level progress, Peak Load scores, badges and sound settings are stored in the browser's `localStorage`.
 
 The trees are miniatures with a few rows per page so they fit on screen. Costs and estimates in the text are scaled to a 2,000,000-row table with 20,000 clustered leaf pages.
+
+## Page Runner levels
+
+Each room is one 8 KB page. Non-leaf rows are pedestals showing a separator key and child page number; drop through a trapdoor to read that child, or climb the ladder to the parent. Leaf rows are gems in slot order, and the side doors are `m_prevPage` and `m_nextPage`. Every room entered is one logical read, scored against the engine's read count for the statement.
+
+1. Find the row (clustered index seek)
+2. Range walk (BETWEEN across the leaf chain, stopping only after a key past the range)
+3. Key lookup (nonclustered seek, then a clustered descent per match)
+4. Backwards (`TOP (3) ORDER BY id DESC` through `m_prevPage`)
+5. Page split (insert into a full leaf)
+6. The archive (explore a four-level tree for eight scrolls)
+
+Levels 1 to 5 each hide a scroll off the optimal path, so collecting it costs reads. Scrolls fill a codex of storage-engine facts kept in `localStorage`.
