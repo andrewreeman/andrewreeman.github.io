@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Lock Manager Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: chapter tabs, then a three-panel console (sessions, lock manager, wait-for graph) with the narration and transport above a DMV strip; reference matrix and glossary below */
+:root{
+  --bg:#eef2f6; --surface:#ffffff; --ink:#132030; --muted:#566578; --line:#cdd6e0;
+  --nc:#0d7a72; --ci:#b4521a; --ok:#2f7d3a; --bad:#b3311c; --wait:#8a5a00; --acc:#6d4fc2;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d131a; --surface:#151f2a; --ink:#e3e9f0; --muted:#8e9eb0; --line:#2a3848;
+  --nc:#3cc3b6; --ci:#f0904c; --ok:#6cc47a; --bad:#f27a62; --wait:#e6c25a; --acc:#a58cf0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d131a; --surface:#151f2a; --ink:#e3e9f0; --muted:#8e9eb0; --line:#2a3848;
+  --nc:#3cc3b6; --ci:#f0904c; --ok:#6cc47a; --bad:#f27a62; --wait:#e6c25a; --acc:#a58cf0; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px;display:grid;gap:20px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:clamp(1.7rem,4vw,2.4rem);font-weight:800;line-height:1.1;letter-spacing:-.01em}
+h2{font-size:1.3rem;font-weight:800}
+h3{font-size:.95rem;font-weight:600}
+p{margin:0;max-width:70ch}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+code{font-family:var(--f-mono);font-size:.86em;background:color-mix(in srgb,var(--muted) 14%,transparent);padding:1px 5px;border-radius:3px}
+abbr[title]{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+.head{display:grid;gap:10px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{display:grid;gap:1px;text-align:left;padding:8px 12px}
+.tabs button span{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.tabs button[aria-selected=true]{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,var(--surface))}
+button{font:600 .88rem var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 14px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:disabled{opacity:.4;cursor:default}
+.story{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 20px;align-items:start;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:8px;padding:14px 16px}
+@media (max-width:700px){.story{grid-template-columns:1fr}}
+.story .txt{display:grid;gap:6px;min-width:0}
+.story .txt p{max-width:75ch}
+.transport{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.count{font-family:var(--f-mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums;min-width:4.5em;text-align:center}
+.console{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) minmax(0,1.1fr);gap:14px;align-items:start}
+@media (max-width:1000px){.console{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.console .graph{grid-column:1/-1}}
+@media (max-width:640px){.console{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:grid;gap:10px;align-content:start;min-width:0}
+.sess{display:grid;gap:8px}
+.sc{border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:grid;gap:4px;transition:border-color .2s,background .2s}
+.sc.focus{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.sc .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.sc b{font-family:var(--f-mono)}
+.sc code{white-space:normal;overflow-wrap:anywhere;display:block;background:none;padding:0;font-size:.8rem;color:var(--muted)}
+.pill{font:600 .7rem var(--f-mono);padding:2px 7px;border-radius:10px;border:1px solid var(--line);white-space:nowrap}
+.pill.running{color:var(--ok);border-color:var(--ok)}
+.pill.suspended{color:var(--wait);border-color:var(--wait)}
+.pill.sleeping{color:var(--muted)}
+.pill.victim,.pill.killed{color:var(--bad);border-color:var(--bad)}
+.pill.done{color:var(--muted);border-style:dashed}
+.res{display:grid;gap:6px}
+.rr{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;transition:border-color .2s}
+.rr.focus{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.rr .nm{font-family:var(--f-mono);font-size:.82rem;font-weight:600}
+.rr .kind{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:6px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;min-height:22px}
+.chip{font:600 .76rem var(--f-mono);padding:2px 8px;border-radius:4px;border:1px solid var(--ok);color:var(--ok);background:color-mix(in srgb,var(--ok) 8%,var(--surface))}
+.chip.w{border-style:dashed;border-color:var(--wait);color:var(--wait);background:color-mix(in srgb,var(--wait) 8%,var(--surface))}
+.chip.new{animation:pop .5s}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:none;opacity:1}}
+.empty{font-size:.78rem;color:var(--muted)}
+.d1{margin-left:16px}.d2{margin-left:32px}
+svg.wf{width:100%;display:block;max-width:100%}
+svg.wf text{font-family:var(--f-mono);fill:var(--ink)}
+.gnote{font-size:.8rem;color:var(--muted)}
+.dmv{overflow-x:auto}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums}
+.dmv table{width:100%;font-family:var(--f-mono);font-size:.8rem}
+.dmv th,.dmv td{text-align:left;padding:5px 10px;border-bottom:1px dashed var(--line);white-space:nowrap}
+.dmv th{color:var(--muted);font-weight:600;border-bottom:1px solid var(--line)}
+.dmv td.w{color:var(--wait);font-weight:600}
+.ref{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:14px;align-items:start}
+@media (max-width:800px){.ref{grid-template-columns:minmax(0,1fr)}}
+.mx{overflow-x:auto}
+.mx table{font-family:var(--f-mono);font-size:.82rem}
+.mx th,.mx td{padding:5px 10px;border-bottom:1px dashed var(--line);text-align:center}
+.mx th:first-child{text-align:left}
+.mx td.y{color:var(--ok);font-weight:600}.mx td.n{color:var(--bad)}
+dl.gl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0;font-size:.88rem}
+dl.gl dt{font-family:var(--f-mono);font-weight:600}
+dl.gl dd{margin:0;color:var(--muted)}
+@media (max-width:520px){dl.gl{grid-template-columns:minmax(0,1fr)}dl.gl dd{margin-bottom:6px}}
+@media (prefers-reduced-motion:reduce){.chip.new{animation:none}}
+</style>
+<style>
+/* Site strip shared by every SQL Server Storage Engine page. Fixed colours so it reads the same on light and dark pages. */
+.se-nav{background:#0b1620;color:#c9d6df;font:500 13px/1.3 "Segoe UI",system-ui,-apple-system,sans-serif;border-bottom:1px solid #22384a;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.se-nav-in{max-width:980px;margin:0 auto;display:flex;align-items:center;gap:6px 18px;flex-wrap:wrap;padding-block:8px}
+.se-nav a{color:#c9d6df;text-decoration:none;white-space:nowrap}
+.se-nav a:hover{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.se-nav a:focus-visible{outline:2px solid #f2b33d;outline-offset:2px;border-radius:2px}
+.se-nav .se-home{color:#8fa6b3}
+.se-nav ul{list-style:none;margin:0;padding:0;display:flex;gap:4px 16px;overflow-x:auto;scrollbar-width:thin;min-width:0;flex:1 1 auto}
+.se-nav a[aria-current=page]{color:#f2b33d;font-weight:700}
+@media (max-width:600px){.se-nav ul{flex-wrap:nowrap;padding-bottom:2px}}
+</style>
+</head>
+<body>
+<nav class="se-nav" aria-label="SQL Server Storage Engine pages"><div class="se-nav-in"><a class="se-home" href="/">← andrewreeman.com</a><ul><li><a href="index.html">Overview</a></li><li><a href="inside-an-8kb-page.html">Inside an 8 KB Page</a></li><li><a href="key-lookup-walkthrough.html">Key Lookup Walkthrough</a></li><li><a href="lock-walkthrough.html" aria-current="page">Lock Manager Walkthrough</a></li><li><a href="storage-engine-drill.html">Storage Engine Drill</a></li><li><a href="page-runner.html">Page Runner</a></li></ul></div></nav><script>(function(){var u=document.querySelector(".se-nav ul"),a=u&&u.querySelector("[aria-current]");if(a&&u.scrollWidth>u.clientWidth)u.scrollLeft=a.offsetLeft-u.offsetLeft-16;})();</script>
+<div class="wrap">
+  <header class="head">
+    <span class="label">How SQL Server decides who waits</span>
+    <h1>Lock Manager Walkthrough</h1>
+    <p class="muted">Six short stories about sessions competing for the same rows. Step through each one and watch three views change together: the locks each resource holds, the graph of who waits for whom, and the <code>sys.dm_exec_requests</code> rows you'd see in production.</p>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Chapters"></nav>
+
+  <section class="story" aria-live="polite">
+    <div class="txt"><span class="label" id="st-step"></span><h2 id="st-title"></h2><div id="st-text" style="display:grid;gap:6px"></div></div>
+    <div class="transport"><button id="prev" type="button">◀ Back</button><span class="count" id="count"></span><button id="next" type="button" class="primary">Next ▶</button></div>
+  </section>
+
+  <div class="console">
+    <section class="panel"><h3>Sessions</h3><div class="sess" id="sess"></div></section>
+    <section class="panel"><h3>Lock manager</h3><p class="gnote">Solid chips are granted locks. Dashed chips are requests waiting in the queue, in order.</p><div class="res" id="res"></div></section>
+    <section class="panel graph"><h3>Wait-for graph</h3><p class="gnote">An arrow points from a waiting session to the session it waits for.</p><svg class="wf" id="graph" viewBox="0 0 360 250" role="img" aria-label="Wait-for graph"></svg><p class="gnote" id="gsum"></p></section>
+  </div>
+
+  <section class="panel dmv"><h3>What <code>sys.dm_exec_sessions</code> and <code>sys.dm_exec_requests</code> show</h3><table><thead><tr><th>session_id</th><th>status</th><th>wait_type</th><th>blocking_session_id</th><th>open_transaction_count</th><th>isolation</th></tr></thead><tbody id="dmv"></tbody></table></section>
+
+  <section class="ref">
+    <div class="panel mx"><h3>Lock compatibility</h3><p class="gnote">Can a requested lock (row) be granted while another session holds the lock in the column?</p><table id="mx"></table></div>
+    <div class="panel"><h3>Glossary</h3><dl class="gl" id="gl"></dl></div>
+  </section>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const C={IS:{IS:1,IX:1,S:1,U:1,X:0},IX:{IS:1,IX:1,S:0,U:0,X:0},S:{IS:1,IX:0,S:1,U:1,X:0},U:{IS:1,IX:0,S:1,U:0,X:0},X:{IS:0,IX:0,S:0,U:0,X:0}};
+const MODE={S:"Shared: reading. Many sessions can hold S on the same row.",U:"Update: reading a row you intend to change. Compatible with S, but only one session can hold U at a time.",X:"Exclusive: changing. Compatible with nothing.",IS:"Intent shared: placed on the page and table above a row someone is reading.",IX:"Intent exclusive: placed on the page and table above a row someone is changing."};
+const GL=[["S","Shared lock, taken to read a row (or a whole table with TABLOCK)."],["U","Update lock, taken while finding a row an UPDATE will change. Only one session can hold it, which prevents conversion deadlocks."],["X","Exclusive lock, held on every row a transaction changes until it commits or rolls back."],["IS / IX","Intent locks on the page and table above a locked row. They let the lock manager refuse a table-level lock without checking every row lock."],["OBJECT / PAGE / KEY","Resources a lock can cover: the whole table, one 8 KB page, or one index entry (a row in the clustered index)."],["LCK_M_S, LCK_M_X …","The wait type of a session waiting for a lock: LCK_M_ plus the mode it wants."],["blocking_session_id","The session holding the lock this one waits for. 0 means it isn't waiting on anyone."],["head blocker","The session at the top of a blocking chain: it blocks others but waits for nobody."],["open_transaction_count","How many transactions the session has open. A sleeping session with 1 here is holding its locks while doing nothing."],["deadlock","A cycle of sessions, each waiting for a lock the next one holds. None can proceed until one is rolled back."],["victim","The session the deadlock monitor rolls back to break the cycle, with error 1205."],["RCSI","READ_COMMITTED_SNAPSHOT: READ COMMITTED reads use the last committed row version instead of S locks. On by default in Azure SQL Database."]];
+
+const g=(r,s,m)=>({r,s,m,w:false}),w=(r,s,m)=>({r,s,m,w:true});
+const CH=[
+{t:"Shared and exclusive",sub:"S, X and the queue",res:[["k42","KEY","PK_t (id = 42)",0]],
+ steps:[
+  {s:{52:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1}},l:[g("k42",52,"S")],f:["k42"],h:"A reader takes S",
+   x:`Session 52 reads row 42 and asks the lock manager for an <b>S</b> (shared) lock on it. Nothing else holds a lock on the row, so it's granted. Under REPEATABLE READ, 52 keeps the lock until its transaction ends.`},
+  {s:{52:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1},53:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1}},l:[g("k42",52,"S"),g("k42",53,"S")],f:["k42",53],h:"Readers share",
+   x:`Session 53 reads the same row. S is compatible with S, so both sessions hold it at once. Readers never block each other.`},
+  {s:{52:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1},53:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1},54:{sql:"UPDATE t SET qty = 0 WHERE id = 42",tran:1}},l:[g("k42",52,"S"),g("k42",53,"S"),w("k42",54,"X")],f:[54],h:"A writer waits",
+   x:`Session 54 wants to change row 42, so it needs <b>X</b> (exclusive). X is compatible with nothing, and two S locks are held, so 54 <b>waits</b>. Its status becomes <code>suspended</code>, its wait type is <code>LCK_M_X</code>, and the graph shows it waiting for both readers.`},
+  {s:{52:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1},53:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1},54:{sql:"UPDATE t SET qty = 0 WHERE id = 42",tran:1},55:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1}},l:[g("k42",52,"S"),g("k42",53,"S"),w("k42",54,"X"),w("k42",55,"S")],f:[55],h:"The queue is first in, first out",
+   x:`Session 55 wants S. S is compatible with the two S locks that are granted, but 54 is already queued. The queue is first in, first out, so 55 waits behind 54. Without that rule a steady stream of readers could starve the writer forever.`},
+  {s:{52:{st:"done",sql:"COMMIT"},53:{st:"done",sql:"COMMIT"},54:{sql:"UPDATE t SET qty = 0 WHERE id = 42",tran:1},55:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1}},l:[g("k42",54,"X"),w("k42",55,"S")],f:[54,55],h:"Commit releases locks",
+   x:`52 and 53 commit, which releases their S locks. The lock manager walks the queue from the front: 54's X is now compatible with everything granted, so it's granted. 55's S conflicts with 54's X, so 55 keeps waiting, now with 54 as its <code>blocking_session_id</code>.`},
+  {s:{54:{st:"done",sql:"COMMIT"},55:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1}},l:[g("k42",55,"S")],f:[55],h:"The chain drains",
+   x:`54 commits and releases X, and 55's S is granted. This is ordinary <b>blocking</b>: annoying, but it always ends when the transaction ahead of you ends.`}]},
+{t:"Update locks",sub:"why U exists",res:[["k42","KEY","PK_t (id = 42)",0]],
+ steps:[
+  {s:{52:{sql:"UPDATE t SET qty = qty - 1 WHERE id = 42  -- finding the row",tran:1},53:{sql:"UPDATE t SET qty = qty - 1 WHERE id = 42  -- finding the row",tran:1}},l:[g("k42",52,"S"),g("k42",53,"S")],f:["k42"],h:"Imagine there were no U lock",
+   x:`Two sessions run the same UPDATE. Each first has to <i>find</i> row 42 before changing it. Suppose finding it took an S lock. Both S locks are granted: S is compatible with S.`},
+  {s:{52:{sql:"UPDATE … converting S to X",tran:1},53:{sql:"UPDATE … finding the row",tran:1}},l:[g("k42",52,"S"),g("k42",53,"S"),w("k42",52,"X")],f:[52],h:"Converting S to X",
+   x:`52 found the row and needs to convert its S to X. X conflicts with 53's S, so 52 waits for 53.`},
+  {s:{52:{sql:"UPDATE … converting S to X",tran:1},53:{sql:"UPDATE … converting S to X",tran:1}},l:[g("k42",52,"S"),g("k42",53,"S"),w("k42",52,"X"),w("k42",53,"X")],f:[53],h:"A conversion deadlock",dl:true,
+   x:`53 does the same and waits for 52's S. Now each session waits for the other: a <b>cycle</b>. Neither can ever proceed. This is a conversion deadlock, and it would happen every time two sessions updated the same row at once.`},
+  {s:{52:{sql:"UPDATE t SET qty = qty - 1 WHERE id = 42  -- finding the row",tran:1},53:{sql:"UPDATE t SET qty = qty - 1 WHERE id = 42  -- finding the row",tran:1},56:{sql:"SELECT qty FROM t WHERE id = 42",iso:"REPEATABLE READ",tran:1}},l:[g("k42",56,"S"),g("k42",52,"U"),w("k42",53,"U")],f:["k42",53],h:"What really happens: U",
+   x:`So the engine finds rows to update with a <b>U</b> (update) lock instead. U is compatible with S, so 52 gets it even though reader 56 holds S. But U is <i>not</i> compatible with another U, so 53 waits at the start instead of grabbing a lock it can't convert.`},
+  {s:{52:{sql:"UPDATE … converting U to X",tran:1},53:{sql:"UPDATE … finding the row",tran:1},56:{st:"done",sql:"COMMIT"}},l:[g("k42",52,"X"),w("k42",53,"U")],f:[52],h:"U converts to X",
+   x:`Reader 56 finishes. 52 converts U to X, changes the row and keeps X until it commits. 53 is still queued for U.`},
+  {s:{52:{st:"done",sql:"COMMIT"},53:{sql:"UPDATE … finding the row",tran:1}},l:[g("k42",53,"U")],f:[53],h:"No deadlock",
+   x:`52 commits and 53 gets its U lock, then X. The two updates ran one after the other: blocking, not deadlock. That's why every UPDATE and DELETE finds its rows under U locks, and why <code>LCK_M_U</code> is such a common wait type.`}]},
+{t:"Intent locks",sub:"the table and page levels",res:[["t","OBJECT","t",0],["p","PAGE","1:503 (PK_t leaf)",1],["k42","KEY","PK_t (id = 42)",2],["k43","KEY","PK_t (id = 43)",2]],
+ steps:[
+  {s:{52:{sql:"UPDATE t SET qty = 0 WHERE id = 42",tran:1}},l:[g("t",52,"IX"),g("p",52,"IX"),g("k42",52,"X")],f:[52,"t","p","k42"],h:"Locks go top down",
+   x:`Session 52 updates row 42. The real lock is X on the row. Before taking it, the engine puts <b>IX</b> (intent exclusive) on the table and on the page that holds the row. Intent locks are markers that say “someone below here is changing something”.`},
+  {s:{52:{sql:"UPDATE t SET qty = 0 WHERE id = 42",tran:1},53:{sql:"UPDATE t SET qty = 5 WHERE id = 43",tran:1}},l:[g("t",52,"IX"),g("t",53,"IX"),g("p",52,"IX"),g("p",53,"IX"),g("k42",52,"X"),g("k43",53,"X")],f:[53,"k43"],h:"Row-level concurrency",
+   x:`Session 53 updates row 43 on the same page. IX is compatible with IX, so both sessions share the table and the page. They only conflict if they want the same row, and they don't.`},
+  {s:{52:{sql:"UPDATE t SET qty = 0 WHERE id = 42",tran:1},53:{sql:"UPDATE t SET qty = 5 WHERE id = 43",tran:1},54:{sql:"SELECT COUNT(*) FROM t WITH (TABLOCK)",tran:0}},l:[g("t",52,"IX"),g("t",53,"IX"),w("t",54,"S"),g("p",52,"IX"),g("p",53,"IX"),g("k42",52,"X"),g("k43",53,"X")],f:[54,"t"],h:"Why intent locks exist",
+   x:`Session 54 wants an S lock on the whole table. Without intent locks the lock manager would have to check every row lock in the table to see whether any conflicts. With them it checks one resource: S conflicts with IX, so 54 waits. That's the whole point of intent locks.`},
+  {s:{52:{st:"done",sql:"COMMIT"},53:{st:"done",sql:"COMMIT"},54:{sql:"SELECT COUNT(*) FROM t WITH (TABLOCK)",tran:0},55:{sql:"UPDATE t SET qty = 1 WHERE id = 42",tran:1}},l:[g("t",54,"S"),w("t",55,"IX")],f:[55,"t"],h:"A table lock blocks every writer",
+   x:`52 and 53 commit, and 54 gets S on the table. Now session 55 wants to update one row. It needs IX on the table first, IX conflicts with S, so 55 waits. One table-level lock blocks every writer, which is exactly what lock escalation does to a busy table.`}]},
+{t:"Isolation levels",sub:"how long read locks last",res:[["k42","KEY","PK_t (id = 42)",0],["k43","KEY","PK_t (id = 43)",0],["k44","KEY","PK_t (id = 44)",0]],
+ steps:[
+  {s:{57:{sql:"SELECT qty FROM t WHERE id = 42",iso:"READ COMMITTED",tran:1}},l:[g("k42",57,"S")],f:["k42"],h:"READ COMMITTED: S while reading",
+   x:`Session 57 starts a transaction under locking READ COMMITTED and reads row 42. It takes S while it reads the row…`},
+  {s:{57:{sql:"SELECT qty FROM t WHERE id = 43",iso:"READ COMMITTED",tran:1}},l:[g("k43",57,"S")],f:["k43"],h:"…and drops it straight away",
+   x:`…and releases it as soon as the row has been read, even though the transaction is still open. Then it reads row 43 the same way. Nothing stops another session changing row 42 now, so reading it again could give a different answer.`},
+  {s:{57:{st:"sleeping",sql:"UPDATE t SET qty = 0 WHERE id = 44  -- before COMMIT",iso:"READ COMMITTED",tran:1}},l:[g("k44",57,"X")],f:["k44"],h:"Write locks always last until COMMIT",
+   x:`57 updates row 44 and pauses before COMMIT. Its only lock is X on row 44. Write locks are held until the transaction ends under every isolation level.`},
+  {s:{57:{st:"sleeping",sql:"-- same transaction, before COMMIT",iso:"REPEATABLE READ",tran:1},58:{sql:"UPDATE t SET qty = 9 WHERE id = 42",tran:1}},l:[g("k42",57,"S"),g("k43",57,"S"),g("k44",57,"X"),w("k42",58,"X")],f:[57,58],h:"REPEATABLE READ keeps them",
+   x:`Run the same transaction under REPEATABLE READ and the S locks on rows 42 and 43 stay until COMMIT, so rereading them is guaranteed to give the same values. The cost: session 58 now waits to update row 42.`},
+  {s:{57:{st:"sleeping",sql:"-- same transaction, before COMMIT",iso:"READ COMMITTED (RCSI)",tran:1},58:{sql:"SELECT qty FROM t WHERE id = 44  -- reads the old version",iso:"READ COMMITTED (RCSI)",tran:1}},l:[g("k44",57,"X")],f:[58,"k44"],h:"RCSI takes no read locks",
+   x:`With READ_COMMITTED_SNAPSHOT on (the Azure SQL Database default), reads take <b>no S locks</b> at all. 57's UPDATE copied the old row 44 into the version store in tempdb, so session 58 reads that last committed version without waiting, even though 57 holds X.`},
+  {s:{57:{st:"sleeping",sql:"-- same transaction, before COMMIT",iso:"READ COMMITTED (RCSI)",tran:1},58:{sql:"UPDATE t SET qty = 3 WHERE id = 44",iso:"READ COMMITTED (RCSI)",tran:1}},l:[g("k44",57,"X"),w("k44",58,"U")],f:[58],h:"Writers still block writers",
+   x:`But RCSI only changes reads. When 58 tries to <i>update</i> row 44 it needs U then X, and 57 holds X, so it waits on <code>LCK_M_U</code>. Under every isolation level, writers block writers.`}]},
+{t:"Blocking chain",sub:"finding the head blocker",res:[["k42","KEY","PK_t (id = 42)",0],["k43","KEY","PK_t (id = 43)",0]],
+ steps:[
+  {s:{52:{st:"sleeping",sql:"BEGIN TRAN; UPDATE t SET qty = 0 WHERE id = 42;  -- then nothing",tran:1}},l:[g("k42",52,"X")],f:[52],h:"An open transaction",
+   x:`Session 52's application begins a transaction, updates row 42, and then never commits: maybe an error path skipped the ROLLBACK, or it's waiting for a user. Its status is <code>sleeping</code>, but <code>open_transaction_count</code> is 1, so it still holds X on row 42.`},
+  {s:{52:{st:"sleeping",sql:"BEGIN TRAN; UPDATE t SET qty = 0 WHERE id = 42;  -- then nothing",tran:1},53:{sql:"BEGIN TRAN; UPDATE … id = 43; UPDATE … id = 42;",tran:1}},l:[g("k42",52,"X"),w("k42",53,"U"),g("k43",53,"X")],f:[53],h:"A waiter that also blocks",
+   x:`Session 53 updates row 43 (X granted), then tries row 42 and waits for 52 on <code>LCK_M_U</code>. Notice 53 is waiting <i>and</i> holding a lock.`},
+  {s:{52:{st:"sleeping",sql:"BEGIN TRAN; UPDATE t SET qty = 0 WHERE id = 42;  -- then nothing",tran:1},53:{sql:"BEGIN TRAN; UPDATE … id = 43; UPDATE … id = 42;",tran:1},54:{sql:"SELECT qty FROM t WHERE id = 42",tran:0},55:{sql:"SELECT qty FROM t WHERE id = 43",tran:0}},l:[g("k42",52,"X"),w("k42",53,"U"),w("k42",54,"S"),g("k43",53,"X"),w("k43",55,"S")],f:[54,55],h:"The chain grows",
+   x:`Readers arrive: 54 waits for row 42, and 55 waits for row 43, which 53 holds. The graph is now a tree with 52 at the root. In <code>sys.dm_exec_requests</code>, follow <code>blocking_session_id</code> from any waiter until you reach a session whose own value is 0: that's the <b>head blocker</b>, 52.`},
+  {s:{52:{st:"sleeping",sql:"BEGIN TRAN; UPDATE t SET qty = 0 WHERE id = 42;  -- then nothing",tran:1},53:{st:"killed",sql:"KILL 53  -- the wrong session"},54:{sql:"SELECT qty FROM t WHERE id = 42",tran:0},55:{st:"done",sql:"SELECT qty FROM t WHERE id = 43"}},l:[g("k42",52,"X"),w("k42",54,"S")],f:[53,54],h:"Killing the wrong session",
+   x:`Suppose you KILL 53 because it's the one with the most waiters behind it. Its work is rolled back and 55 gets row 43, but 52 still holds row 42 and 54 still waits. 53 was a victim, not the cause.`},
+  {s:{52:{st:"killed",sql:"KILL 52"},54:{st:"done",sql:"SELECT qty FROM t WHERE id = 42"}},l:[],f:[52],h:"Kill the head",
+   x:`KILL 52 rolls back its update (which takes as long as undoing the change) and releases X on row 42, and everyone queued behind it proceeds. The lasting fix is in the application: make sure every code path commits or rolls back. <code>SET XACT_ABORT ON</code> rolls the transaction back automatically on an error.`}]},
+{t:"Deadlock",sub:"a cycle in the graph",res:[["k42","KEY","PK_t (id = 42)",0],["u7","KEY","PK_u (uid = 7)",0]],
+ steps:[
+  {s:{52:{sql:"UpdateOrder: UPDATE t … WHERE id = 42",tran:1,log:"18,400 bytes"}},l:[g("k42",52,"X")],f:[52],h:"Two procedures",
+   x:`The UpdateOrder procedure updates t, then u. Session 52 runs it and takes X on row 42 of t.`},
+  {s:{52:{sql:"UpdateOrder: UPDATE t … WHERE id = 42",tran:1,log:"18,400 bytes"},53:{sql:"RefundLine: UPDATE u … WHERE uid = 7",tran:1,log:"6,200 bytes"}},l:[g("k42",52,"X"),g("u7",53,"X")],f:[53],h:"Opposite order",
+   x:`The RefundLine procedure touches the same tables in the <b>opposite order</b>: u first, then t. Session 53 runs it and takes X on row 7 of u.`},
+  {s:{52:{sql:"UpdateOrder: UPDATE u … WHERE uid = 7",tran:1,log:"18,400 bytes"},53:{sql:"RefundLine: UPDATE u … WHERE uid = 7",tran:1,log:"6,200 bytes"}},l:[g("k42",52,"X"),g("u7",53,"X"),w("u7",52,"U")],f:[52],h:"Blocking so far",
+   x:`52 moves on to u and waits for 53's lock on row 7. So far this is ordinary blocking: 52 would proceed as soon as 53 committed.`},
+  {s:{52:{sql:"UpdateOrder: UPDATE u … WHERE uid = 7",tran:1,log:"18,400 bytes"},53:{sql:"RefundLine: UPDATE t … WHERE id = 42",tran:1,log:"6,200 bytes"}},l:[g("k42",52,"X"),w("k42",53,"U"),g("u7",53,"X"),w("u7",52,"U")],f:[53],dl:true,h:"The cycle closes",
+   x:`Then 53 moves on to t and waits for 52's lock on row 42. Now 52 waits for 53 and 53 waits for 52: a <b>cycle</b>. Unlike blocking, it can never end by itself.`},
+  {s:{52:{sql:"UpdateOrder: UPDATE u … WHERE uid = 7",tran:1,log:"18,400 bytes"},53:{st:"victim",sql:"Msg 1205: chosen as the deadlock victim",log:"6,200 bytes"}},l:[g("k42",52,"X"),g("u7",52,"X")],f:[53,52],h:"The deadlock monitor",
+   x:`The deadlock monitor wakes every 5 seconds (more often once it has found one) and searches the wait-for graph for cycles. It picks a <b>victim</b>: the session with the lowest DEADLOCK_PRIORITY, and if they're equal, the one that's cheapest to roll back, measured by log used. 53 had used less log, so it gets error 1205 and is rolled back. 52 is granted row 7 and carries on.`},
+  {s:{52:{sql:"UpdateOrder: UPDATE t … then u",tran:1},53:{sql:"RefundLine, fixed: UPDATE t … then u",tran:1}},l:[g("k42",52,"X"),w("k42",53,"U")],f:[53],h:"The fix: one order",
+   x:`Change RefundLine to update t first, then u, the same order as UpdateOrder. Now 53 waits for row 42 at its very first step, before it holds anything 52 needs. The arrow can only point one way, so a cycle can't form: deadlock becomes blocking. Consistent access order is the standard fix.`}]}
+];
+
+let ci=0,si=0,prevKeys=new Set();
+function blockers(st,lk){const out=[];const granted=st.l.filter(x=>!x.w&&x.r===lk.r&&x.s!==lk.s&&!C[lk.m][x.m]);
+  if(granted.length)return granted.map(x=>x.s);
+  const q=st.l.filter(x=>x.w&&x.r===lk.r);const i=q.indexOf(lk);return i>0&&q[i-1].s!==lk.s?[q[i-1].s]:out;}
+function edges(st){const E=[];st.l.filter(x=>x.w).forEach(lk=>blockers(st,lk).forEach(b=>E.push({from:lk.s,to:b,m:lk.m,r:lk.r})));return E;}
+function stOf(st,sp){const s=st.s[sp];if(s.st)return s.st;return st.l.some(x=>x.w&&x.s===+sp)?"suspended":"running";}
+const RN=r=>{const x=CH[ci].res.find(q=>q[0]===r);return x?`${x[1]} ${x[2]}`:r;};
+function render(){
+  const ch=CH[ci],st=ch.steps[si];
+  $("tabs").querySelectorAll("button").forEach((b,i)=>b.setAttribute("aria-selected",i===ci));
+  $("st-step").textContent=`Chapter ${ci+1} of ${CH.length} · ${ch.t}`;$("st-title").textContent=st.h;$("st-text").innerHTML=`<p>${st.x}</p>`;
+  $("count").textContent=`${si+1} / ${ch.steps.length}`;$("prev").disabled=ci===0&&si===0;$("next").textContent=si<ch.steps.length-1?"Next ▶":ci<CH.length-1?"Next chapter ▶":"Start again";
+  const f=new Set(st.f||[]),E=edges(st);
+  // sessions
+  $("sess").innerHTML=Object.keys(st.s).map(sp=>{const s=st.s[sp],status=stOf(st,sp);
+    return `<div class="sc${f.has(+sp)?" focus":""}"><div class="top"><b>spid ${sp}</b><span class="pill ${status}">${status==="done"?"finished":status}</span></div><code>${s.sql}</code>${s.iso?`<span class="gnote">${s.iso}</span>`:""}</div>`;}).join("");
+  // resources
+  const keys=new Set(st.l.map(x=>`${x.r}|${x.s}|${x.m}|${x.w}`));
+  $("res").innerHTML=ch.res.map(([id,kind,nm,d])=>{const L=st.l.filter(x=>x.r===id);
+    const chip=x=>`<span class="chip${x.w?" w":""}${prevKeys.has(`${x.r}|${x.s}|${x.m}|${x.w}`)?"":" new"}"><abbr title="${MODE[x.m]}">${x.m}</abbr> · ${x.s}${x.w?" waits":""}</span>`;
+    return `<div class="rr d${d}${f.has(id)?" focus":""}"><span class="nm"><span class="kind">${kind}</span>${nm}</span><div class="chips">${L.length?L.filter(x=>!x.w).map(chip).join("")+L.filter(x=>x.w).map(chip).join(""):'<span class="empty">no locks</span>'}</div></div>`;}).join("");
+  prevKeys=keys;
+  // graph
+  drawGraph(st,E,f);
+  // dmv
+  $("dmv").innerHTML=Object.keys(st.s).map(sp=>{const s=st.s[sp],status=stOf(st,sp),wl=st.l.find(x=>x.w&&x.s===+sp),b=E.find(e=>e.from===+sp);
+    const shown=status==="done"||status==="killed"||status==="victim";
+    return `<tr><td>${sp}</td><td>${shown?"(gone)":status}</td><td class="${wl?"w":""}">${wl&&!shown?"LCK_M_"+wl.m:"NULL"}</td><td>${b&&!shown?b.to:0}</td><td>${shown?0:s.tran??0}</td><td>${s.iso||"READ COMMITTED"}</td></tr>`;}).join("");
+}
+function drawGraph(st,E,f){
+  const svg=$("graph"),W=360,H=250,cs=getComputedStyle(document.documentElement),col=n=>cs.getPropertyValue(n).trim();
+  const ids=Object.keys(st.s).map(Number).filter(sp=>!["done"].includes(stOf(st,sp)));
+  const n=ids.length,P={};const cx=W/2,cy=H/2+4;
+  if(st.dl||!E.length){const R=n<=2?100:82;ids.forEach((sp,i)=>{const a=n===1?-Math.PI/2:n===2?(i?0:Math.PI):-Math.PI/2+i*2*Math.PI/n;P[sp]={x:cx+R*Math.cos(a),y:cy+(n===2?0:R*.85*Math.sin(a))};});}
+  else{const depth=sp=>{let d=0,c=sp,seen=new Set();for(;;){const e=E.find(z=>z.from===c);if(!e||seen.has(c))return d;seen.add(c);c=e.to;d++;}};
+    const rows={};ids.forEach(sp=>{const d=depth(sp);(rows[d]=rows[d]||[]).push(sp);});const nr=Math.max(...Object.keys(rows).map(Number))+1;
+    Object.entries(rows).forEach(([d,list])=>{list.sort((a,b)=>{const pa=E.find(e=>e.from===a),pb=E.find(e=>e.from===b);return (pa?ids.indexOf(pa.to):0)-(pb?ids.indexOf(pb.to):0)||a-b;});
+      list.forEach((sp,i)=>{P[sp]={x:W*(i+1)/(list.length+1),y:nr===1?cy:36+(H-72)*(+d)/(nr-1)};});});}
+  const inCycle=new Set();if(st.dl)E.forEach(e=>{if(E.some(z=>z.from===e.to&&z.to===e.from)||st.dl){inCycle.add(e.from);inCycle.add(e.to);}});
+  let s=`<defs>${["wait","bad"].map(k=>`<marker id="ar-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${col(k==="bad"?"--bad":"--wait")}"/></marker>`).join("")}</defs>`;
+  const pairs={};
+  E.forEach(e=>{const a=P[e.from],b=P[e.to];if(!a||!b)return;const k=[e.from,e.to].sort().join("-");pairs[k]=(pairs[k]||0)+1;
+    const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,r=27;
+    const x1=a.x+ux*r,y1=a.y+uy*r,x2=b.x-ux*(r+3),y2=b.y-uy*(r+3);
+    const bend=E.some(z=>z.from===e.to&&z.to===e.from)?26:0,mx=(x1+x2)/2-uy*bend,my=(y1+y2)/2+ux*bend;
+    const cyc=st.dl&&inCycle.has(e.from)&&inCycle.has(e.to),c=col(cyc?"--bad":"--wait");
+    s+=`<path d="M${x1},${y1} Q${mx},${my} ${x2},${y2}" fill="none" stroke="${c}" stroke-width="${cyc?2.6:2}" ${cyc?"":'stroke-dasharray="5 4"'} marker-end="url(#ar-${cyc?"bad":"wait"})"/>`;
+    const lx=bend?mx:(x1+x2)/2+(Math.abs(uy)>.5?24:0),ly=bend?my+(my<(y1+y2)/2?-4:12):(y1+y2)/2+(Math.abs(uy)>.5?0:-7);
+    s+=`<rect x="${lx-27}" y="${ly-10}" width="54" height="14" rx="3" fill="${col("--surface")}" opacity=".92"/><text x="${lx}" y="${ly+1}" text-anchor="middle" font-size="10" fill="${c}" style="fill:${c}">LCK_M_${e.m}</text>`;});
+  ids.forEach(sp=>{const p=P[sp],status=stOf(st,sp),waits=E.some(e=>e.from===sp),blocks=E.some(e=>e.to===sp);
+    const head=blocks&&!waits,fill=col("--surface"),stroke=status==="killed"||status==="victim"?col("--bad"):head?col("--bad"):waits?col("--wait"):col("--ok");
+    s+=`<circle cx="${p.x}" cy="${p.y}" r="26" fill="${fill}" stroke="${stroke}" stroke-width="${f.has(sp)?3.2:2}"/>`;
+    s+=`<text x="${p.x}" y="${p.y+1}" text-anchor="middle" font-size="12" font-weight="600" style="fill:${col("--ink")}">${sp}</text>`;
+    const tag=status==="killed"?"killed":status==="victim"?"victim":head&&!st.dl?"HEAD":waits?"waiting":status==="sleeping"?"sleeping":"";
+    if(tag)s+=`<text x="${p.x}" y="${p.y+14}" text-anchor="middle" font-size="9" style="fill:${stroke}">${tag}</text>`;});
+  svg.innerHTML=s;
+  const heads=ids.filter(sp=>E.some(e=>e.to===sp)&&!E.some(e=>e.from===sp));
+  $("gsum").textContent=!E.length?"Nobody is waiting.":st.dl?"Every session in the red loop waits for the next one. Only killing one of them can break it.":heads.length?`Every arrow path ends at ${heads.map(h=>"spid "+h).join(" and ")}, which waits for nobody: the head blocker${heads.length>1?"s":""}.`:"";
+  svg.setAttribute("aria-label",E.length?E.map(e=>`spid ${e.from} waits for spid ${e.to} on ${RN(e.r)}`).join("; "):"Nobody is waiting");
+}
+function go(d){const ch=CH[ci];si+=d;if(si>=ch.steps.length){ci=(ci+1)%CH.length;si=0;prevKeys=new Set();}if(si<0){ci=Math.max(0,ci-1);si=CH[ci].steps.length-1;prevKeys=new Set();}render();save();}
+function save(){try{localStorage.setItem("lock-walkthrough",JSON.stringify({ci,si}))}catch(e){}}
+$("tabs").innerHTML=CH.map((c,i)=>`<button type="button" role="tab"><span>${i+1}</span>${c.t}</button>`).join("");
+$("tabs").querySelectorAll("button").forEach((b,i)=>b.onclick=()=>{ci=i;si=0;prevKeys=new Set();render();save();});
+$("prev").onclick=()=>go(-1);$("next").onclick=()=>go(1);
+window.addEventListener("keydown",e=>{if(e.target.closest&&e.target.closest("input,textarea"))return;if(e.key==="ArrowRight"){go(1);}else if(e.key==="ArrowLeft"){go(-1);}});
+const M=["IS","IX","S","U","X"];
+$("mx").innerHTML=`<thead><tr><th>Requested ↓ · held →</th>${M.map(m=>`<th><abbr title="${MODE[m]}">${m}</abbr></th>`).join("")}</tr></thead><tbody>${M.map(r=>`<tr><th><abbr title="${MODE[r]}">${r}</abbr></th>${M.map(c=>`<td class="${C[r][c]?"y":"n"}">${C[r][c]?"yes":"no"}</td>`).join("")}</tr>`).join("")}</tbody>`;
+$("gl").innerHTML=GL.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("");
+try{const s=JSON.parse(localStorage.getItem("lock-walkthrough")||"null");if(s&&CH[s.ci]&&CH[s.ci].steps[s.si]){ci=s.ci;si=s.si;}}catch(e){}
+const fromHash=()=>{const hm=(location.hash||"").match(/^#ch(\d)$/);if(hm&&CH[+hm[1]-1]){ci=+hm[1]-1;si=0;prevKeys=new Set();return true;}return false;};
+fromHash();window.addEventListener("hashchange",()=>{if(fromHash())render();});
+render();
+})();
+</script>
+</body>
+</html>

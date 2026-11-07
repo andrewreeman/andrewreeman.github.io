@@ -213,6 +213,39 @@ select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-off
 .xstat{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.76rem;color:var(--muted)}
 .xprops{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:5px 16px;margin:0;font-size:.86rem;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .xprops dt{color:var(--muted)}
+button.hinted,tr.hinted{outline:2px dashed var(--hint);outline-offset:-2px}
+.mono{font-family:var(--f-mono)}
+.lkstate{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.lkstate>div{display:grid;gap:6px;align-content:start}
+.lchips{display:flex;flex-wrap:wrap;gap:6px}
+.lchip{font:600 .8rem var(--f-mono);padding:3px 8px;border-radius:4px;border:1px solid var(--line);background:var(--surface)}
+.lchip.g{border-color:var(--ok);color:var(--ok)}
+.lchip.w{border-color:var(--hint);border-style:dashed;color:var(--hint)}
+.lkgrid{display:grid;gap:6px}
+.lkrow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 14px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.lkrow>div:first-child{display:grid;gap:2px;min-width:0}
+.lkrow.cur{border-color:var(--q2);border-width:2px}
+.lkrow.done{opacity:.75}
+.lkrow.ok{border-color:var(--ok)}.lkrow.bad{border-color:var(--bad)}
+.lkres{display:flex;gap:6px;flex-wrap:wrap}
+.lkmodes{display:flex;flex-wrap:wrap;gap:4px}
+button.tog{font:600 .8rem var(--f-mono);padding:5px 9px;min-width:42px}
+button.tog.on{background:color-mix(in srgb,var(--q2) 22%,var(--surface));border-color:var(--q2)}
+button.tog.wrong{border-color:var(--bad)}
+table.mx td.y{color:var(--ok);font-weight:600}table.mx td.n{color:var(--bad)}
+table.mx th .pn{font-weight:400}
+table.dmv td,table.dmv th,table.mx td,table.mx th{padding:4px 10px;text-align:left;vertical-align:top}
+table.dmv td,table.dmv th{white-space:nowrap}
+table.dmv td:last-child{white-space:normal;min-width:16em}
+table.mx td{text-align:center;min-width:3.2em}table.mx thead th:not(:first-child){text-align:center}
+table.dmv code{font-size:.78rem}
+table.dmv tr.sel td{background:color-mix(in srgb,var(--q2) 12%,var(--surface))}
+table.dmv tr.wrong td{background:color-mix(in srgb,var(--bad) 8%,var(--surface))}
+table.dmv tr.flagged td{background:color-mix(in srgb,var(--bad) 14%,var(--surface))}
+button.sid{font:600 .82rem var(--f-mono);padding:3px 8px}
+svg.wf{width:100%;max-width:440px;display:block}
+abbr[title]{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+.coach a{color:var(--q2)}
 .xprops dd{margin:0;font-family:var(--f-mono);white-space:normal;overflow-wrap:anywhere}
 @media (max-width:560px){.xprops{grid-template-columns:1fr}.xprops dd{margin-bottom:4px}}
 .coach{border:2px solid var(--q2);background:color-mix(in srgb,var(--q2) 8%,var(--surface));border-radius:10px;padding:12px 16px;display:grid;gap:6px}
@@ -250,13 +283,13 @@ select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-off
 </style>
 </head>
 <body>
-<nav class="se-nav" aria-label="SQL Server Storage Engine pages"><div class="se-nav-in"><a class="se-home" href="/">← andrewreeman.com</a><ul><li><a href="index.html">Overview</a></li><li><a href="inside-an-8kb-page.html">Inside an 8 KB Page</a></li><li><a href="key-lookup-walkthrough.html">Key Lookup Walkthrough</a></li><li><a href="storage-engine-drill.html" aria-current="page">Storage Engine Drill</a></li><li><a href="page-runner.html">Page Runner</a></li></ul></div></nav><script>(function(){var u=document.querySelector(".se-nav ul"),a=u&&u.querySelector("[aria-current]");if(a&&u.scrollWidth>u.clientWidth)u.scrollLeft=a.offsetLeft-u.offsetLeft-16;})();</script>
+<nav class="se-nav" aria-label="SQL Server Storage Engine pages"><div class="se-nav-in"><a class="se-home" href="/">← andrewreeman.com</a><ul><li><a href="index.html">Overview</a></li><li><a href="inside-an-8kb-page.html">Inside an 8 KB Page</a></li><li><a href="key-lookup-walkthrough.html">Key Lookup Walkthrough</a></li><li><a href="lock-walkthrough.html">Lock Manager Walkthrough</a></li><li><a href="storage-engine-drill.html" aria-current="page">Storage Engine Drill</a></li><li><a href="page-runner.html">Page Runner</a></li></ul></div></nav><script>(function(){var u=document.querySelector(".se-nav ul"),a=u&&u.querySelector("[aria-current]");if(a&&u.scrollWidth>u.clientWidth)u.scrollLeft=a.offsetLeft-u.offsetLeft-16;})();</script>
 <div class="wrap">
   <div class="top">
     <div style="display:grid;gap:6px">
       <span class="label">You are the storage engine</span>
       <h1>Storage Engine Drill</h1>
-      <p class="muted">Execute each statement by hand. Pick the plan, then work page by page: choose which pointer to follow, which slot to read or write, which way to walk the leaf chain, and when to stop. Every page you enter costs a logical read, and every page you change costs a write. Later levels add heaps, statistics, plan reuse and index design, and Peak Load is an arcade mode that puts it all under time pressure.</p>
+      <p class="muted">Execute each statement by hand. Pick the plan, then work page by page: choose which pointer to follow, which slot to read or write, which way to walk the leaf chain, and when to stop. Every page you enter costs a logical read, and every page you change costs a write. Later levels add heaps, statistics, plan reuse, index design, joins, locks and blocking, and Peak Load is an arcade mode that puts it all under time pressure.</p>
     </div>
     <div style="display:grid;gap:8px;justify-items:end">
       <div class="pips" id="pips"></div>
@@ -289,7 +322,7 @@ select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-off
     <div class="agrid">
       <section class="panel"><h3>Workload</h3><p class="pn">Plans update the moment you change an index. The bar shows each statement's share of the server's 60,000 reads per second.</p><div class="tbl"><table class="wl awl" id="a-wl"></table></div></section>
       <section class="panel"><h3>Indexes · <span id="a-slots">0 of 3</span></h3><div id="a-ixlist" style="display:grid;gap:8px"></div><div class="builder" id="a-builder"></div>
-        <h3>DBA tools</h3><button id="a-stats">UPDATE STATISTICS t</button><p class="pn" id="a-statsstate"></p><p class="pn">OPTION (RECOMPILE) is a checkbox on each SELECT in the workload table. It adds about 100 reads of compile work per call.</p></section>
+        <h3>DBA tools</h3><button id="a-stats">UPDATE STATISTICS t</button><p class="pn" id="a-statsstate"></p><button id="a-rcsi">ALTER DATABASE … SET READ_COMMITTED_SNAPSHOT ON</button><p class="pn" id="a-rcsistate"></p><p class="pn">OPTION (RECOMPILE) is a checkbox on each SELECT in the workload table. It adds about 100 reads of compile work per call.</p></section>
     </div>
   </section>
 
@@ -344,7 +377,7 @@ select:focus-visible,input:focus-visible{outline:2px solid var(--nc);outline-off
           <li><b>Histogram:</b> a value equal to a <code>RANGE_HI_KEY</code> is estimated from <code>EQ_ROWS</code>. A value strictly between two keys uses the upper step's <code>AVG_RANGE_ROWS</code>.</li>
           <li><b>Plan reuse:</b> a parameterised query is compiled for the first value it sees, and the cached plan is reused for later values.</li>
           <li><b>Every round uses a different schema:</b> the same shapes of table, index and query, renamed. The first column is always the clustered primary key.</li>
-          <li>Reference pages: <a href="key-lookup-walkthrough.html" target="_blank" rel="noopener">Key Lookup Walkthrough</a> · <a href="inside-an-8kb-page.html" target="_blank" rel="noopener">Inside an 8 KB Page</a></li>
+          <li>Reference pages: <a href="lock-walkthrough.html" target="_blank" rel="noopener">Lock Manager Walkthrough</a> · <a href="key-lookup-walkthrough.html" target="_blank" rel="noopener">Key Lookup Walkthrough</a> · <a href="inside-an-8kb-page.html" target="_blank" rel="noopener">Inside an 8 KB Page</a></li>
         </ul>
       </details>
     </aside>
@@ -940,6 +973,329 @@ function renderBug(){
   const hb=document.createElement("button");hb.textContent="Hint (−10)";hb.onclick=bugHint;ac.appendChild(hb);
 }
 
+// ---------- locks and blocking (levels 11 and 12) ----------
+const COMPAT={IS:{IS:1,IX:1,S:1,U:1,X:0},IX:{IS:1,IX:1,S:0,U:0,X:0},S:{IS:1,IX:0,S:1,U:1,X:0},U:{IS:1,IX:0,S:1,U:0,X:0},X:{IS:0,IX:0,S:0,U:0,X:0}};
+const ok2=(a,b)=>!!COMPAT[a][b];
+const LMODE={IS:"intent shared",IX:"intent exclusive",S:"shared",U:"update",X:"exclusive"};
+function lkRound(o){return{lock:o,q:{kind:"lock"},title:o.title,take:o.take};}
+function mxHTML(modes){return `<div class="defs"><span class="label">Compatibility: can the requested lock be granted while the held lock exists?</span><div class="tbl"><table class="mx"><thead><tr><th>Requested ↓ · held →</th>${modes.map(m=>`<th>${m}</th>`).join("")}</tr></thead><tbody>${modes.map(r=>`<tr><th>${r} <span class="pn">${LMODE[r]}</span></th>${modes.map(c=>`<td class="${ok2(r,c)?"y":"n"}">${ok2(r,c)?"yes":"no"}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;}
+const WALK="lock-walkthrough.html";
+const GLOS={LCK_M_S:"Waiting for a shared (S) lock: a read queued behind a writer.",LCK_M_U:"Waiting for an update (U) lock: an UPDATE or DELETE waiting to reach its rows.",LCK_M_X:"Waiting for an exclusive (X) lock.",LCK_M_IX:"Waiting for an intent exclusive (IX) lock on a page or table.",LCK_M_IS:"Waiting for an intent shared (IS) lock on a page or table.",LCK_M_RIn_NL:"Waiting to insert into a key range that a SERIALIZABLE reader has locked.",
+  blocking_session_id:"The session holding the lock this one waits for. 0 means it isn't waiting on anyone.",open_tran:"Open transactions. A sleeping session with 1 here still holds every lock its transaction took.",wait_type:"What the request is waiting for. LCK_M_ plus a mode means it's waiting for a lock.",wait_time:"How long the current wait has lasted.",
+  status:"running: on a CPU. suspended: waiting, here for a lock. sleeping: connected but idle.",sleeping:"Connected but not running anything.",suspended:"Waiting for something: here, a lock.",running:"Executing.",DEADLOCK_PRIORITY:"Set per session: LOW (−5), NORMAL (0) or HIGH (5). The lowest in the cycle is chosen as the victim.","log used":"Transaction log written so far, which a rollback has to undo. With equal priorities, the cheapest rollback is the victim."};
+const gl=t=>GLOS[t]?`<abbr title="${GLOS[t]}">${t}</abbr>`:t;
+const glm=m=>LMODE[m]?`<abbr title="${LMODE[m]}">${m}</abbr>`:m;
+const lchip=(x,cls)=>`<span class="lchip ${cls||""}">spid ${x.s} · ${glm(x.m)}</span>`;
+const COACH={grant:[1,"A lock is how a session tells everyone else what it's doing to a resource. <b>S</b> (shared) means reading, and many sessions can hold it together. <b>X</b> (exclusive) means changing, and nobody else can hold anything alongside it. <b>U</b> (update) is for reading a row you're about to change. Grant a request when it's compatible with every lock already granted, using the matrix, <i>and</i> nobody is waiting ahead of it. Otherwise it joins the queue."],
+  hier:[3,"Locks sit on a hierarchy: the table (OBJECT), the 8 KB page, and the row (KEY, one per index entry). The real lock, S or X, goes on the row. Every level above gets an <b>intent</b> lock: IS above a reader, IX above a writer. Intent locks let the lock manager refuse a table-level lock without checking every row lock underneath."],
+  dur:[4,"Isolation levels mostly decide how long <b>read</b> locks last. Locking READ COMMITTED releases each S lock as soon as the row has been read. REPEATABLE READ keeps them until COMMIT. RCSI and NOLOCK don't take them at all. Write locks (X, plus IX above them) are always kept until the transaction ends."],
+  esc:[3,"Every lock costs memory. When a single statement holds about 5,000 of them, the engine tries to swap them all for one lock on the whole table. That's lock escalation: it saves memory, but a table X lock blocks every other session using the table."],
+  iso:[4,"Two sessions, one row. Ask what session B needs: a read needs S under locking READ COMMITTED, nothing under RCSI or NOLOCK, and a version as of its start under SNAPSHOT. A write always needs U then X. Then check what session A is still holding."],
+  chain:[5,"When a request waits for a lock, its <code>wait_type</code> is LCK_M_ plus the mode it wants, and <code>blocking_session_id</code> is the session holding that lock. Follow those links like arrows: each waiter points at its blocker. The head blocker is where every path ends, a session that blocks others but waits for nobody."],
+  dl:[6,"A deadlock is a loop: each session holds a lock that the next one wants, so none of them can move. Follow each session to the holder of the resource it wants. The sessions you can go round and come back to form the cycle. Anyone else is just queued behind it."]};
+function coachHTML(k){const c=COACH[k];if(!c||((PROG.seen||{})[k]||0)>0)return"";return `<div class="coach"><span class="label">New round type</span><p>${c[1]}</p><p class="pn">Step-by-step pictures: <a href="${WALK}#ch${c[0]}" target="_blank" rel="noopener">Lock Manager Walkthrough, chapter ${c[0]}</a>.</p></div>`;}
+function wfSVG(nodes,edges){
+  const W=360,H=nodes.length>5?250:220,P={},n=nodes.length,ids=nodes.map(x=>x.id);
+  const out=id=>edges.filter(e=>e.from===id),depth=id=>{let d=0,c=id,seen=new Set();for(;;){const e=out(c)[0];if(!e||seen.has(c))return d;seen.add(c);c=e.to;d++;}};
+  const cyc=edges.some(e=>{let c=e.to,seen=new Set();while(!seen.has(c)){if(c===e.from)return true;seen.add(c);const x=out(c)[0];if(!x)return false;c=x.to;}return false;});
+  if(cyc){const onCyc=id=>{let c=id,seen=new Set();while(!seen.has(c)){seen.add(c);const x=out(c)[0];if(!x)return false;c=x.to;if(c===id)return true;}return false;};
+    const cy=ids.filter(onCyc),rest=ids.filter(id=>!onCyc(id)),m=cy.length,cx=rest.length?W*.6:W/2,R=m<=2?95:78;
+    const cyy=m===2&&rest.length?62:H/2;cy.forEach((id,i)=>{const a=m===2?(i?0:Math.PI):-Math.PI/2+i*2*Math.PI/m;P[id]={x:cx+R*Math.cos(a),y:cyy+(m===2?0:R*.9*Math.sin(a))};});
+    rest.forEach((id,i)=>{const t=out(id)[0],tp=t&&P[t.to]?P[t.to]:{x:cx,y:H/2};let vx=tp.x-cx,vy=tp.y-H/2;if(Math.hypot(vx,vy)<1){vx=0;vy=1;}if(m===2){vx=0;vy=1;}const d=Math.hypot(vx,vy),ang=Math.atan2(vy/d,vx/d)+i*.6,L=m===2?120:78;
+      P[id]={x:Math.min(W-26,Math.max(26,tp.x+Math.cos(ang)*L)),y:Math.min(H-26,Math.max(26,tp.y+Math.sin(ang)*L))};});
+    P.__c={x:cx,y:cyy};}
+  else{const rows={};ids.forEach(id=>{const d=depth(id);(rows[d]=rows[d]||[]).push(id);});const nr=Math.max(...Object.keys(rows).map(Number))+1;
+    Object.entries(rows).forEach(([d,l])=>{l.sort((a,b)=>{const pa=out(a)[0],pb=out(b)[0];return(pa?ids.indexOf(pa.to):-1)-(pb?ids.indexOf(pb.to):-1);});l.forEach((id,i)=>{P[id]={x:W*(i+1)/(l.length+1),y:nr===1?H/2:32+(H-64)*(+d)/(nr-1)};});});}
+  let s=`<svg class="wf" viewBox="0 0 ${W} ${H}" role="img" aria-label="${edges.map(e=>`spid ${e.from} waits for spid ${e.to}`).join("; ")||"nobody is waiting"}"><defs><marker id="wfa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--hint)"/></marker></defs>`;
+  edges.forEach(e=>{const a=P[e.from],b=P[e.to];if(!a||!b)return;const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,r=22;
+    const x1=a.x+ux*r,y1=a.y+uy*r,x2=b.x-ux*(r+3),y2=b.y-uy*(r+3),bend=edges.some(z=>z.from===e.to&&z.to===e.from)?24:0,mx=(x1+x2)/2-uy*bend,my=(y1+y2)/2+ux*bend;
+    s+=`<path d="M${x1},${y1} Q${mx},${my} ${x2},${y2}" style="fill:none;stroke:var(--hint);stroke-width:2" stroke-dasharray="5 4" marker-end="url(#wfa)"/>`;
+    const c0=P.__c||{x:W/2,y:H/2},sg=((mx-c0.x)*(-uy)+(my-c0.y)*ux)>=0?1:-1;
+    const lx=bend?mx:mx-uy*34*sg,ly=bend?my+(my<(y1+y2)/2?-4:12):my+ux*11*sg+3;
+    s+=`<rect x="${lx-30}" y="${ly-10}" width="60" height="14" rx="3" style="fill:var(--surface)" opacity=".92"/><text x="${lx}" y="${ly+1}" text-anchor="middle" style="fill:var(--hint);font:600 9.5px var(--f-mono)">${e.label}</text>`;});
+  nodes.forEach(x=>{const p=P[x.id],waits=out(x.id).length>0;s+=`<circle cx="${p.x}" cy="${p.y}" r="22" style="fill:var(--surface);stroke:${waits?"var(--hint)":"var(--muted)"};stroke-width:2"/><text x="${p.x}" y="${p.y+4}" text-anchor="middle" style="fill:var(--ink);font:600 11px var(--f-mono)">${x.id}</text>`;});
+  return s+"</svg>";}
+function graphBlock(k,nodes,edges){const shown=((PROG.seen||{})[k]||0)<2||S.lk.graph;
+  if(shown)return `<div class="defs"><span class="label">Wait-for graph · an arrow points from a waiting session to the session it waits for</span>${wfSVG(nodes,edges)}</div>`;
+  return `<div class="defs"><button class="ghostbtn" id="wf-draw">Draw the wait-for graph (counts as a hint)</button></div>`;}
+function wireGraph(){const b=$("wf-draw");if(b)b.onclick=()=>{S.hints++;S.lk.graph=true;setFB("hint",`<b class="t">Graph drawn</b>Reading the DMV columns without it is the skill to build up to. This counts as a hint.`);render();};}
+function lkDone(stats,why){S.phase="done";const ck=S.sc.lock.ck||S.sc.lock.kind;PROG.seen=PROG.seen||{};PROG.seen[ck]=(PROG.seen[ck]||0)+1;saveProg();const pts=Math.max(0,100-15*S.mis-10*S.hints);G.pts+=pts;
+  G.log.push({title:S.sc.title,plan:S.sc.lock.planLabel||"locking",r:0,w:0,mis:S.mis,hints:S.hints,pts});
+  S.dres=`<div class="sum"><div class="stats">${stats}<span>Mistakes <b>${S.mis}</b></span><span>Hints <b>${S.hints}</b></span><span>Points <b>${pts} / 100</b></span></div></div>`;
+  setFB("ok",`<b class="t">Correct</b>${why}`);render();}
+function lkBad(t,h){mistake();setFB("bad",`<b class="t">${t}</b>${h}`);render();}
+function lkHint(){S.hints++;S.lh=true;setFB("hint",`<b class="t">Hint</b>The highlighted answer is correct. Hints cost 10 points.`);render();}
+
+/* --- level 11: grant or wait --- */
+GEN.lockGrant=(o={})=>{
+  for(;;){
+    const key=o.stage?o.stage<3:R()<.55,modes=o.stage===1?["S","X"]:key?["S","U","X"]:["IS","IX","S","X"],k=ri(10,900);
+    const res=key?`KEY · PK_t (id = ${k})`:"OBJECT · t";
+    const what=key?{S:`SELECT status FROM t WHERE id = ${k} (REPEATABLE READ)`,U:`UPDATE t SET status = … WHERE id = ${k}, finding the row`,X:`UPDATE t SET status = … WHERE id = ${k}, changing the row`}
+      :{IS:"SELECT that reads a few rows of t",IX:"UPDATE that changes a few rows of t",S:"SELECT COUNT(*) FROM t WITH (TABLOCK)",X:"DELETE FROM t WITH (TABLOCKX)"};
+    let spid=ri(51,58);const granted=[];
+    for(let i=0,n=ri(1,2);i<n;i++){let m,tries=0;do{m=pick(modes);}while(granted.some(g=>!ok2(m,g.m))&&++tries<20);if(granted.every(g=>ok2(m,g.m)))granted.push({s:spid++,m});}
+    const reqs=Array.from({length:ri(4,5)},()=>({s:spid++,m:pick(modes)}));
+    const g=[...granted],w=[],ans=[];let fifo=false;
+    reqs.forEach(r=>{const comp=g.every(x=>ok2(r.m,x.m)),ok=!w.length&&comp;if(comp&&!ok)fifo=true;ans.push(ok);(ok?g:w).push(r);});
+    if(!ans.some(x=>x)||!ans.some(x=>!x))continue;
+    if(!fifo&&R()<(o.stage===1?.2:.5))continue;
+    if(o.stage===2&&!reqs.some(r=>r.m==="U"))continue;
+    const head=w[0],blockers=g.filter(x=>!ok2(head.m,x.m)),rel=pick(blockers);
+    const g2=g.filter(x=>x!==rel),newly=[];
+    for(const x of w){if(g2.every(y=>ok2(x.m,y.m))){g2.push(x);newly.push(x.s);}else break;}
+    return lkRound({kind:"grant",title:o.stage===1?"Grant or wait: S and X":o.stage===2?"Grant or wait: adding U":o.stage===3?"Grant or wait: intent locks":"Grant or wait",planLabel:"lock manager",res,modes,what,granted,reqs,ans,rel,newly,
+      take:"A lock is granted only if it's compatible with every lock already granted on the resource and nobody is queued ahead of it. The wait queue is first in, first out, so a compatible request can still wait behind an incompatible one. That's what stops a stream of readers starving a writer."});
+  }};
+function lkGrantWhy(r,i){const L=S.sc.lock,x=S.lk,conf=x.g.filter(y=>!ok2(r.m,y.m));
+  if(conf.length)return `${r.m} conflicts with ${conf.map(c=>`spid ${c.s}'s ${c.m}`).join(" and ")}, so spid ${r.s} waits.`;
+  if(x.w.length)return `${r.m} is compatible with every granted lock, but spid ${x.w[0].s} is already waiting. The queue is first in, first out, so spid ${r.s} waits behind it.`;
+  return `${r.m} is compatible with ${x.g.length?x.g.map(c=>c.m).join(", "):"nothing held"}${x.g.length?", every lock currently granted":""}, and nobody is waiting, so it's granted.`;}
+function lkGrant(choice){const L=S.sc.lock,x=S.lk,r=L.reqs[x.i],ok=L.ans[x.i];
+  if(choice!==ok){S.wrongs.add("g:"+x.i+":"+choice);return lkBad(ok?"It can be granted":"It has to wait",lkGrantWhy(r,x.i));}
+  const why=lkGrantWhy(r,x.i);(ok?x.g:x.w).push(r);x.log.push({r,ok});x.i++;S.lh=false;
+  if(x.i>=L.reqs.length){x.phase="rel";setFB("ok",`<b class="t">Correct</b>${why} Now spid ${L.rel.s} commits.`);}else setFB("ok",`<b class="t">Correct</b>${why}`);render();}
+function lkRelease(){const L=S.sc.lock,x=S.lk,want=new Set(L.newly),got=x.sel;
+  const same=want.size===got.size&&[...want].every(s=>got.has(s));
+  const g2=x.g.filter(y=>y!==L.rel);
+  if(!same){S.wrongs.add("rel");const head=x.w[0];
+    const msg=!L.newly.length?`spid ${head.s} wants ${head.m}, which still conflicts with ${g2.filter(y=>!ok2(head.m,y.m)).map(y=>`spid ${y.s}'s ${y.m}`).join(" and ")}. Nobody behind it can jump the queue, so nobody is granted.`
+      :`Work down the queue in order. Grant each waiter while it's compatible with everything granted, and stop at the first one that isn't. That grants ${L.newly.map(s=>"spid "+s).join(", ")}.`;
+    return lkBad("Not quite",msg);}
+  lkDone(`<span>Requests <b>${L.reqs.length}</b></span><span>Granted after the commit <b>${L.newly.length?L.newly.map(s=>"spid "+s).join(", "):"none"}</b></span>`,
+    L.newly.length?`spid ${L.rel.s}'s ${L.rel.m} lock is gone. The lock manager walks the queue from the front and grants ${L.newly.map(s=>"spid "+s).join(", ")}${L.newly.length<x.w.length?`, then stops at the first request that still conflicts`:""}.`:`spid ${L.rel.s}'s lock is gone, but the head of the queue still conflicts with another granted lock, so everyone keeps waiting.`);}
+function renderGrant(st,ac){const L=S.sc.lock,x=S.lk;
+  st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Resource</span><code class="blk">${L.res}</code></div>
+    <div class="lkstate"><div><span class="label">Granted</span><div class="lchips">${x.g.map(y=>lchip(y,"g")).join("")||'<span class="pn">nothing</span>'}</div></div><div><span class="label">Waiting, in order</span><div class="lchips">${x.w.map(y=>lchip(y,"w")).join("")||'<span class="pn">nobody</span>'}</div></div></div>`);
+  st.insertAdjacentHTML("beforeend",mxHTML(L.modes));
+  const box=document.createElement("div");box.className="lkgrid";
+  L.reqs.forEach((r,i)=>{const done=i<x.i,cur=i===x.i&&x.phase==="req";const row=document.createElement("div");row.className="lkrow"+(cur?" cur":"")+(done?" done":"");
+    row.innerHTML=`<div><b class="mono">spid ${r.s} requests ${glm(r.m)}</b><span class="pn">${L.what[r.m]}</span></div><div class="lkres">${done?`<span class="lchip ${L.ans[i]?"g":"w"}">${L.ans[i]?"granted":"waiting"}</span>`:""}</div>`;
+    if(cur){const b=row.querySelector(".lkres");[[true,"Grant"],[false,"Wait"]].forEach(([v,t])=>{const btn=document.createElement("button");btn.textContent=t;if(S.wrongs.has("g:"+i+":"+v))btn.classList.add("wrong");if(S.lh&&L.ans[i]===v)btn.classList.add("hinted");btn.onclick=()=>lkGrant(v);b.appendChild(btn);});}
+    box.appendChild(row);});
+  st.appendChild(box);
+  if(x.phase==="rel"){
+    st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">spid ${L.rel.s} commits and releases its ${L.rel.m} lock. Which waiting sessions are granted now?</span></div>`);
+    const sel=document.createElement("div");sel.className="lchips";
+    x.w.forEach(y=>{const b=document.createElement("button");b.className="tog"+(x.sel.has(y.s)?" on":"")+(S.lh&&L.newly.includes(y.s)?" hinted":"");b.textContent=`spid ${y.s} · ${y.m}`;b.setAttribute("aria-pressed",x.sel.has(y.s));b.onclick=()=>{x.sel.has(y.s)?x.sel.delete(y.s):x.sel.add(y.s);render();};sel.appendChild(b);});
+    st.appendChild(sel);
+    const c=document.createElement("button");c.className="primary";c.textContent=x.sel.size?`Grant ${[...x.sel].map(s=>"spid "+s).join(", ")}`:"Grant nobody: they all keep waiting";c.onclick=lkRelease;ac.appendChild(c);}
+}
+
+/* --- level 11: which locks, where --- */
+GEN.lockHier=()=>{const k=ri(10,900),sv=ri(100,900),pp="1:"+ri(500,560),ip="1:"+ri(900,960),val=pick(STAT);
+  const C=[
+    {sql:`SELECT status FROM t WHERE id = ${k}`,iso:"REPEATABLE READ",ix:false,ans:["IS","IS","S"],why:"A read takes S on the row it reads and IS on the page and the table above it. The intent locks announce that something below is being read, so nobody can take an X lock on the whole page or table without noticing."},
+    {sql:`UPDATE t SET notes = 'checked' WHERE id = ${k}`,iso:"READ COMMITTED",ix:false,ans:["IX","IX","X"],why:"The row being changed gets X (it was U while the engine found it, then converted). The page and the table get IX: intent exclusive, so a TABLOCK reader or a table-level X request has to wait."},
+    {sql:`UPDATE t SET status = '${val}' WHERE id = ${k}`,iso:"READ COMMITTED",ix:false,ans:["IX","IX","X"],why:"Only PK_t holds status here, because IX_t_secondary_id neither keys nor INCLUDEs it. So only the clustered row is locked X, with IX on its page and on the table."},
+    {sql:`DELETE FROM t WHERE id = ${k}`,iso:"READ COMMITTED",ix:true,ans:["IX","IX","X","IX","X"],why:"Deleting a row removes it from every index, so the nonclustered entry is locked X too, with IX on its page. Every extra index is another set of locks a writer has to take."},
+    {sql:`UPDATE t SET secondary_id = ${sv+ri(1,9)} WHERE id = ${k}`,iso:"READ COMMITTED",ix:true,ans:["IX","IX","X","IX","X"],why:"Changing an index key moves the entry: the old entry is deleted and a new one inserted, both under X locks, with IX on the index page. The clustered row is locked X as well."},
+    {sql:"SELECT COUNT(*) FROM t WITH (TABLOCK)",iso:"READ COMMITTED",ix:false,ans:["S","none","none"],why:"TABLOCK takes one S lock on the whole table instead of thousands of row locks. With the table covered there's nothing to lock below it, and nobody can change any row of t until it's released."}];
+  const c=pick(C);
+  const res=[`OBJECT · t`,`PAGE · ${pp} (PK_t leaf)`,`KEY · PK_t (id = ${k})`];if(c.ix)res.push(`PAGE · ${ip} (IX_t_secondary_id leaf)`,`KEY · IX_t_secondary_id (${sv}, ${k})`);
+  return lkRound({kind:"hier",title:"Locks at every level",planLabel:"lock hierarchy",sql:c.sql,iso:c.iso,ix:c.ix,res,ans:c.ans,why:c.why,
+    take:"Locks are taken top down: an intent lock on the table, an intent lock on the page, then the real lock on the row. Intent locks are cheap markers that let the lock manager refuse a conflicting table or page lock without checking every row lock underneath."});};
+function lkHierCheck(){const L=S.sc.lock,x=S.lk;if(x.pick.some(p=>!p))return setFB("hint","<b class=\"t\">Pick a mode for every resource</b>Choose none where the statement doesn't lock that resource.");
+  const wrong=L.ans.map((a,i)=>x.pick[i]!==a);x.marked=wrong;
+  if(wrong.some(Boolean)){const i=wrong.indexOf(true);lkBad("Not quite",`${L.res[i]}: ${x.pick[i]==="none"?"it does take a lock here.":x.pick[i]+" isn't right."} ${i===0||i===1||i===3?"Rows are locked at the bottom, and every level above them gets an intent lock (IS for readers, IX for writers), unless a coarser lock like TABLOCK covers everything.":"Readers take S on rows; writers take X on every row and index entry they change."}`);return;}
+  lkDone(`<span>Statement <b>${L.sql}</b></span>`,L.why);}
+function renderHier(st,ac){const L=S.sc.lock,x=S.lk,M=["none","IS","IX","S","U","X"];
+  st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Schema</span><code class="blk">${tableDDL(false)}\n${L.ix?ixDDL({keys:["secondary_id"],inc:[]}):"CREATE INDEX IX_t_secondary_id ON t (secondary_id);"}</code></div><div class="defs"><span class="label">Isolation level</span><code class="blk">${L.iso}</code></div>`);
+  const box=document.createElement("div");box.className="lkgrid";
+  L.res.forEach((r,i)=>{const row=document.createElement("div");row.className="lkrow"+(x.marked&&x.marked[i]?" bad":x.marked&&!x.marked[i]?" ok":"");
+    row.innerHTML=`<div><b class="mono">${r}</b></div><div class="lkmodes" role="group" aria-label="Lock mode for ${r}"></div>`;
+    const g=row.querySelector(".lkmodes");M.forEach(m=>{const b=document.createElement("button");b.textContent=m;b.className="tog"+(x.pick[i]===m?" on":"")+(S.lh&&L.ans[i]===m?" hinted":"");b.setAttribute("aria-pressed",x.pick[i]===m);b.onclick=()=>{x.pick[i]=m;x.marked=null;render();};g.appendChild(b);});
+    box.appendChild(row);});
+  st.appendChild(box);st.insertAdjacentHTML("beforeend",mxHTML(["IS","IX","S","U","X"]));
+  const c=document.createElement("button");c.className="primary";c.textContent="Check the locks";c.onclick=lkHierCheck;ac.appendChild(c);}
+
+/* --- level 11: what's still held --- */
+GEN.lockDuration=()=>{const [a,b,c]=shuffle(Array.from({length:120},(_,i)=>i*7+11)).slice(0,3),iso=pick(["RC","RCSI","RR","RU"]);
+  const items=[{k:"sa",t:`S on KEY id = ${a}`},{k:"sb",t:`S on KEY id = ${b}`},{k:"xc",t:`X on KEY id = ${c}`},{k:"uc",t:`U on KEY id = ${c}`},{k:"ix",t:"IX on OBJECT t"},{k:"so",t:"S on OBJECT t"}];
+  const ans={RC:["xc","ix"],RCSI:["xc","ix"],RR:["sa","sb","xc","ix"],RU:["xc","ix"]}[iso];
+  const head={RC:"SET TRANSACTION ISOLATION LEVEL READ COMMITTED;  -- READ_COMMITTED_SNAPSHOT is OFF",RCSI:"-- the database has READ_COMMITTED_SNAPSHOT ON (the default in Azure SQL Database)\nSET TRANSACTION ISOLATION LEVEL READ COMMITTED;",RR:"SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;",RU:"SET TRANSACTION ISOLATION LEVEL READ COMMITTED;  -- the SELECTs use WITH (NOLOCK)"}[iso];
+  const nl=iso==="RU"?" WITH (NOLOCK)":"";
+  const script=`${head}\nBEGIN TRAN;\n  SELECT status FROM t${nl} WHERE id = ${a};\n  SELECT status FROM t${nl} WHERE id = ${b};\n  UPDATE t SET status = 'checked' WHERE id = ${c};\n  -- ◀ paused here, before COMMIT\nCOMMIT;`;
+  const why={RC:`Under locking READ COMMITTED each S lock is released as soon as its row has been read, so nothing is left from the two SELECTs. The UPDATE's X lock (converted from U) is held until COMMIT, with IX on the table above it.`,
+    RCSI:`With RCSI the SELECTs read the last committed version of each row from the version store and take no S locks at all. Only the UPDATE's X lock and the IX above it remain, and they're held until COMMIT: under RCSI, writers still block writers.`,
+    RR:`REPEATABLE READ keeps every S lock until the transaction ends, so nobody can change rows ${a} and ${b} before COMMIT. The UPDATE adds an X lock on row ${c}, and the table carries IX.`,
+    RU:`NOLOCK reads take no S locks (and can see uncommitted data). The UPDATE still takes an X lock on row ${c}, held until COMMIT, with IX on the table: NOLOCK never applies to writes.`}[iso];
+  return lkRound({kind:"dur",title:"Held until COMMIT?",planLabel:{RC:"read committed",RCSI:"RCSI",RR:"repeatable read",RU:"NOLOCK"}[iso],script,items:shuffle(items),ans,why,
+    take:"Isolation levels mostly differ in how long read locks live. READ COMMITTED drops each S lock straight away, REPEATABLE READ keeps them to the end, and RCSI and NOLOCK don't take them at all. Write locks are always held until the transaction ends."});};
+function lkDurCheck(){const L=S.sc.lock,x=S.lk,want=new Set(L.ans);
+  const missing=L.ans.filter(k=>!x.sel.has(k)),extra=[...x.sel].filter(k=>!want.has(k));
+  if(missing.length||extra.length){const t=k=>L.items.find(i=>i.k===k).t;
+    const note=extra.includes("uc")?"The U lock was converted to X when the row changed; a session never keeps both.":extra.includes("so")?"Nothing here locks the whole table in S mode; row operations put intent locks on the table.":extra.some(k=>k==="sa"||k==="sb")?"Think about how long this isolation level keeps a read lock.":missing.some(k=>k==="sa"||k==="sb")?"This isolation level keeps read locks longer than READ COMMITTED does.":missing.includes("ix")?"A row lock always has an intent lock on the table above it.":"Write locks are held until the transaction ends.";
+    return lkBad("Not quite",`${missing.length?`Missing: ${missing.map(t).join(", ")}. `:""}${extra.length?`Not held: ${extra.map(t).join(", ")}. `:""}${note}`);}
+  lkDone(`<span>Still held <b>${L.ans.length} locks</b></span>`,L.why);}
+function renderDur(st,ac){const L=S.sc.lock,x=S.lk;
+  st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Session 57's transaction</span><code class="blk">${L.script}</code></div><div class="defs"><span class="label">Which locks does session 57 still hold at the pause?</span></div>`);
+  const box=document.createElement("div");box.className="lchips";
+  L.items.forEach(it=>{const b=document.createElement("button");b.className="tog"+(x.sel.has(it.k)?" on":"")+(S.lh&&L.ans.includes(it.k)?" hinted":"");b.textContent=it.t;b.setAttribute("aria-pressed",x.sel.has(it.k));b.onclick=()=>{x.sel.has(it.k)?x.sel.delete(it.k):x.sel.add(it.k);render();};box.appendChild(b);});
+  st.appendChild(box);
+  const c=document.createElement("button");c.className="primary";c.textContent="Check";c.onclick=lkDurCheck;ac.appendChild(c);}
+
+/* --- shared multiple choice (escalation, isolation) --- */
+function lkMC(i){const L=S.sc.lock,st=L.steps[S.lk.step],o=st.opts[i];
+  if(!o.ok){S.wrongs.add("m:"+S.lk.step+":"+i);return lkBad("Not that one",o.why);}
+  S.lh=false;if(S.lk.step<L.steps.length-1){S.lk.step++;setFB("ok",`<b class="t">Correct</b>${o.why}`);render();return;}
+  lkDone(L.stats||"",o.why);}
+function renderMC(st,ac){const L=S.sc.lock,s=L.steps[S.lk.step];
+  if(L.script)st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">${L.scriptLabel||"Script"}</span><code class="blk">${L.script}</code></div>`);
+  st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">${s.q}</span></div>`);
+  const box=document.createElement("div");box.className="plans";
+  s.opts.forEach((o,i)=>{const b=document.createElement("button");b.className="plan"+(S.wrongs.has("m:"+S.lk.step+":"+i)?" wrong":"")+(S.lh&&o.ok?" hinted":"");b.innerHTML=`<b>${o.t}</b>`;b.onclick=()=>lkMC(i);box.appendChild(b);});
+  st.appendChild(box);}
+GEN.lockEsc=()=>{const kind=pick(["small","big","big","conflict"]),n=kind==="small"?ri(12,45)*100:ri(60,400)*100,d=`2025-0${ri(2,9)}-01`;
+  const opts=[
+    {k:"small",t:`About ${fmt(n)} X key locks, with IX on their pages and on t, all held until COMMIT. Other rows of t stay available.`},
+    {k:"big",t:"Once the statement holds about 5,000 locks, they're escalated to one X lock on t, and the key and page locks are released. Every other session that touches t waits."},
+    {k:"conflict",t:"The escalation attempt fails because X on t conflicts with session 64's IX. The DELETE carries on with key locks and tries to escalate again every 1,250 new locks."},
+    {k:"page",t:"Key locks are converted to page locks once a page holds more than 100 of them, so the DELETE ends up with a few hundred page locks."}];
+  const why={small:`${fmt(n)} locks is under the escalation threshold of about 5,000 locks per statement, so the DELETE keeps its fine-grained locks. Readers of other rows aren't affected.`,
+    big:`${fmt(n)} rows means ${fmt(n)} key locks. At about 5,000 locks held by one statement, the engine tries to swap them all for a single X lock on t, which saves lock memory but blocks everyone else using the table.`,
+    conflict:`Escalation needs X on t, and X is incompatible with the IX that session 64 holds for its own open update. The engine doesn't wait for it: escalation fails, the DELETE keeps taking key locks, and it retries every 1,250 more.`,
+    page:"SQL Server never escalates key locks to page locks. Escalation goes straight from key or page locks to the table (or to a partition, if LOCK_ESCALATION = AUTO and the table is partitioned)."};
+  const W={small:{big:`${fmt(n)} key locks is well over the threshold of about 5,000 locks per statement, so the engine does try to escalate.`,conflict:`${fmt(n)} key locks is well over the threshold of about 5,000 locks per statement, so the engine does try to escalate.`},
+    big:{small:`Escalation only starts at about 5,000 locks per statement, and this DELETE takes ${fmt(n)}.`,conflict:"The engine tries exactly that, but X on t is incompatible with session 64's IX lock, so the attempt fails."},
+    conflict:{small:`There's no escalation attempt at all: ${fmt(n)} locks is under the threshold of about 5,000.`,big:"Nobody else holds a lock on t here, so the escalation attempt succeeds."}};
+  const steps=[{q:"Which locks does the DELETE end up holding?",opts:shuffle(opts.map(o=>({t:o.t,ok:o.k===kind,why:o.k===kind?why[o.k]:o.k==="page"?why.page:W[o.k][kind]})))}];
+  if(kind==="big")steps.push({q:"The escalated table lock blocks the whole shop for the length of the DELETE. What's the best fix?",opts:shuffle([
+    {t:"Delete in batches of 4,000 rows: DELETE TOP (4000) … in a loop, committing each batch",ok:1,why:"Each batch stays under the 5,000-lock threshold, so it never escalates, and each commit releases its locks. Other sessions only ever wait for one short batch."},
+    {t:"Add WITH (ROWLOCK) to the DELETE",why:"ROWLOCK only sets the starting granularity. The statement still escalates when it reaches about 5,000 locks."},
+    {t:"Add WITH (NOLOCK) to every query that reads t",why:"NOLOCK readers stop taking S locks but read uncommitted data, and every writer still waits behind the table X lock."},
+    {t:"Rebuild IX_t_created_at",why:"The index is fine: the DELETE already seeks it. The problem is how many rows one statement locks."}])});
+  return lkRound({kind:"mc",ck:"esc",title:"Lock escalation",planLabel:"escalation",scriptLabel:"Script",steps,
+    script:`CREATE INDEX IX_t_created_at ON t (created_at);\n-- ${fmt(n)} rows have created_at < '${d}'\n${kind==="conflict"?"-- session 64: BEGIN TRAN; UPDATE t SET status = … WHERE id = 7;  (not committed yet)\n":""}BEGIN TRAN;\n  DELETE FROM t WHERE created_at < '${d}';\nCOMMIT;`,stats:`<span>Rows deleted <b>${fmt(n)}</b></span>`,
+    take:"Lock escalation trades thousands of key locks for one table lock at about 5,000 locks per statement. It saves memory and can stall everything else using the table. Batching big deletes and updates under the threshold is the standard fix."});};
+
+/* --- level 12: blocking chain --- */
+GEN.blkChain=()=>{
+  const ids=shuffle(Array.from({length:70},(_,i)=>i+52));let n=0;const nid=()=>ids[n++];const sv=ri(100,900),st1=pick(STAT);
+  const head={s:nid(),st:"sleeping",cmd:"AWAITING COMMAND",blk:0,wt:"",ms:0,tran:1,cpu:ri(5,40),sql:`UPDATE t SET status = '${st1}' WHERE secondary_id = ${sv}`,role:"head"};
+  const d1=Array.from({length:ri(2,3)},(_,i)=>{const up=i===0||R()<.4;return{s:nid(),st:"suspended",cmd:up?"UPDATE":"SELECT",blk:head.s,wt:up?"LCK_M_U":"LCK_M_S",ms:ri(40,240)*1000,tran:up?1:0,cpu:ri(1,9),sql:up?`UPDATE t SET notes = … WHERE secondary_id = ${sv}`:`SELECT * FROM t WHERE secondary_id = ${sv}`,role:up?"mid":"waiter"};});
+  const mid=d1[0];mid.ms=Math.max(...d1.map(x=>x.ms));
+  const d2=Array.from({length:ri(1,2)},()=>({s:nid(),st:"suspended",cmd:"SELECT",blk:mid.s,wt:"LCK_M_S",ms:ri(5,Math.floor(mid.ms/1000)-2)*1000,tran:0,cpu:ri(1,5),sql:`SELECT status FROM t WHERE id = ${ri(10,900)}`,role:"waiter2"}));
+  const busy={s:nid(),st:"running",cmd:"SELECT",blk:0,wt:"",ms:0,tran:0,cpu:ri(80,200)*1000,sql:"SELECT * FROM t ORDER BY notes",role:"busy"};
+  const idle={s:nid(),st:"sleeping",cmd:"AWAITING COMMAND",blk:0,wt:"",ms:0,tran:0,cpu:ri(1,20),sql:`SELECT id FROM t WHERE id = ${ri(10,900)}`,role:"idle"};
+  const rows=[head,...d1,...d2,busy,idle].sort((a,b)=>a.s-b.s);
+  const why=r=>({head:`spid ${r.s} is the head: nothing blocks it (blocking_session_id 0), every chain leads back to it, and it's sleeping with an open transaction. It ran its UPDATE, kept its X locks, and never committed.`,
+    mid:`spid ${r.s} does block others, but it's waiting itself: its blocking_session_id is ${head.s}. It holds locks from earlier in its own transaction. Follow the chain up until blocking_session_id is 0.`,
+    waiter:`spid ${r.s} is a victim, waiting on ${r.wt} for spid ${r.blk}. Nobody waits on it.`,waiter2:`spid ${r.s} is a victim, waiting on ${r.wt} for spid ${r.blk}, which is itself blocked. Keep following the chain.`,
+    busy:`spid ${r.s} is using a lot of CPU, but it isn't blocking anyone: no session has blocking_session_id = ${r.s}.`,
+    idle:`spid ${r.s} is sleeping, but with no open transaction it holds no locks. Nobody waits on it.`})[r.role];
+  return lkRound({kind:"chain",title:"Find the head blocker",planLabel:"blocking chain",rows,head,mid,busy,why,steps:[{q:"",opts:[]}],
+    fixes:shuffle([{t:`KILL ${head.s}, then fix the code path that leaves its transaction open`,ok:1,why:`Killing spid ${head.s} rolls back its UPDATE and releases its X locks, and the whole chain drains. Sleeping with open_transaction_count = 1 usually means an error path that skips COMMIT and ROLLBACK. SET XACT_ABORT ON makes an error roll the transaction back.`},
+      {t:`KILL ${mid.s}`,why:`That rolls back spid ${mid.s}'s work and frees the sessions behind it, but spid ${head.s} still holds its locks and everyone else still waits.`},
+      {t:`KILL ${busy.s}`,why:`spid ${busy.s} is expensive, but nobody is waiting on it. Killing it changes nothing for the chain.`},
+      {t:"ALTER DATABASE … SET READ_COMMITTED_SNAPSHOT ON",why:`Readers would read row versions instead of waiting, but the UPDATE sessions would still queue for spid ${head.s}'s X locks, and spid ${head.s} would still never commit. It treats a symptom, and switching it on needs exclusive access to the database.`}]),
+    take:"Low CPU, long waits and a queue of LCK_M_* waits means blocking, not load. Follow blocking_session_id until you reach a session whose own value is 0. A head blocker that's sleeping with an open transaction is the classic case: an application that started a transaction and never finished it."});};
+function blkFlag(){const L=S.sc.lock,x=S.lk,r=L.rows.find(y=>y.s===x.sel1);if(!r)return;
+  if(r!==L.head){S.wrongs.add("r:"+r.s);return lkBad("Not the head blocker",L.why(r));}
+  x.phase="fix";S.lh=false;setFB("ok",`<b class="t">Correct: spid ${r.s}</b>${L.why(r)} Now choose what to do.`);render();}
+function blkFix(i){const L=S.sc.lock,f=L.fixes[i];if(!f.ok){S.wrongs.add("f:"+i);return lkBad("Not the best move",f.why);}
+  lkDone(`<span>Head blocker <b>spid ${L.head.s}</b></span><span>Sessions waiting <b>${L.rows.filter(r=>r.blk).length}</b></span>`,f.why);}
+function renderChain(st,ac){const L=S.sc.lock,x=S.lk;
+  st.insertAdjacentHTML("beforeend",graphBlock("chain",L.rows.map(r=>({id:r.s})),L.rows.filter(r=>r.blk).map(r=>({from:r.s,to:r.blk,label:r.wt}))));
+  st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">sys.dm_exec_sessions joined to sys.dm_exec_requests</span><div class="tbl"><table class="dmv"><thead class="nothm"><tr><th>session_id</th><th>${gl("status")}</th><th>command</th><th>${gl("blocking_session_id")}</th><th>${gl("wait_type")}</th><th>${gl("wait_time")}</th><th>${gl("open_tran")}</th><th>cpu_ms</th><th>last statement</th></tr></thead><tbody>${L.rows.map(r=>`<tr class="${x.sel1===r.s?"sel":""}${S.wrongs.has("r:"+r.s)?" wrong":""}${S.lh&&x.phase==="flag"&&r===L.head?" hinted":""}${x.phase==="fix"&&r===L.head?" flagged":""}"><td><button class="sid" data-s="${r.s}"${x.phase==="flag"?"":" disabled"} aria-pressed="${x.sel1===r.s}">${r.s}</button></td><td class="nothm">${gl(r.st)}</td><td>${r.cmd}</td><td>${r.blk||0}</td><td>${r.wt?gl(r.wt):"NULL"}</td><td>${r.ms?fmt(r.ms)+" ms":"0"}</td><td>${r.tran}</td><td>${fmt(r.cpu)}</td><td><code>${r.sql}</code></td></tr>`).join("")}</tbody></table></div></div>`);
+  st.querySelectorAll(".sid").forEach(b=>b.onclick=()=>{x.sel1=+b.dataset.s;render();});
+  if(x.phase==="flag"){const b=document.createElement("button");b.className="primary";b.textContent=x.sel1?`Flag spid ${x.sel1} as the head blocker`:"Select a session_id first";b.disabled=!x.sel1;b.onclick=blkFlag;ac.appendChild(b);}
+  else{const box=document.createElement("div");box.className="plans";L.fixes.forEach((f,i)=>{const b=document.createElement("button");b.className="plan"+(S.wrongs.has("f:"+i)?" wrong":"")+(S.lh&&f.ok?" hinted":"");b.innerHTML=`<b>${f.t}</b>`;b.onclick=()=>blkFix(i);box.appendChild(b);});st.appendChild(box);}}
+
+/* --- level 12: isolation levels --- */
+GEN.blkIso=()=>{const k=ri(10,900),o=pick(STAT),nv=pick(STAT.filter(x=>x!==o)),lo=ri(10,400),hi=lo+ri(10,40),mid=ri(lo+1,hi-1);
+  const R4={wait:`B waits until A commits or rolls back`,old:`B returns '${o}' straight away: the last committed value`,new:`B returns '${nv}' straight away: A's uncommitted change`,err:"B fails with error 3960, an update conflict"};
+  const I4={wait:"B's INSERT waits until A's transaction ends",ok:"B's INSERT succeeds straight away, and A's second SELECT counts one more row",hid:"B's INSERT succeeds straight away, and A's second SELECT still counts the same rows",err:"B's INSERT fails with a deadlock error"};
+  const C=[
+    {db:"READ_COMMITTED_SNAPSHOT OFF",a:[`BEGIN TRAN;`,`UPDATE t SET status = '${nv}' WHERE id = ${k};  -- was '${o}'`],b:`SELECT status FROM t WHERE id = ${k};  -- READ COMMITTED`,ans:"wait",set:R4,
+      why:`With RCSI off, READ COMMITTED reads take S locks. S is incompatible with A's X lock on row ${k}, so B waits on LCK_M_S until A commits.`},
+    {db:"READ_COMMITTED_SNAPSHOT ON (the Azure SQL Database default)",a:[`BEGIN TRAN;`,`UPDATE t SET status = '${nv}' WHERE id = ${k};  -- was '${o}'`],b:`SELECT status FROM t WHERE id = ${k};  -- READ COMMITTED`,ans:"old",set:R4,
+      why:`Under RCSI a read takes no S lock. A's UPDATE copied the old row into the version store before changing it, so B reads '${o}', the last committed version, without waiting. Readers don't block writers and writers don't block readers.`},
+    {db:"READ_COMMITTED_SNAPSHOT ON (the Azure SQL Database default)",a:[`BEGIN TRAN;`,`UPDATE t SET status = '${nv}' WHERE id = ${k};  -- was '${o}'`],b:`UPDATE t SET status = 'checked' WHERE id = ${k};`,ans:"wait",set:R4,
+      why:`RCSI only changes how reads work. B's UPDATE needs a U lock, then X, on row ${k}, and A holds X, so B waits on LCK_M_U. Writers still block writers.`},
+    {db:"READ_COMMITTED_SNAPSHOT OFF",a:[`BEGIN TRAN;`,`UPDATE t SET status = '${nv}' WHERE id = ${k};  -- was '${o}'`],b:`SELECT status FROM t WITH (NOLOCK) WHERE id = ${k};`,ans:"new",set:R4,
+      why:`NOLOCK reads take no S locks and ignore X locks, so B reads '${nv}' even though A hasn't committed. If A rolls back, B has returned a value that never existed: a dirty read.`},
+    {db:"ALLOW_SNAPSHOT_ISOLATION ON",a:[`-- after B's SELECT:`,`UPDATE t SET status = '${nv}' WHERE id = ${k};  -- autocommits`],b:`SET TRANSACTION ISOLATION LEVEL SNAPSHOT;\nBEGIN TRAN;\nSELECT status FROM t WHERE id = ${k};  -- '${o}'\n-- (A's UPDATE commits here)\nUPDATE t SET status = 'checked' WHERE id = ${k};`,ans:"err",set:R4,
+      why:`Snapshot isolation reads as of the start of B's transaction. When B tries to change a row that someone else changed and committed after that, the engine can't reconcile the two versions, so B's transaction fails with error 3960 and is rolled back.`},
+    {db:"READ_COMMITTED_SNAPSHOT OFF",a:[`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;`,`BEGIN TRAN;`,`SELECT COUNT(*) FROM t WHERE id BETWEEN ${lo} AND ${hi};`,`-- will run the same SELECT again before COMMIT`],b:`INSERT INTO t (id, …) VALUES (${mid}, …);`,ans:"wait",set:I4,
+      why:`SERIALIZABLE holds key-range locks (RangeS-S) across every key and gap between ${lo} and ${hi}. B's insert of ${mid} needs a RangeI-N lock in one of those gaps, so it waits on LCK_M_RIn_NL. No phantom can appear.`},
+    {db:"READ_COMMITTED_SNAPSHOT OFF",a:[`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;`,`BEGIN TRAN;`,`SELECT COUNT(*) FROM t WHERE id BETWEEN ${lo} AND ${hi};`,`-- will run the same SELECT again before COMMIT`],b:`INSERT INTO t (id, …) VALUES (${mid}, …);`,ans:"ok",set:I4,
+      why:`REPEATABLE READ locks the rows A read, but not the gaps between them. B's new row ${mid} goes into a gap, so it's inserted without waiting, and A's second SELECT counts it: a phantom row.`}];
+  const c=pick(C),keys=Object.keys(c.set);
+  const wrong=k=>({wait:"Nothing here makes B wait.",old:"B doesn't get the last committed version here.",new:"B can't see A's uncommitted change here.",err:"Update conflicts only happen under SNAPSHOT isolation, when the row changed after the transaction began.",ok:"The insert can't go ahead here.",hid:"If the insert succeeded, A's second read would see it.",}[k]);
+  const opts=shuffle(keys.map(k=>({t:c.set[k],ok:k===c.ans,why:k===c.ans?c.why:wrong(k)+" "+c.why})));
+  const script=`-- Database: ${c.db}\n-- Session A\n${c.a.join("\n")}\n\n-- Session B, while A's transaction is still open\n${c.b}`;
+  return lkRound({kind:"mc",ck:"iso",title:"Isolation levels",planLabel:"isolation",script,scriptLabel:"Two sessions",steps:[{q:"What happens to session B?",opts}],
+    take:"Isolation levels decide what a reader is allowed to see, and that decides whether it has to wait. Locking READ COMMITTED waits for writers; RCSI and SNAPSHOT read versions instead; SERIALIZABLE also locks the gaps between keys to stop phantoms. Under every level, writers block writers."});};
+
+/* --- level 12: deadlock --- */
+GEN.blkDeadlock=()=>{
+  const three=R()<.4,ids=shuffle(Array.from({length:60},(_,i)=>i+52)).slice(0,4).sort((a,b)=>a-b);
+  const pri=()=>R()<.25?pick([-5,5]):0;
+  let ses,res,fixes;
+  if(!three){const a=ri(10,900),b=ri(10,900);
+    res=[{r:`KEY · PK_t (id = ${a})`},{r:`KEY · PK_u (uid = ${b})`}];
+    ses=[{s:ids[0],proc:`UpdateOrder: UPDATE t … WHERE id = ${a}; then UPDATE u … WHERE uid = ${b};`,holds:0,wants:1},
+         {s:ids[1],proc:`RefundLine: UPDATE u … WHERE uid = ${b}; then UPDATE t … WHERE id = ${a};`,holds:1,wants:0},
+         {s:ids[2],proc:`Report: SELECT … FROM t WHERE id = ${a};`,holds:null,wants:0,mode:"S"}];
+    fixes=[{t:"Change RefundLine to update t first, then u, the same order as UpdateOrder",ok:1,why:"If every code path takes its locks in the same order, the second session waits behind the first instead of grabbing the other resource. Waiting is blocking, which ends; a cycle can't form."},
+      {t:"Add WITH (NOLOCK) to both UPDATE statements",why:"NOLOCK is ignored for the target of an UPDATE. Writes always take X locks."},
+      {t:"SET LOCK_TIMEOUT 5000 in both procedures",why:"That turns a deadlock into a lock timeout error 1222 instead. One side still fails; nothing stops the cycle forming."},
+      {t:`KILL ${ids[2]}`,why:`spid ${ids[2]} isn't part of the cycle. It's only waiting behind it.`}];}
+  else{const ks=shuffle(Array.from({length:80},(_,i)=>i*11+10)).slice(0,3).sort((a,b)=>a-b);
+    res=ks.map(k=>({r:`KEY · PK_t (id = ${k})`}));
+    ses=[{s:ids[0],proc:`UPDATE t … WHERE id = ${ks[0]}; then WHERE id = ${ks[1]};`,holds:0,wants:1},
+         {s:ids[1],proc:`UPDATE t … WHERE id = ${ks[1]}; then WHERE id = ${ks[2]};`,holds:1,wants:2},
+         {s:ids[2],proc:`UPDATE t … WHERE id = ${ks[2]}; then WHERE id = ${ks[0]};`,holds:2,wants:0},
+         {s:ids[3],proc:`SELECT … FROM t WHERE id = ${ks[1]};`,holds:null,wants:1,mode:"S"}];
+    fixes=[{t:"Make every code path lock rows in ascending id order",ok:1,why:`spid ${ids[2]} would lock ${ks[0]} before ${ks[2]}, so it would queue behind spid ${ids[0]} instead of closing the loop. With one global order a cycle can't form.`},
+      {t:"Add WITH (NOLOCK) to the UPDATE statements",why:"NOLOCK is ignored for the target of an UPDATE. Writes always take X locks."},
+      {t:"SET DEADLOCK_PRIORITY HIGH for every session",why:"If everyone is HIGH, the tie-break is the same as before. It changes who loses, not whether a deadlock happens."},
+      {t:`KILL ${ids[3]}`,why:`spid ${ids[3]} isn't in the cycle. It's waiting behind it.`}];}
+  ses.forEach((x,i)=>{x.pri=x.holds==null?0:pri();x.log=ri(4,90)*1000+i;});
+  const cyc=ses.filter(x=>x.holds!=null);
+  const minP=Math.min(...cyc.map(x=>x.pri)),cand=cyc.filter(x=>x.pri===minP),victim=cand.reduce((a,b)=>b.log<a.log?b:a);
+  const vwhy=cand.length<cyc.length?`spid ${victim.s} has the lowest DEADLOCK_PRIORITY (${victim.pri}), so it's chosen whatever its log use.`:`Every session in the cycle has the same DEADLOCK_PRIORITY, so the engine picks the one that's cheapest to roll back: spid ${victim.s}, with the least transaction log used (${fmt(victim.log)} bytes).`;
+  return lkRound({kind:"dl",title:"Deadlock",planLabel:"deadlock",ses,res,cyc:cyc.map(x=>x.s),victim:victim.s,vwhy,fixes:shuffle(fixes),
+    take:"A deadlock is a cycle in the wait-for graph. The deadlock monitor checks for cycles every 5 seconds (more often once it finds one), rolls back a victim with error 1205, and lets the rest proceed. The lasting fix is consistent access order, so sessions queue instead of looping."});};
+function dlCheck(){const L=S.sc.lock,x=S.lk,want=new Set(L.cyc);
+  const same=want.size===x.sel.size&&[...want].every(s=>x.sel.has(s));
+  if(!same){const by=L.ses.find(s=>s.holds==null);S.wrongs.add("cyc");return lkBad("Not the cycle",x.sel.has(by.s)?`spid ${by.s} is waiting on a session in the cycle, but nothing waits on spid ${by.s}, so it isn't part of a loop. It'll proceed once the deadlock is broken.`:"Follow the arrows: each session waits for the holder of the resource it wants. The cycle is the set of sessions you can follow round and arrive back where you started.");}
+  x.phase="victim";S.lh=false;setFB("ok",`<b class="t">Correct</b>${L.cyc.map(s=>"spid "+s).join(" → ")} → spid ${L.cyc[0]}: each waits for the next, so none can ever proceed. Which one does the deadlock monitor kill?`);render();}
+function dlVictim(s){const L=S.sc.lock,x=S.lk;if(s!==L.victim){S.wrongs.add("v:"+s);return lkBad("Not the victim",L.vwhy);}
+  x.phase="fix";S.lh=false;setFB("ok",`<b class="t">Correct: spid ${s}</b>${L.vwhy} It gets error 1205, its transaction is rolled back and its locks are released. How do you stop it happening again?`);render();}
+function dlFix(i){const L=S.sc.lock,f=L.fixes[i];if(!f.ok){S.wrongs.add("f:"+i);return lkBad("Not the fix",f.why);}
+  lkDone(`<span>Cycle <b>${L.cyc.length} sessions</b></span><span>Victim <b>spid ${L.victim}</b></span>`,f.why);}
+function renderDl(st,ac){const L=S.sc.lock,x=S.lk;
+  st.insertAdjacentHTML("beforeend",graphBlock("dl",L.ses.map(s=>({id:s.s})),L.ses.filter(s=>s.wants!=null).map(s=>{const h=L.ses.find(y=>y.holds===s.wants);return{from:s.s,to:h.s,label:L.res[s.wants].r.split("(")[1].replace(")","")};})));
+  st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Sessions</span><div class="tbl"><table class="dmv"><thead><tr><th>session_id</th><th>${gl("DEADLOCK_PRIORITY")}</th><th>${gl("log used")}</th><th>transaction</th></tr></thead><tbody>${L.ses.map(s=>`<tr><td><b class="mono">${s.s}</b></td><td>${s.pri===0?"0 (NORMAL)":s.pri<0?s.pri+" (LOW)":s.pri+" (HIGH)"}</td><td>${fmt(s.log)} bytes</td><td><code>${s.proc}</code></td></tr>`).join("")}</tbody></table></div></div>
+  <div class="defs"><span class="label">Lock owners and waiters</span><div class="tbl"><table class="dmv"><thead><tr><th>Resource</th><th>Granted</th><th>Waiting</th></tr></thead><tbody>${L.res.map((r,i)=>`<tr><td><code>${r.r}</code></td><td>${L.ses.filter(s=>s.holds===i).map(s=>`spid ${s.s} · X`).join(", ")}</td><td>${L.ses.filter(s=>s.wants===i).map(s=>`spid ${s.s} · ${s.mode||"X"}`).join(", ")}</td></tr>`).join("")}</tbody></table></div></div>`);
+  if(x.phase==="cyc"){st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Select every session that's part of the deadlock cycle</span></div>`);
+    const box=document.createElement("div");box.className="lchips";L.ses.forEach(s=>{const b=document.createElement("button");b.className="tog"+(x.sel.has(s.s)?" on":"")+(S.lh&&L.cyc.includes(s.s)?" hinted":"");b.textContent="spid "+s.s;b.setAttribute("aria-pressed",x.sel.has(s.s));b.onclick=()=>{x.sel.has(s.s)?x.sel.delete(s.s):x.sel.add(s.s);render();};box.appendChild(b);});st.appendChild(box);
+    const c=document.createElement("button");c.className="primary";c.textContent="Check the cycle";c.onclick=dlCheck;ac.appendChild(c);}
+  else if(x.phase==="victim"){st.insertAdjacentHTML("beforeend",`<div class="defs"><span class="label">Pick the deadlock victim</span></div>`);
+    const box=document.createElement("div");box.className="lchips";L.cyc.forEach(s=>{const b=document.createElement("button");b.className="tog"+(S.wrongs.has("v:"+s)?" wrong":"")+(S.lh&&s===L.victim?" hinted":"");b.textContent="spid "+s;b.onclick=()=>dlVictim(s);box.appendChild(b);});st.appendChild(box);}
+  else{const box=document.createElement("div");box.className="plans";L.fixes.forEach((f,i)=>{const b=document.createElement("button");b.className="plan"+(S.wrongs.has("f:"+i)?" wrong":"")+(S.lh&&f.ok?" hinted":"");b.innerHTML=`<b>${f.t}</b>`;b.onclick=()=>dlFix(i);box.appendChild(b);});st.appendChild(box);}}
+
+/* --- dispatcher --- */
+function lkInit(){const L=S.sc.lock;S.lk={i:0,g:[...(L.granted||[])],w:[],log:[],sel:new Set(),phase:L.kind==="grant"?"req":L.kind==="chain"?"flag":L.kind==="dl"?"cyc":"q",pick:(Array.isArray(L.res)?L.res:[]).map(()=>null),step:0,sel1:null};}
+function renderLock(){
+  if(!S.lk)lkInit();
+  const L=S.sc.lock,st=$("stage"),ac=$("actions"),ph=$("phase"),kb=$("keybox"),ins=$("instr");
+  $("query").innerHTML=KW(L.kind==="grant"?`-- lock requests on ${L.res}`:L.kind==="hier"?L.sql+";":L.kind==="chain"?"-- who is blocking whom?":L.kind==="dl"?"-- deadlock graph":L.kind==="dur"?"-- one transaction, paused before COMMIT":L.title==="Lock escalation"?"DELETE FROM t WHERE created_at < …;":"-- two sessions, one row");
+  $("res-title").textContent="Result set";$("res-h").innerHTML="";$("res").innerHTML="";$("res-empty").hidden=false;
+  st.innerHTML="";ac.innerHTML="";kb.innerHTML="";
+  if(S.phase==="done"){ph.className="phase";ph.textContent=`Round ${G.round+1} complete`;ins.innerHTML=`<b>${S.sc.title}.</b> ${S.sc.take}`;st.innerHTML=S.dres;return summary(true);}
+  ph.className="phase";
+  const P={grant:["grant or wait","You are the lock manager. Requests arrive in order. Grant each one, or make it wait."],hier:["lock each level","Choose the lock this statement holds on each resource while it runs."],dur:["what's still held","The transaction is paused just before COMMIT. Select every lock it still holds."],
+    mc:["predict",L.steps?L.steps[S.lk.step].q:""],chain:[S.lk.phase==="flag"?"find the head blocker":"choose the fix",S.lk.phase==="flag"?"Users report the app has hung. Select the session at the head of the blocking chain.":"What do you do about it?"],
+    dl:[S.lk.phase==="cyc"?"find the cycle":S.lk.phase==="victim"?"pick the victim":"choose the fix",S.lk.phase==="cyc"?"Error 1205 is coming. Read who holds what and who waits for what.":S.lk.phase==="victim"?"Which session does SQL Server roll back?":"How do you stop this deadlock coming back?"]}[L.kind];
+  ph.textContent=`Round ${G.round+1} · ${P[0]}`;ins.textContent=P[1];
+  st.insertAdjacentHTML("beforeend",coachHTML(L.ck||L.kind));
+  if(L.kind==="grant")renderGrant(st,ac);else if(L.kind==="hier")renderHier(st,ac);else if(L.kind==="dur")renderDur(st,ac);else if(L.kind==="chain")renderChain(st,ac);else if(L.kind==="dl")renderDl(st,ac);else renderMC(st,ac);
+  const hb=document.createElement("button");hb.textContent="Hint (−10)";hb.onclick=lkHint;ac.appendChild(hb);wireGraph();
+}
+
 // ---------- schema themes: each round renames the tables, columns and values ----------
 const STAT0=[...STAT],NOTES0=[...NOTES];
 const THEMES=[
@@ -965,7 +1321,7 @@ function tmap(tok){const T=THEME;
   if(tok==="PK_t")return "PK_"+T.t;if(tok==="PK_u")return "PK_"+T.u;if(tok==="u.id")return T.u+"."+T.uid;
   return({uid:T.uid,t_id:T.fk,secondary_id:T.sec,created_at:T.date,status:T.status,notes:T.notes,amount:T.amt,id:T.id,t:T.t,u:T.u})[tok]??tok;}
 function themify(root){if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;
-  while((n=w.nextNode())){if(n.__o===undefined)n.__o=n.nodeValue;const v=THEME===THEMES[0]?n.__o:n.__o.replace(TOKRE,tmap);if(n.nodeValue!==v)n.nodeValue=v;}}
+  while((n=w.nextNode())){if(n.parentElement&&n.parentElement.closest(".nothm"))continue;if(n.__o===undefined)n.__o=n.nodeValue;const v=THEME===THEMES[0]?n.__o:n.__o.replace(TOKRE,tmap);if(n.nodeValue!==v)n.nodeValue=v;}}
 
 // ---------- levels and progress ----------
 const LEVELS=[
@@ -978,19 +1334,21 @@ const LEVELS=[
  {name:"Statistics",topics:"Reading a histogram, EQ_ROWS and AVG_RANGE_ROWS, combining two predicates",count:4,pool:[["statEq"],["statAvg"],["statTwo"],["statEq",{big:true}],["bugStale"],["bugImplicit"]]},
  {name:"Plan reuse",topics:"Parameter sniffing, stale statistics, values beyond the histogram",count:4,pool:[["sniff"],["stale"],["sniff"],["statAvg",{big:true}],["bugSniff"]]},
  {name:"Index design",topics:"Design one index for a workload of reads and writes, scored against the best possible design",count:3,pool:[["design"],["design"],["design"]]},
- {name:"Joins",topics:"Nested loops, merge join and hash match: when the optimizer picks each, and running them by hand",count:4,pool:[["joinNL"],["joinMerge"],["joinHash"],["joinNL",{nocover:true}],["bugJoinScan"]]}
+ {name:"Joins",topics:"Nested loops, merge join and hash match: when the optimizer picks each, and running them by hand",count:4,pool:[["joinNL"],["joinMerge"],["joinHash"],["joinNL",{nocover:true}],["bugJoinScan"]]},
+ {name:"Locks",topics:"Lock modes and compatibility, the wait queue, intent locks, how long each isolation level holds locks, lock escalation. Starts with S and X on one row.",count:5,lead:[["lockGrant",{stage:1}],["lockGrant",{stage:2}],["lockHier"]],pool:[["lockDuration"],["lockEsc"],["lockGrant",{stage:3}],["lockDuration"]]},
+ {name:"Blocking and isolation",topics:"Blocking chains and head blockers, RCSI, snapshot and serializable isolation, deadlocks",count:5,lead:[["blkChain"],["blkIso"],["blkDeadlock"]],pool:[["blkChain"],["blkIso"],["blkDeadlock"],["blkIso"]]}
 ];
 const STORE="storage-engine-drill-progress-v1";
 function loadProg(){try{const p=JSON.parse(localStorage.getItem(STORE)||"null");if(p&&p.unlocked)return p;}catch(e){}return{unlocked:1,best:{}};}
 function saveProg(){try{localStorage.setItem(STORE,JSON.stringify(PROG));}catch(e){}}
 let PROG=loadProg();
 function mixedLevel(){const pool=LEVELS.slice(0,PROG.unlocked).flatMap((L,i)=>i===8?[["design"]]:L.pool);return{name:"Mixed practice",count:7,pool,mixed:true};}
-function makeRounds(L){const p=shuffle([...L.pool]);const out=p.slice(0,L.count);while(out.length<L.count)out.push(pick(L.pool));return shuffle(out);}
+function makeRounds(L){if(L.lead){const rest=shuffle([...L.pool]).slice(0,L.count-L.lead.length);while(L.lead.length+rest.length<L.count)rest.push(pick(L.pool));return[...L.lead,...rest];}const p=shuffle([...L.pool]);const out=p.slice(0,L.count);while(out.length<L.count)out.push(pick(L.pool));return shuffle(out);}
 function showLevels(){
   $("game").hidden=true;$("arcade").hidden=true;$("levels").hidden=false;$("b-levels").hidden=true;
   $("s-lvl").textContent="–";$("s-round").textContent="–";$("s-pts").textContent="0";$("s-mis").textContent="0";$("pips").innerHTML="";
   const el=$("levels");
-  el.innerHTML=`<button class="lv arcadecard" id="b-arcade"><span class="lvn">Arcade mode</span><b>Peak Load</b><span class="lvt">Keep a server alive through five waves of live traffic. Build and drop indexes, refresh statistics and recompile plans while the latency climbs. Easiest after the statistics and plan reuse levels.</span><span class="lvs">${(()=>{try{const b=+(localStorage.getItem("storage-engine-drill-peakload-best")||0);return b?"Best score "+b.toLocaleString("en-GB"):"Not played";}catch(e){return"Not played";}})()}</span></button>
+  el.innerHTML=`<button class="lv arcadecard" id="b-arcade"><span class="lvn">Arcade mode</span><b>Peak Load</b><span class="lvt">Keep a server alive through six waves of live traffic. Build and drop indexes, refresh statistics, recompile plans and break blocking chains while the latency climbs. Easiest after the statistics and plan reuse levels.</span><span class="lvs">${(()=>{try{const b=+(localStorage.getItem("storage-engine-drill-peakload-best")||0);return b?"Best score "+b.toLocaleString("en-GB"):"Not played";}catch(e){return"Not played";}})()}</span></button>
   <div style="display:grid;gap:6px"><h2>Levels</h2><p class="muted">Each level is a short set of rounds. Score 60% or more to unlock the next one. Progress is saved in this browser.</p></div>
   <div class="lvgrid">${LEVELS.map((L,i)=>{const n=i+1,lock=n>PROG.unlocked,b=PROG.best[n];return `<button class="lv${b>=60?" pass":""}" data-l="${i}"${lock?" disabled":""}><span class="lvn">Level ${n} · ${L.count} rounds</span><b>${L.name}</b><span class="lvt">${L.topics}</span><span class="lvs">${lock?"Locked":b!=null?`Best ${b}%${b>=60?" · passed":""}`:"Not played"}</span></button>`;}).join("")}</div>
   <div class="actions"><button id="b-mixed" class="primary">Mixed practice: 7 rounds from your unlocked levels</button><button id="b-unlock">Unlock all levels</button></div>`;
@@ -1005,7 +1363,7 @@ $("b-levels").onclick=()=>showLevels();
 let G,S;
 function startLevel(i){R=rng((Date.now()+Math.floor(Math.random()*1e6))%1000003);const L=i<0?mixedLevel():LEVELS[i];G={li:i,L,round:0,pts:0,mis:0,log:[],rounds:makeRounds(L)};$("levels").hidden=true;$("game").hidden=false;$("b-levels").hidden=false;startRound();}
 function buildScenario(spec){
-  const sc=GEN[spec[0]](spec[1]||{});if(sc.design||sc.join||sc.bug)return sc;
+  const sc=GEN[spec[0]](spec[1]||{});if(sc.design||sc.join||sc.bug||sc.lock)return sc;
   const ncCap=ri(5,7),pkCap=ri(4,6),fan=3,fillN=sc.fillFull?ncCap:ri(ncCap-1,ncCap),fillP=sc.fillFull?pkCap:ri(pkCap-1,pkCap);
   sc.pk=sc.heap?mkHeap(sc.rows,pkCap,fillP):mkTree(sc.rows,r=>[r.id],fillP,pkCap,fan,500,"PK_t","ci");
   sc.ixT=sc.ix?mkTree(sc.rows.filter(r=>passFilter(sc.ix,r)).map(r=>({...r})),e=>ekey(sc.ix,e),fillN,ncCap,fan,900,ixName(sc.ix),"nc"):null;
@@ -1016,8 +1374,8 @@ function buildScenario(spec){
 function startRound(){
   useTheme(G.round===0&&G.li===0&&!PROG.best[1]?THEMES[0]:pick(THEMES.filter(x=>x!==THEME)));
   const sc=buildScenario(G.rounds[G.round]);
-  S={sc,q:sc.q,ix:sc.ix,T:{ix:sc.ixT||null,pk:sc.pk||null},phase:sc.design?"design":sc.join?"jplan":sc.bug?"bflag":sc.stats?"est":"plan",reads:{ix:0,pk:0},writes:0,vis:{ix:new Set(),pk:new Set()},mod:{ix:new Set(),pk:new Set()},path:{ix:[],pk:[]},out:[],buf:[],log:[],mis:0,hints:0,page:null,hint:null,wrongs:new Set()};
-  setFB("",sc.bug?"Spot the bug. Read the actual execution plan, find the operator that's causing the problem, then pick the fix.":sc.join?"Two tables this time. Read the schema, the indexes and the estimate, then pick the physical join the optimizer would use.":sc.design?"Choose the key columns and INCLUDE list for one nonclustered index. The design is costed against every statement in the workload.":sc.stats?"Work out the optimizer's row estimate from the statistics first.":isW()?"Work out which indexes this statement has to change.":"Read the schema and the estimate, then pick the access path the optimizer would choose.");
+  S={sc,q:sc.q,ix:sc.ix,T:{ix:sc.ixT||null,pk:sc.pk||null},phase:sc.design?"design":sc.join?"jplan":sc.bug?"bflag":sc.lock?"lk":sc.stats?"est":"plan",reads:{ix:0,pk:0},writes:0,vis:{ix:new Set(),pk:new Set()},mod:{ix:new Set(),pk:new Set()},path:{ix:[],pk:[]},out:[],buf:[],log:[],mis:0,hints:0,page:null,hint:null,wrongs:new Set()};
+  setFB("",sc.lock?(sc.lock.kind==="grant"||sc.lock.kind==="hier"||sc.lock.kind==="dur"?"Locks round. The compatibility matrix is on the left if you need it.":"Blocking round. Work from the evidence: who holds what, and who waits for whom."):sc.bug?"Spot the bug. Read the actual execution plan, find the operator that's causing the problem, then pick the fix.":sc.join?"Two tables this time. Read the schema, the indexes and the estimate, then pick the physical join the optimizer would use.":sc.design?"Choose the key columns and INCLUDE list for one nonclustered index. The design is costed against every statement in the workload.":sc.stats?"Work out the optimizer's row estimate from the statistics first.":isW()?"Work out which indexes this statement has to change.":"Read the schema and the estimate, then pick the access path the optimizer would choose.");
   render();
 }
 const isW=()=>!!S.q&&S.q.kind!=="select";
@@ -1362,6 +1720,7 @@ function render(){
   $("path-pk").textContent=!S.T.pk?"":S.path.pk.length?S.path.pk.join(" → "):"not read yet";
   if(sc.join)return renderJoin();
   if(sc.bug)return renderBug();
+  if(sc.lock)return renderLock();
   if(sc.design){$("res-title").textContent="Result set";$("res-h").innerHTML="";$("res").innerHTML="";$("res-empty").hidden=false;return renderDesign();}
   if(isW()){$("res-title").textContent="Changes";$("res-h").innerHTML="<tr><th>Index</th><th>Change</th><th>Page</th></tr>";$("res").innerHTML=S.log.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("");$("res-empty").hidden=S.log.length>0;}
   else{$("res-title").textContent="Result set";$("res-h").innerHTML="<tr>"+outCols().map(c=>`<th>${c}</th>`).join("")+"</tr>";$("res").innerHTML=S.out.map(r=>`<tr>${outCols().map(c=>`<td>${r[c]}</td>`).join("")}</tr>`).join("");$("res-empty").hidden=S.out.length>0;}
@@ -1483,7 +1842,7 @@ function summary(isDesign){
 }
 function mini(id,k,cls){
   const svg=$(id),W=320,t=S.T[k];
-  if(!t){svg.setAttribute("viewBox","0 0 320 30");svg.innerHTML=`<text x="0" y="18">${S.sc.design?"Design round: nothing to walk.":S.sc.join?"Join round: the inputs are shown on the left.":S.sc.bug?"Plan round: the plan is on the left.":"No nonclustered index on this table."}</text>`;return;}
+  if(!t){svg.setAttribute("viewBox","0 0 320 30");svg.innerHTML=`<text x="0" y="18">${S.sc.design?"Design round: nothing to walk.":S.sc.join?"Join round: the inputs are shown on the left.":S.sc.bug?"Plan round: the plan is on the left.":S.sc.lock?"Locks round: no pages to walk.":"No nonclustered index on this table."}</text>`;return;}
   const lv=levelsOf(t),rowH=40,H=rowH*lv.length;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);let h="";const pos=new Map();
   lv.forEach((pages,li)=>{const n=pages.length,bw=Math.min(54,(W-8)/n-4);pages.forEach((p,i)=>pos.set(p,{x:(W/n)*(i+.5)-bw/2,y:li*rowH+6,w:bw,h:rowH-16}));});
   lv.forEach(pages=>pages.forEach(p=>{if(p.kids)p.kids.forEach(c=>{const a=pos.get(p),b=pos.get(c);h+=`<line x1="${a.x+a.w/2}" y1="${a.y+a.h}" x2="${b.x+b.w/2}" y2="${b.y}"/>`;});}));
@@ -1512,10 +1871,15 @@ const WAVES=[
    hint:"Look at the New row line. Each nonclustered index adds 4 reads and writes per INSERT, at 4,000 a second. Drop any index that no statement's plan uses.",lesson:"Each nonclustered index costs a descent and a write on every INSERT, and more on every UPDATE of its columns. An index nothing reads is pure overhead."},
   {name:"New product line",clock:"15:45",dur:45,rogues:1,drain:.9,rates:{lookup:20,insert:10,report:3,latest:1},stale:true,msg:"A new product line went live after last night's statistics update. Its pages are timing out, and the plan says it expected 1 row.",
    hint:"The plan expected 1 row because the histogram predates the new rows. Run UPDATE STATISTICS. For a lasting fix, cover SELECT *: rebuild the secondary_id index with every other column INCLUDEd. Building an index with the same key columns replaces the old one (DROP_EXISTING), so it doesn't use another slot.",fill:{keys:["secondary_id"],inc:["status","created_at","notes"]},lesson:"Stale statistics made the optimizer expect 1 row and choose lookups for 30,000. UPDATE STATISTICS fixes the estimate, and a covering index makes the estimate not matter."},
+  {name:"Stock take",clock:"16:30",dur:45,rogues:0,drain:.9,rates:{lookup:20,insert:10,report:3,latest:1,upd:60},blockers:[{k:"tran",at:7},{k:"purge",at:22},{k:"purge",at:35}],msg:"The warehouse is counting stock. The stock-take app changes thousands of rows in one transaction, and the nightly purge is running late. Watch for statements that stop moving while the server sits idle.",
+   hint:"Low load with climbing latency means statements are waiting on locks. KILL the session marked HEAD, not the ones queued behind it. Between waves, switch on RCSI so readers stop waiting for writers. The purge escalates to a table lock because it has to scan PK_t; an index keyed on created_at lets it seek and lock only the old rows.",fill:{keys:["created_at"],inc:[]},lesson:"Blocking looks like an idle server with angry customers. KILL the head blocker, not its victims. RCSI lets readers use row versions instead of waiting, and an index that lets a big DELETE seek keeps its locks small enough not to escalate."},
   {name:"Flash sale",clock:"18:00",dur:45,rogues:2,drain:1,rates:{lookup:30,insert:15,report:4,latest:1.5,sniff:10},sniff:true,msg:"Flash sale. Basket checks spike. Most baskets hold a few items, but bulk buyers have huge ones, and the plan cache only keeps one plan.",
    hint:"Basket check's cached plan suits small baskets and is ruinous for huge ones. Tick OPTION (RECOMPILE) on it, or rebuild the secondary_id index to INCLUDE notes as well, so every plan is cheap.",fill:{keys:["secondary_id"],inc:["status","created_at","notes"]},lesson:"A plan cached for a small basket also ran for huge ones. OPTION (RECOMPILE) plans each call separately, and a covering index makes every plan cheap."}
 ];
 const GRACE=6;
+const BLOCKERS={
+  tran:{who:"The stock-take app",sql:"UPDATE t SET status = 'counted' WHERE status = 'in stock'",what:"changed 6,200 rows, so its row locks escalated to an X lock on all of t. Then the user went to lunch without pressing Save",span:28,end:"The user came back from lunch and pressed Save."},
+  purge:{who:"The nightly purge",sql:"DELETE FROM t WHERE created_at < '2025-01-01'",what:"has no index on created_at, so it scans PK_t, locks every row it checks and escalates to an X lock on t",span:14,end:"The purge batch finished and committed."}};
 const ROGUES=[
   {who:"Someone in Finance",what:"an ad-hoc report from their laptop",sql:"SELECT * FROM t ORDER BY notes",load:60000},
   {who:"A scheduled job",what:"an index rebuild in the middle of the day",sql:"ALTER INDEX ALL ON t REBUILD",load:45000},
@@ -1527,7 +1891,8 @@ const BADGES=[
   {id:"minimal",name:"Minimalist",desc:"Finish the shift never holding more than two nonclustered indexes."},
   {id:"solo",name:"No hints",desc:"Finish the shift without using a hint."},
   {id:"zen",name:"Zen DBA",desc:"Reach a ×5 calm streak."},
-  {id:"overtime",name:"Overtime hero",desc:"Survive three overtime waves."}];
+  {id:"overtime",name:"Overtime hero",desc:"Survive three overtime waves."},
+  {id:"lockbreaker",name:"Lock breaker",desc:"Clear blocking by killing only head blockers, never a waiting session."}];
 const BADGE_KEY="storage-engine-drill-peakload-badges",SND_KEY="storage-engine-drill-peakload-sound";
 let AU=null,SOUND=(()=>{try{return localStorage.getItem(SND_KEY)!=="off";}catch(e){return true;}})(),alarmT=0;
 const RM=(()=>{try{return matchMedia("(prefers-reduced-motion: reduce)").matches;}catch(e){return false;}})();
@@ -1567,7 +1932,7 @@ let A=null,araf=0,alast=0,aId=0;
 const aEl=id=>document.getElementById(id);
 const Wv=()=>A.waves[A.wave];
 const SLOW=.3,aTS=()=>A.speed*(A.slow&&A.running?SLOW:1);
-function aNew(tut){A={tut:tut?{step:0}:null,waves:tut?[TRAIN]:WAVES,wave:0,t:(tut?TRAIN:WAVES[0]).dur,running:false,between:true,started:false,speed:1,ixs:[],statsFresh:true,recompile:{},sniffHot:false,backlog:0,lat:.004,pat:100,score:0,jobs:[],tokens:[],parts:[],acc:{},statsCd:0,timeouts:0,peaks:[0,0,0,0,0],over:false,dirty:true,fan:0,toastT:0,grace:GRACE,hints:0,hurt:0,slow:false,mult:1,calmT:0,maxMult:1,rogues:[],rogueTimes:[],spawned:0,kills:0,maxIx:0,floaters:[],confetti:[],overtime:0,rid:60};}
+function aNew(tut){A={tut:tut?{step:0}:null,waves:tut?[TRAIN]:WAVES,wave:0,t:(tut?TRAIN:WAVES[0]).dur,running:false,between:true,started:false,speed:1,ixs:[],statsFresh:true,recompile:{},sniffHot:false,backlog:0,lat:.004,pat:100,score:0,jobs:[],tokens:[],parts:[],acc:{},statsCd:0,timeouts:0,peaks:Array(60).fill(0),over:false,dirty:true,fan:0,toastT:0,grace:GRACE,hints:0,hurt:0,slow:false,mult:1,calmT:0,maxMult:1,rogues:[],rogueTimes:[],spawned:0,kills:0,maxIx:0,floaters:[],confetti:[],overtime:0,rid:60,blockers:[],blockTimes:[],rcsi:false,blockT:0,blockQ:0,bKills:0,bSpawned:0,wrongKills:0,hits:[]};}
 const aProd=(a,f)=>a.reduce((x,p)=>x*f(p),1);
 function aOptions(q,selOf){
   const opts=[{key:"scan",plan:"Clustered Index Scan",cost:20000}];
@@ -1581,8 +1946,8 @@ const amin=o=>o.reduce((a,b)=>b.cost<a.cost?b:a);
 function aCost(t){
   const d=AT[t];
   if(d.w){let c=4;A.ixs.forEach(ix=>{if(d.w.kind==="insert")c+=4;else if(ix.keys.includes(d.w.col))c+=8;else if(ix.inc.includes(d.w.col))c+=4;});
-    const touched=A.ixs.filter(ix=>d.w.kind==="insert"||ix.keys.includes(d.w.col)||ix.inc.includes(d.w.col)).length;
-    return{plan:touched?`PK_t + ${touched} index${touched>1?"es":""}`:"PK_t only",cost:c};}
+    const touched=A.ixs.filter(ix=>d.w.kind==="insert"||ix.keys.includes(d.w.col)||ix.inc.includes(d.w.col)).length;if(A.rcsi&&d.w.kind!=="insert")c+=2;
+    return{plan:touched?`PK_t + ${touched} index${touched>1?"es":""}`:"PK_t only",cost:c,note:A.rcsi&&d.w.kind!=="insert"?"+ a row version in tempdb (RCSI)":""};}
   const q=d.q,rc=A.recompile[t]?100:0;
   if(t==="latest"){const act=q.where[0].sel,est=A.statsFresh?act:1/N,ch=amin(aOptions(q,()=>est)),c=aOptions(q,()=>act).find(o=>o.key===ch.key).cost;
     return{plan:ch.plan,cost:c+rc,note:A.statsFresh?"":"expects 1 row (stale statistics)"};}
@@ -1593,7 +1958,9 @@ function aCost(t){
   const o=amin(aOptions(q,p=>p.sel));return{plan:o.plan,cost:o.cost+rc};
 }
 const aRates=()=>Wv().rates;
-function aDemand(){let d=0;for(const t in aRates())d+=aRates()[t]*aCost(t).cost;A.jobs.forEach(j=>{d+=j.rate;});A.rogues.forEach(r=>{d+=r.load;});return d;}
+const aBlockedT=t=>A.blockers.length>0&&(!!AT[t].w||!A.rcsi);
+function aBlockedRate(){let r=0;for(const t in aRates())if(aBlockedT(t))r+=aRates()[t];return r;}
+function aDemand(){let d=0;for(const t in aRates())if(!aBlockedT(t))d+=aRates()[t]*aCost(t).cost;A.jobs.forEach(j=>{d+=j.rate;});A.rogues.forEach(r=>{d+=r.load;});return d;}
 function aInvalidate(why){A.dirty=true;if(Wv().sniff&&!A.recompile.sniff){const was=A.sniffHot;A.sniffHot=R()<.3;if(A.sniffHot&&!was)aToast(`${why} cleared the plan cache. The basket check recompiled for a huge basket, so every call now gets its plan.`);}}
 function aToast(m){const e=aEl("a-toast");e.textContent=m;e.hidden=false;A.toastT=8;}
 function aTick(dt){
@@ -1604,27 +1971,32 @@ function aTick(dt){
   const D=aDemand();A.peaks[A.wave]=Math.max(A.peaks[A.wave],D/AC);
   A.backlog=Math.max(0,A.backlog+(D-AC)*dt);
   if(A.backlog>3*AC){const ex=A.backlog-3*AC,avg=D/Math.max(1,Object.values(aRates()).reduce((a,b)=>a+b,0));A.timeouts+=ex/Math.max(1,avg);A.backlog=3*AC;}
-  A.lat=.004+A.backlog/AC;
+  const tot=Object.values(aRates()).reduce((a,b)=>a+b,0),br=aBlockedRate(),bshare=tot?br/tot:0;
+  if(br>0){A.blockT+=dt;for(const t in aRates())if(aBlockedT(t))A.blockQ+=aRates()[t]*aCost(t).cost*dt;if(A.blockT>5)A.timeouts+=br*dt*.2;}else{A.blockT=Math.max(0,A.blockT-3*dt);}
+  A.lat=.004+A.backlog/AC+(br>0?A.blockT*bshare*1.2:0);
   const f=Wv().drain;
   if(A.lat>1)A.hurt=Math.min(10,A.hurt+dt);else A.hurt=Math.max(0,A.hurt-2*dt);
   const ramp=Math.min(1,A.hurt/8);
   if(A.grace<=0){if(A.lat>2)A.pat-=10*f*ramp*dt;else if(A.lat>1)A.pat-=4*f*ramp*dt;}
   if(A.lat<.5)A.pat=Math.min(100,A.pat+1.5*dt);
   if(Wv().floor)A.pat=Math.max(Wv().floor,A.pat);
-  const served=Object.values(aRates()).reduce((a,b)=>a+b,0);if(!A.tut)A.score+=served*dt*(A.lat<.1?.03:A.lat<.5?.02:A.lat<2?.01:0)*A.mult;
+  const served=Object.entries(aRates()).reduce((a,[t,b])=>a+(aBlockedT(t)?0:b),0);if(!A.tut)A.score+=served*dt*(A.lat<.1?.03:A.lat<.5?.02:A.lat<2?.01:0)*A.mult;
   A.maxIx=Math.max(A.maxIx,A.ixs.filter(x=>!x.replaces).length);
   if(!A.tut){const ld=D/AC;
     if(ld<.75){A.calmT+=dt;if(A.calmT>=5){A.calmT=0;if(A.mult<5){A.mult++;A.maxMult=Math.max(A.maxMult,A.mult);aFloat(`×${A.mult} calm streak`,ACOL["--ok"]);sfx("up");}}}
     else if(ld>1){if(A.mult>1){aFloat("streak lost",ACOL["--bad"]);sfx("down");}A.mult=1;A.calmT=0;}else A.calmT=Math.max(0,A.calmT-dt);
     const el=Wv().dur-A.t;while(A.rogueTimes.length&&el>=A.rogueTimes[0]){A.rogueTimes.shift();aRogue();}
+    while(A.blockTimes.length&&el>=A.blockTimes[0].at){aBlocker(A.blockTimes.shift().k);}
+    A.blockers.forEach(b=>{b.p+=dt/b.span;});const fin=A.blockers.filter(b=>b.p>=1);
+    if(fin.length){fin.forEach(b=>aUnblock(b,BLOCKERS[b.k].end+` spid ${b.spid} released its locks.`));}
     A.rogues.forEach(r=>{r.p+=dt/r.span;});const done=A.rogues.filter(r=>r.p>=1);
     if(done.length){A.rogues=A.rogues.filter(r=>r.p<1);aToast(`spid ${done[0].spid} finished on its own after hogging the server the whole way.`);aRogueList();}
     aRogueBeat(dt);
     if(A.lat>2){alarmT-=dt;if(alarmT<=0){sfx("alarm");alarmT=1.6;}}else alarmT=0;}
   if(A.toastT>0){A.toastT-=dt;if(A.toastT<=0)aEl("a-toast").hidden=true;}
   if(A.tut&&A.tut.step===4&&A.t<=Wv().dur-6)aTutGo(5);
-  if(A.pat<=0){A.pat=0;A.over=true;A.running=false;A.rogues=[];aRogueList();sfx("lose");aEnd(!!A.overtime);return;}
-  if(A.t<=0){A.running=false;A.between=true;A.rogues=[];aRogueList();
+  if(A.pat<=0){A.pat=0;A.over=true;A.running=false;A.rogues=[];A.blockers=[];aRogueList();sfx("lose");aEnd(!!A.overtime);return;}
+  if(A.t<=0){A.running=false;A.between=true;A.rogues=[];A.blockers=[];A.blockT=0;A.blockQ=0;aRogueList();
     if(A.tut){aTutGo(6);return;}
     if(A.peaks[A.wave]<=1)aConfetti();sfx("wave");
     if(A.overtime){A.overtime++;A.waves.push(otWave(A.overtime));A.wave++;aWaveCard();return;}
@@ -1636,16 +2008,35 @@ function aRogue(){const k=pick(ROGUES),spid=++A.rid;A.spawned++;
 function aKill(spid){const r=A.rogues.find(x=>x.spid===spid);if(!r||!A.running)return;A.rogues=A.rogues.filter(x=>x!==r);A.kills++;
   const pts=250*A.mult;A.score+=pts;sfx("kill");aFloat(`KILL ${spid} · +${fmt(pts)}`,ACOL["--q2"]);A.killFx={y:r.y,x:r.p,life:.6};
   aToast(`KILL ${spid}. The session is rolled back and its ${fmt(r.load)} reads a second are gone.`);aRogueList();}
-function aRogueList(){const e=aEl("a-rogues");if(!e)return;e.innerHTML=A.rogues.map(r=>`<button class="killbtn" data-spid="${r.spid}">KILL ${r.spid}</button>`).join("");e.querySelectorAll("[data-spid]").forEach(b=>b.onclick=()=>aKill(+b.dataset.spid));}
+function aBlocker(k){const d=BLOCKERS[k],spid=++A.rid;
+  if(k==="purge"&&A.ixs.some(ix=>!ix.building&&ix.keys[0]==="created_at")){const pts=300*A.mult;A.score+=pts;aFloat(`purge seeks · no escalation · +${fmt(pts)}`,ACOL["--ok"]);
+    aToast(`The nightly purge started: ${d.sql}. It seeks IX_t_created_at, locks only the old rows it deletes, and never reaches the escalation threshold. Nobody waits.`);return;}
+  const ws=[1,2,3].map(()=>({spid:++A.rid}));const rd=!A.rcsi;
+  ws[0].wt="LCK_M_IX";ws[0].what="INSERT";ws[1].wt=rd?"LCK_M_IS":"LCK_M_IX";ws[1].what=rd?"Order lookup":"Status change";ws[2].wt="LCK_M_IX";ws[2].what="Status change";
+  A.blockers.push({k,spid,p:0,span:d.span,y:.35+R()*.3,ws});A.bSpawned++;sfx("rogue");
+  aToast(`${d.who} ${d.what}. Statements are queuing behind spid ${spid}. Click the session marked HEAD to KILL it.`);aRogueList();}
+function aUnblock(b,msg){A.blockers=A.blockers.filter(x=>x!==b);
+  if(!A.blockers.length){A.backlog+=Math.min(A.blockQ,1.5*AC);A.blockQ=0;}
+  aToast(msg+(A.blockers.length?"":" The statements that were waiting all arrive at once."));aRogueList();}
+function aKillBlk(b){if(!A.running)return;A.bKills++;const pts=400*A.mult;A.score+=pts;sfx("kill");aFloat(`KILL ${b.spid} · +${fmt(pts)}`,ACOL["--q2"]);
+  A.jobs.push({rate:12000,left:12000});
+  aUnblock(b,`KILL ${b.spid}. Its transaction rolls back, which takes a moment because every change has to be undone from the log, then the X lock on t is released.`);}
+function aKillWaiter(b,w){if(!A.running)return;b.ws=b.ws.filter(x=>x!==w);A.wrongKills++;A.pat=Math.max(0,A.pat-4);sfx("down");aFloat("wrong session",ACOL["--bad"]);
+  aToast(`KILL ${w.spid} rolled back a customer's ${w.what}, and freed nothing: it was waiting on ${w.wt} for spid ${b.spid}. KILL the head of the chain.`);aRogueList();}
+function aHitAt(sp){const b=A.blockers.find(x=>x.spid===sp);if(b)return aKillBlk(b);for(const x of A.blockers){const w=x.ws.find(y=>y.spid===sp);if(w)return aKillWaiter(x,w);}aKill(sp);}
+function aRogueList(){const e=aEl("a-rogues");if(!e)return;
+  const items=[...A.rogues.map(r=>[r.spid,`KILL ${r.spid}`]),...A.blockers.flatMap(b=>[[b.spid,`KILL ${b.spid} · sleeping, open transaction`],...b.ws.map(w=>[w.spid,`KILL ${w.spid} · ${w.wt}`])])].sort((a,b)=>a[0]-b[0]);
+  e.innerHTML=items.map(([sp,t])=>`<button class="killbtn" data-spid="${sp}">${t}</button>`).join("");e.querySelectorAll("[data-spid]").forEach(b=>b.onclick=()=>aHitAt(+b.dataset.spid));}
 function aConfetti(){if(RM)return;const cv=aEl("a-lane"),w=cv.clientWidth;for(let i=0;i<70;i++)A.confetti.push({x:R()*w,y:-10-R()*60,vx:(R()-.5)*60,vy:60+R()*120,rot:R()*6,vr:(R()-.5)*10,col:ACOL[pick(["--q1","--q2","--q3","--q4","--ok"])],life:3});}
-function otWave(k){const f=Math.pow(1.15,k),base=WAVES[4].rates,rates={};for(const t in base)rates[t]=Math.round(base[t]*f*10)/10;
-  const ev=pick(["stale","surge","rogues","sniff"]);let msg;
+function otWave(k){const f=Math.pow(1.15,k),base=WAVES[WAVES.length-1].rates,rates={};for(const t in base)rates[t]=Math.round(base[t]*f*10)/10;
+  const ev=pick(["stale","surge","rogues","sniff","blocking"]);let msg;
   if(ev==="surge"){rates.insert=Math.round(2500*f);rates.upd=Math.round(150*f);msg="Another supplier feed has kicked off. Thousands of inserts a second, and every index pays for each one.";}
   else if(ev==="stale")msg="A late batch of new products went live. The histogram doesn't know about them yet.";
   else if(ev==="rogues")msg="Month-end. Everyone with database access is running their own queries.";
+  else if(ev==="blocking"){rates.upd=Math.round(60*f);msg="Month-end stock take. Long transactions are holding locks again.";}
   else msg="Traffic is climbing again, and the plan cache is about to be tested.";
-  return{name:`Overtime ${k}`,clock:"after hours",dur:30,drain:1,rates,stale:ev==="stale",sniff:true,rogues:ev==="rogues"?3:1,msg:`${msg} Traffic is ${Math.round((f-1)*100)}% above the flash sale peak.`,
-    hint:ev==="surge"?"Count your indexes against the INSERT rate. Drop anything the workload doesn't use.":ev==="stale"?"Statistics are stale again. UPDATE STATISTICS, or rely on a covering index.":ev==="rogues"?"Three rogue sessions are coming. KILL them as soon as they appear.":"If Basket check's plan flips, RECOMPILE or a covering index protects you."};}
+  return{name:`Overtime ${k}`,clock:"after hours",dur:30,drain:1,rates,stale:ev==="stale",sniff:true,rogues:ev==="rogues"?3:1,blockers:ev==="blocking"?[{k:"tran",at:6},{k:"purge",at:18}]:null,msg:`${msg} Traffic is ${Math.round((f-1)*100)}% above the flash sale peak.`,
+    hint:ev==="surge"?"Count your indexes against the INSERT rate. Drop anything the workload doesn't use.":ev==="stale"?"Statistics are stale again. UPDATE STATISTICS, or rely on a covering index.":ev==="rogues"?"Three rogue sessions are coming. KILL them as soon as they appear.":ev==="blocking"?"Blocking is back. KILL the HEAD session, not its waiters, and keep RCSI and the created_at index.":"If Basket check's plan flips, RECOMPILE or a covering index protects you."};}
 // ---------- canvas ----------
 let ACOL={};
 function aColors(){const cs=getComputedStyle(document.documentElement);["--q1","--q2","--q3","--q4","--qw","--qu","--ink","--muted","--line","--surface","--ok","--bad","--hint","--bg"].forEach(k=>{ACOL[k]=cs.getPropertyValue(k).trim()||"#888";});}
@@ -1662,7 +2053,8 @@ function aDraw(dt){
   ctx.strokeStyle=ACOL["--line"];ctx.setLineDash([4,6]);ctx.lineWidth=1;for(let y=30;y<h;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(sx-6,y);ctx.stroke();}ctx.setLineDash([]);
   if(A.running){aSpawn(dt,w,h);
     const base=sx/2.4,jam=1/(1+A.lat*2.5);
-    A.tokens.forEach(k=>{const near=k.x>sx-110;k.x+=base*dt*aTS()*(near?Math.max(.08,jam):1);k.ph+=dt*6;
+    const wallX=sx-150;
+    A.tokens.forEach(k=>{const near=k.x>sx-110;if(aBlockedT(k.t)&&k.x<wallX){k.x=Math.min(wallX-k.r-3,k.x+base*dt*aTS());k.ph+=dt*6;return;}k.x+=base*dt*aTS()*(near?Math.max(.08,jam):1);k.ph+=dt*6;
       if(k.x+k.r>=sx){k.dead=true;aNote(k);for(let i=0;i<3;i++)A.parts.push({x:sx,y:k.y,vx:-20-R()*40,vy:(R()-.5)*60,life:.4,col:ACOL[AT[k.t].tok]});}});
     A.tokens=A.tokens.filter(k=>!k.dead);if(A.tokens.length>220)A.tokens.splice(0,A.tokens.length-220);
     if(A.lat>1.5&&R()<.5)A.parts.push({x:sx+sw*.3+R()*sw*.4,y:h/2-50,vx:(R()-.5)*14,vy:-30-R()*25,life:1.6,col:ACOL["--muted"],smoke:true});
@@ -1677,6 +2069,21 @@ function aDraw(dt){
     ctx.beginPath();ctx.arc(x,y,rr+6,0,7);ctx.fillStyle=ACOL["--bad"];ctx.globalAlpha=.18;ctx.fill();ctx.globalAlpha=1;
     ctx.beginPath();ctx.arc(x,y,rr,0,7);ctx.fillStyle=ACOL["--bad"];ctx.fill();ctx.lineWidth=2;ctx.strokeStyle=ACOL["--surface"];ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle="#fff";ctx.textAlign="center";ctx.font="700 11px JetBrains Mono, monospace";ctx.fillText("KILL",x,y-1);ctx.font="500 9px JetBrains Mono, monospace";ctx.fillText("spid "+r.spid,x,y+11);r.sx=x;r.sy=y;r.rr=rr;});
+  A.hits=A.rogues.filter(r=>r.sx!=null).map(r=>({x:r.sx,y:r.sy,r:r.rr+8,spid:r.spid}));
+  if(A.blockers.length){const wallX=sx-150;ctx.strokeStyle=ACOL["--bad"];ctx.setLineDash([6,5]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(wallX,8);ctx.lineTo(wallX,h-8);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=ACOL["--bad"];ctx.font="700 10px JetBrains Mono, monospace";ctx.textAlign="center";ctx.fillText("X lock on t",wallX,h-10);
+    A.blockers.forEach((b,bi)=>{const x=sx-75,y=Math.max(40,Math.min(h-40,b.y*h+bi*14)),rr=27;
+      b.ws.forEach((w,i)=>{const wx=wallX-36,wy=Math.max(18,Math.min(h-18,y-46+i*46));ctx.strokeStyle=ACOL["--muted"];ctx.setLineDash([3,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(wx+15,wy);ctx.lineTo(x-rr,y);ctx.stroke();ctx.setLineDash([]);
+        ctx.beginPath();ctx.arc(wx,wy,15,0,7);ctx.fillStyle=ACOL["--surface"];ctx.fill();ctx.strokeStyle=ACOL["--hint"];ctx.lineWidth=2;ctx.stroke();
+        ctx.fillStyle=ACOL["--ink"];ctx.font="600 9px JetBrains Mono, monospace";ctx.textAlign="center";ctx.fillText(w.spid,wx,wy+1);ctx.fillStyle=ACOL["--muted"];ctx.font="500 8px JetBrains Mono, monospace";ctx.fillText(w.wt.replace("LCK_M_",""),wx,wy+10);
+        A.hits.push({x:wx,y:wy,r:17,spid:w.spid});});
+      ctx.beginPath();ctx.arc(x,y,rr+5,-Math.PI/2,-Math.PI/2+Math.PI*2*(1-b.p));ctx.strokeStyle=ACOL["--bad"];ctx.lineWidth=3;ctx.stroke();
+      ctx.beginPath();ctx.arc(x,y,rr,0,7);ctx.fillStyle=ACOL["--bad"];ctx.fill();
+      ctx.strokeStyle="#fff";ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(x,y-9,6,Math.PI,0);ctx.stroke();ctx.fillStyle="#fff";ctx.fillRect(x-8,y-9,16,11);
+      ctx.fillStyle=ACOL["--bad"];ctx.fillRect(x-1,y-6,2,5);
+      ctx.fillStyle="#fff";ctx.font="700 9px JetBrains Mono, monospace";ctx.textAlign="center";ctx.fillText("HEAD "+b.spid,x,y+14);
+      ctx.fillStyle=ACOL["--muted"];ctx.font="500 9px JetBrains Mono, monospace";ctx.fillText(b.k==="tran"?"sleeping · open tran":"purge · DELETE",x,y+rr+16);
+      A.hits.push({x,y,r:rr+6,spid:b.spid});});}
   if(A.killFx){const k=A.killFx;k.life-=dt;const x=20+k.x*(sx-80),y=k.y*h;ctx.beginPath();ctx.arc(x,y,30+(.6-k.life)*90,0,7);ctx.strokeStyle=ACOL["--q2"];ctx.lineWidth=3;ctx.globalAlpha=Math.max(0,k.life/.6);ctx.stroke();ctx.globalAlpha=1;if(k.life<=0)A.killFx=null;}
   const sy=h/2-48,sh=96,state=load>1?ACOL["--bad"]:load>.75?ACOL["--hint"]:ACOL["--ok"];
   ctx.fillStyle=ACOL["--surface"];ctx.strokeStyle=state;ctx.lineWidth=2.5;ctx.beginPath();ctx.roundRect(sx,sy,sw,sh,8);ctx.fill();ctx.stroke();
@@ -1698,17 +2105,20 @@ function aHud(){
   const lb=aEl("a-load");lb.style.width=Math.min(100,ld*100)+"%";lb.className=ld>1?"bad":ld>.75?"warn":"";
   let top=null;for(const t in aRates()){const s=aRates()[t]*aCost(t).cost/AC;if(!top||s>top.s)top={t,s};}
   const rg=A.rogues.reduce((x,r)=>x+r.load,0)/AC;if(rg>(top?top.s:0))top={t:null,s:rg};
-  aEl("a-loadtxt").textContent=`${fmt(D)} of ${fmt(AC)} reads/s`+(ld>.75&&top?` · biggest: ${top.t?AT[top.t].label:"rogue sessions"} (${aPct(top.s)}%)`:"");
+  const brt=aBlockedRate();
+  aEl("a-loadtxt").textContent=`${fmt(D)} of ${fmt(AC)} reads/s`+(brt>0?` · ${fmt(brt)} statements/s waiting on locks`:ld>.75&&top?` · biggest: ${top.t?AT[top.t].label:"rogue sessions"} (${aPct(top.s)}%)`:"");
   aEl("a-lanewrap").classList.toggle("slowmo",!!(A.slow&&A.running));
   aEl("a-lat").textContent=A.lat<1?Math.round(A.lat*1000)+" ms":A.lat.toFixed(1)+" s";aEl("a-lat").className=A.lat>2?"bad":A.lat>.5?"warn":"";
   const pb=aEl("a-pat");pb.style.width=A.pat+"%";pb.className=A.pat<30?"bad":A.pat<60?"warn":"";
-  aEl("a-patnote").textContent=A.running&&A.grace>0?`grace period: ${Math.ceil(A.grace)} s`:A.lat>1?(A.hurt<8?`draining, ${aPct(Math.min(1,A.hurt/8))}% speed and rising`:"draining at full speed"):"";
+  aEl("a-patnote").textContent=A.running&&aBlockedRate()>0&&A.lat>1?"statements are waiting on locks, not on the server":A.running&&A.grace>0?`grace period: ${Math.ceil(A.grace)} s`:A.lat>1?(A.hurt<8?`draining, ${aPct(Math.min(1,A.hurt/8))}% speed and rising`:"draining at full speed"):"";
   aEl("a-score").textContent=A.tut?"–":fmt(A.score);
   aEl("a-mult").textContent=A.tut?"–":`×${A.mult}`;aEl("a-mult").className=A.mult>=4?"good":"";aEl("a-multbar").style.width=(A.mult>=5?100:A.calmT/5*100)+"%";
   aEl("a-sound").textContent=SOUND?"Sound on":"Sound off";aEl("a-melody").textContent=MELODY?"Melody on":"Melody off";aEl("a-melody").disabled=!SOUND;
   aEl("a-pause").textContent=A.running?"Pause":"Resume";aEl("a-pause").disabled=A.over||!A.started||A.between;
   aEl("a-hint").disabled=!!A.tut||A.over;
   const sb=aEl("a-stats");if(sb){sb.disabled=A.statsCd>0||A.over;sb.textContent=A.statsCd>0?`UPDATE STATISTICS t (ready in ${Math.ceil(A.statsCd)} s)`:"UPDATE STATISTICS t";}
+  const rb=aEl("a-rcsi");if(rb){rb.textContent=A.rcsi?"RCSI is on · switch off":"ALTER DATABASE … SET READ_COMMITTED_SNAPSHOT ON";rb.disabled=A.over;}
+  aEl("a-rcsistate").textContent=A.rcsi?"Readers use row versions and never wait for writers. Each UPDATE also writes a row version to tempdb.":"Off: readers take S locks and wait behind writers. Switching needs exclusive access, so it can only happen between waves.";
   aEl("a-statsstate").textContent=A.statsFresh?"Statistics are up to date.":"Statistics are stale: rows inserted since the last update aren't in the histogram.";
   A.ixs.forEach(ix=>{const e=aEl("a-prog-"+ix.id);if(e)e.textContent=ix.building?`building ${aPct(ix.prog)}%`:"ready";});
 }
@@ -1752,9 +2162,9 @@ function aRun(){aEl("a-card").hidden=true;A.between=false;A.started=true;A.runni
 function aWaveCard(){
   const wv=Wv(),prev=A.wave?A.waves[A.wave-1].rates:{},added=Object.keys(wv.rates).filter(t=>!(t in prev)),changed=Object.keys(wv.rates).filter(t=>t in prev&&prev[t]!==wv.rates[t]);
   if(wv.stale)A.statsFresh=false;if(wv.sniff&&!A.overtime)A.sniffHot=false;A.t=wv.dur;A.dirty=true;A.between=true;A.tokens=[];
-  A.rogueTimes=Array.from({length:wv.rogues||0},()=>8+R()*(wv.dur-20)).sort((x,y)=>x-y);sfx("pager");
+  A.rogueTimes=Array.from({length:wv.rogues||0},()=>8+R()*(wv.dur-20)).sort((x,y)=>x-y);A.blockTimes=(wv.blockers||[]).map(b=>({...b})).sort((x,y)=>x.at-y.at);sfx("pager");
   aCard(`<span class="label">${wv.clock} · Pager · ${A.overtime?"overtime":`wave ${A.wave+1} of ${A.waves.length}`}</span><h3>${wv.name}</h3><p>${wv.msg}</p>
-    ${wv.rogues?`<p class="pn">Expect ${wv.rogues} rogue session${wv.rogues>1?"s":""} this wave. Click them to KILL them.</p>`:""}
+    ${wv.rogues?`<p class="pn">Expect ${wv.rogues} rogue session${wv.rogues>1?"s":""} this wave. Click them to KILL them.</p>`:""}${wv.blockers?`<p class="pn">Expect blocking this wave: statements stop at a lock wall in the traffic lane. READ_COMMITTED_SNAPSHOT can only be switched now, while the clock is stopped (DBA tools, below).</p>`:""}
     <ul>${added.map(t=>`<li>New: <b>${AT[t].label}</b>, ${fmt(wv.rates[t])} per second</li>`).join("")}${changed.map(t=>`<li>${AT[t].label}: ${fmt(prev[t])} → ${fmt(wv.rates[t])} per second</li>`).join("")}</ul>
     <p class="pn">Mid-wave, time slows to ${Math.round(SLOW*100)}% while your pointer is over the panels below. The clock is stopped now, so builds finish instantly. Check the workload table below, fix what you can, then start the wave. The first ${GRACE} seconds are a grace period.</p>
     <div class="hintbox" id="a-hintbox" hidden><b>Hint</b> ${wv.hint}</div>`,
@@ -1767,7 +2177,8 @@ function aEnd(win){
   const stars=win?(A.overtime?3:A.pat>=70?3:A.pat>=40?2:1):0;
   let have=[];try{have=JSON.parse(localStorage.getItem(BADGE_KEY)||"[]");}catch(e){}
   const shiftDone=win,earned=[];
-  if(shiftDone&&A.peaks.slice(0,5).every(p=>p<=1))earned.push("clean");
+  if(shiftDone&&A.peaks.slice(0,WAVES.length).every(p=>p<=1))earned.push("clean");
+  if(shiftDone&&A.bSpawned>0&&A.wrongKills===0&&A.bKills>0)earned.push("lockbreaker");
   if(A.spawned>0&&A.kills===A.spawned&&shiftDone)earned.push("hunter");
   if(shiftDone&&A.maxIx<=2)earned.push("minimal");
   if(shiftDone&&!A.hints)earned.push("solo");
@@ -1799,7 +2210,7 @@ function aCoach(){
   const box=aEl("a-coach");if(!A||!A.tut){box.hidden=true;return;}
   const st=TUT[A.tut.step];
   if(st.end){box.hidden=true;try{localStorage.setItem(TUT_KEY,"1");}catch(e){}
-    aCard(`<span class="label">Training complete</span><h3>That's the whole loop</h3><p>Find the statement with the biggest share of capacity, work out why its plan is expensive, and fix it. The real shift has five waves, each 45 seconds long, and each one breaks something new. Every pager message has a hint button if you get stuck.</p>`,[["Start the shift",()=>aBegin(false)],["Repeat the tutorial",()=>aBegin(true)],["Back to levels",aQuit]]);return;}
+    aCard(`<span class="label">Training complete</span><h3>That's the whole loop</h3><p>Find the statement with the biggest share of capacity, work out why its plan is expensive, and fix it. The real shift has six waves, each 45 seconds long, and each one breaks something new. Every pager message has a hint button if you get stuck.</p>`,[["Start the shift",()=>aBegin(false)],["Repeat the tutorial",()=>aBegin(true)],["Back to levels",aQuit]]);return;}
   if(st.dismiss&&A.tut.dismissed){box.hidden=true;return;}
   const running=st.run&&A.running,txt=running?st.textRunning:typeof st.text==="function"?st.text():st.text;
   box.hidden=false;
@@ -1820,8 +2231,8 @@ function aStart(){
   aEl("levels").hidden=true;aEl("game").hidden=true;aEl("arcade").hidden=false;aEl("b-levels").hidden=true;aEl("a-toast").hidden=true;aEl("a-coach").hidden=true;
   let done=false;try{done=!!localStorage.getItem(TUT_KEY);}catch(e){}
   const tutBtn=["Play the tutorial (about 2 minutes)",()=>aBegin(true)],shiftBtn=["Start the shift",()=>aBegin(false)];
-  aCard(`<span class="label">Arcade mode</span><h3>Peak Load</h3><p>You're the DBA on call for table <code>t</code>. The server can do <b>60,000 page reads a second</b>. Traffic arrives in five waves of 45 seconds, and each wave brings a new problem. When demand passes capacity, requests queue, latency climbs and customer patience drains. Let it run out and the shift ends in an outage.</p>
-    <ul><li>Build up to three nonclustered indexes, and drop the ones that don't pay their way. Building with an existing index's key columns rebuilds it in place.</li><li>The workload table shows every statement's plan and its share of capacity. Fix the biggest share first.</li><li>When the pager goes off, use your DBA tools: UPDATE STATISTICS and OPTION (RECOMPILE).</li><li>The clock stops between waves, and each wave starts with a ${GRACE}-second grace period.</li><li>While your pointer is over the workload or index panels, time slows to ${Math.round(SLOW*100)}% so you can plan. Patience drains slowly at first and builds to full speed after 8 seconds of overload.</li><li>Keep load under 75% to build a calm streak, up to ×5 points. Going over 100% resets it.</li><li>Rogue sessions will appear in the traffic lane. Click them to KILL them before they hog the server.</li><li>Every statement that reaches the server plays a note. A healthy server hums in a bright major key; expensive statements drop an octave into a buzzier tone, and an overloaded server slides into a minor key with a wobble.</li></ul>
+  aCard(`<span class="label">Arcade mode</span><h3>Peak Load</h3><p>You're the DBA on call for table <code>t</code>. The server can do <b>60,000 page reads a second</b>. Traffic arrives in six waves of 45 seconds, and each wave brings a new problem. When demand passes capacity, requests queue, latency climbs and customer patience drains. Let it run out and the shift ends in an outage.</p>
+    <ul><li>Build up to three nonclustered indexes, and drop the ones that don't pay their way. Building with an existing index's key columns rebuilds it in place.</li><li>The workload table shows every statement's plan and its share of capacity. Fix the biggest share first.</li><li>When the pager goes off, use your DBA tools: UPDATE STATISTICS, OPTION (RECOMPILE) and, between waves, READ_COMMITTED_SNAPSHOT.</li><li>The clock stops between waves, and each wave starts with a ${GRACE}-second grace period.</li><li>While your pointer is over the workload or index panels, time slows to ${Math.round(SLOW*100)}% so you can plan. Patience drains slowly at first and builds to full speed after 8 seconds of overload.</li><li>Keep load under 75% to build a calm streak, up to ×5 points. Going over 100% resets it.</li><li>Rogue sessions will appear in the traffic lane. Click them to KILL them before they hog the server.</li><li>Later, statements start waiting on locks behind a blocking session. KILL the head of the chain, not the sessions waiting behind it.</li><li>Every statement that reaches the server plays a note. A healthy server hums in a bright major key; expensive statements drop an octave into a buzzier tone, and an overloaded server slides into a minor key with a wobble.</li></ul>
     <p class="pn">Badges earned: ${(()=>{try{return JSON.parse(localStorage.getItem(BADGE_KEY)||"[]").length;}catch(e){return 0;}})()} of ${BADGES.length}. Sound is ${SOUND?"on":"off"}; toggle it under the traffic lane.</p>`,
     done?[shiftBtn,tutBtn,["Back to levels",aQuit]]:[tutBtn,shiftBtn,["Back to levels",aQuit]]);
   aPanels();alast=0;araf=requestAnimationFrame(aLoop);
@@ -1834,6 +2245,8 @@ function aQuit(){cancelAnimationFrame(araf);if(A){A.running=false;}document.quer
     <code class="blk" id="a-ddl"></code><div class="actions"><button class="primary" id="a-build">Build index</button></div>`;
   aEl("a-builder").querySelectorAll("select,input").forEach(e=>e.addEventListener("change",aPreview));aPreview();
   aEl("a-build").onclick=aBuild;aEl("a-stats").onclick=aStats;
+  aEl("a-rcsi").onclick=()=>{if(!A||A.over)return;if(!A.between){aToast("Changing READ_COMMITTED_SNAPSHOT needs every other connection out of the database. Do it between waves, while the clock is stopped.");return;}
+    A.rcsi=!A.rcsi;aToast(A.rcsi?"READ_COMMITTED_SNAPSHOT is on. Readers now read the last committed version of a row instead of waiting for writers. Writers still block writers, and every UPDATE also writes the old row version to tempdb.":"READ_COMMITTED_SNAPSHOT is off. Readers take S locks again.");A.dirty=true;};
   aEl("a-pause").onclick=()=>{if(!A||A.over||!A.started||A.between)return;A.running=!A.running;};
   aEl("a-speed").onclick=()=>{A.speed=A.speed===1?2:1;aEl("a-speed").textContent=`Speed ×${A.speed}`;};
   aEl("a-hint").onclick=()=>{if(!A||A.tut)return;A.hints++;aToast("Hint: "+Wv().hint);};
@@ -1843,8 +2256,8 @@ function aQuit(){cancelAnimationFrame(araf);if(A){A.running=false;}document.quer
   agrid.addEventListener("focusin",()=>{foc=true;upd();});agrid.addEventListener("focusout",e=>{if(!agrid.contains(e.relatedTarget)){foc=false;upd();}});
   aEl("a-melody").onclick=()=>{MELODY=!MELODY;try{localStorage.setItem(MEL_KEY,MELODY?"on":"off");}catch(e){}};
   aEl("a-sound").onclick=()=>{SOUND=!SOUND;try{localStorage.setItem(SND_KEY,SOUND?"on":"off");}catch(e){}if(SOUND)sfx("up");};
-  const cv=aEl("a-lane"),hit=e=>{const b=cv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;return A?A.rogues.find(r=>r.sx!=null&&Math.hypot(r.sx-x,r.sy-y)<=r.rr+8):null;};
-  cv.addEventListener("pointerdown",e=>{const r=hit(e);if(r)aKill(r.spid);});
+  const cv=aEl("a-lane"),hit=e=>{const b=cv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;return A&&A.hits?A.hits.filter(r=>Math.hypot(r.x-x,r.y-y)<=r.r).sort((p,q)=>Math.hypot(p.x-x,p.y-y)-Math.hypot(q.x-x,q.y-y))[0]:null;};
+  cv.addEventListener("pointerdown",e=>{const r=hit(e);if(r)aHitAt(r.spid);});
   cv.addEventListener("pointermove",e=>{cv.style.cursor=hit(e)?"crosshair":"default";});
   document.addEventListener("keydown",e=>{if(aEl("arcade").hidden||e.target.closest("input,select,button"))return;if(e.code==="Space"){e.preventDefault();aEl("a-pause").click();}});
   try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",aColors);}catch(e){}
